@@ -17,6 +17,8 @@
             if(e.ctrlKey&&e.keyCode=='U'.charCodeAt(0)) return false;
         }
     </script>
+    <!-- TON Connect -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <!-- ADS SDKs -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
@@ -239,6 +241,9 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="ton-sub-row">
             <span>TON Balance</span>
             <span>≈ <span id="bal-ton">0.0000</span> TON</span>
+        </div>
+        <div style="margin-top:10px;">
+            <div id="ton-connect-btn" style="width:100%;"></div>
         </div>
     </div>
 
@@ -556,13 +561,14 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <!--                   FIREBASE + APP LOGIC                    -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
-import { getFirestore, collection, getDocs, query, where, limit, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
+import { getFirestore, collection, getDocs, query, where, limit, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey:"AIzaSyBiCyauYlaty5Th0_uPfCnhTcaTHzzKDM4",
     authDomain:"coinly-task.firebaseapp.com",
+    databaseURL:"https://coinly-task-default-rtdb.firebaseio.com",
     projectId:"coinly-task",
     storageBucket:"coinly-task.firebasestorage.app",
     messagingSenderId:"724806557550",
@@ -573,7 +579,24 @@ const app = initializeApp(firebaseConfig);
 getAnalytics(app);
 const db = getFirestore(app);
 const tg = window.Telegram.WebApp;
-const VERIFICATION_API_URL = "https://ton-bot-11.vercel.app";
+const VERIFICATION_API_URL = "https://coinly-task.vercel.app";
+
+// ── TON CONNECT ──
+let tonConnectUI = null;
+let connectedWallet = null;
+
+async function initTonConnect(){
+    try{
+        tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://coinly-task.vercel.app/tonconnect-manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+        tonConnectUI.onStatusChange(wallet=>{
+            connectedWallet = wallet;
+            if(wallet){ updateUI(); }
+        });
+    }catch(e){ console.log('TON Connect init failed:', e); }
+}
 
 // ── DEPOSIT WALLET ──
 const DEPOSIT_WALLET = "UQBPuFaTHpooYMbMS2oQ1UMLFGemDZvxs8Zmenl4FR3AF4y8";
@@ -716,7 +739,7 @@ function updateUI(){
         document.getElementById('ref-total').innerText = currentUser.totalInvites||0;
         document.getElementById('ref-valid').innerText = currentUser.validReferrals||0;
         document.getElementById('ref-earned').innerText = currentUser.referralDiamondEarned||0;
-        const link = `https://t.me/Coinlytix_bot/coinlyTon?startapp=${currentUser.id}`;
+        const link = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${currentUser.id}`;
         document.getElementById('invite-link').value = link;
     }catch(e){}
 
@@ -986,6 +1009,20 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
         document.getElementById('pay-task-pkg').innerText=selectedPackage.label;
         document.getElementById('pay-task-memo').innerText=taskMemo;
         document.getElementById('pay-task-tk-btn').onclick=()=>tg.openLink(tonkeeperUrl);
+        // Wallet status
+        const pwEl=document.getElementById('pay-wallet-status');
+        const pcBtn=document.getElementById('pay-task-connect-btn');
+        if(connectedWallet){
+            const addr=connectedWallet.account?.address;
+            const short=addr?addr.slice(0,6)+'...'+addr.slice(-4):'Connected';
+            pwEl.innerHTML=`✅ Wallet: <b>${short}</b> — click below to send directly`;
+            pwEl.style.color='var(--green)';
+            pcBtn.style.display='block';
+        } else {
+            pwEl.innerHTML='⚠️ Connect wallet (button on home screen) or use manual method below';
+            pwEl.style.color='var(--gold)';
+            pcBtn.style.display='none';
+        }
         document.getElementById('modal-task-payment').classList.add('show');
     }catch(e){ showAlert('Error','Failed to create task.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Pay & Create';
@@ -1156,8 +1193,107 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
     document.querySelector(l.dataset.target).classList.add('active');
 }));
 
-// Task payment confirm
-document.getElementById('pay-task-confirm-btn').addEventListener('click', async()=>{
+// ── DEPOSIT BUTTON ──
+const TON_TO_DIAMOND = 1333;
+let selectedDepositTon = 0.5;
+
+document.querySelectorAll('.dep-amount-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('.dep-amount-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedDepositTon=parseFloat(btn.dataset.ton);
+    });
+});
+
+async function sendTonConnect(toAddress, tonAmount, memo){
+    if(!tonConnectUI) throw new Error('TON Connect not ready');
+    if(!connectedWallet) await tonConnectUI.connectWallet();
+    const nanoAmount = Math.floor(tonAmount * 1e9).toString();
+    const tx = {
+        validUntil: Math.floor(Date.now()/1000)+600,
+        messages:[{
+            address: toAddress,
+            amount: nanoAmount,
+            payload: btoa(memo)
+        }]
+    };
+    await tonConnectUI.sendTransaction(tx);
+}
+
+document.getElementById('btn-deposit').addEventListener('click',()=>{
+    if(!currentUser) return;
+    document.getElementById('dep-show-ton').innerText=selectedDepositTon;
+    document.getElementById('dep-memo-display').innerText=currentUser.id;
+    document.getElementById('dep-modal-sub').innerHTML=`Sending <b>${selectedDepositTon} TON</b> → <b>+${Math.floor(selectedDepositTon*TON_TO_DIAMOND)} 💎</b>`;
+    const connEl=document.getElementById('dep-wallet-status');
+    if(connectedWallet){
+        const addr=connectedWallet.account?.address;
+        const short=addr?addr.slice(0,6)+'...'+addr.slice(-4):'Connected';
+        connEl.innerHTML=`✅ Wallet connected: <b>${short}</b>`;
+        connEl.style.color='var(--green)';
+        document.getElementById('dep-send-btn').style.display='block';
+    } else {
+        connEl.innerHTML='⚠️ Wallet not connected — use manual method below';
+        connEl.style.color='var(--gold)';
+        document.getElementById('dep-send-btn').style.display='none';
+    }
+    document.getElementById('modal-deposit').classList.add('show');
+});
+
+document.getElementById('dep-send-btn').addEventListener('click', async()=>{
+    const btn=document.getElementById('dep-send-btn');
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        await sendTonConnect(DEPOSIT_WALLET, selectedDepositTon, currentUser.id);
+        // Log deposit pending
+        await addDoc(collection(db,'deposits'),{
+            userId:currentUser.id, tonAmount:selectedDepositTon,
+            expectedDiamond:Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+            memo:currentUser.id, status:'pending', createdAt:serverTimestamp()
+        });
+        document.getElementById('modal-deposit').classList.remove('show');
+        showAlert('Sent!','TON sent! Diamond will be added within 1–6 hours.','success');
+    }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON Directly';
+});
+
+document.getElementById('dep-open-tonkeeper').addEventListener('click',()=>{
+    const url=`https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${Math.floor(selectedDepositTon*1e9)}&text=${encodeURIComponent(currentUser.id)}`;
+    tg.openLink(url);
+});
+
+document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
+    const btn=document.getElementById('dep-confirm-btn');
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        await addDoc(collection(db,'deposits'),{
+            userId:currentUser.id, tonAmount:selectedDepositTon,
+            expectedDiamond:Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+            memo:currentUser.id, status:'pending', createdAt:serverTimestamp()
+        });
+        document.getElementById('modal-deposit').classList.remove('show');
+        showAlert('Submitted!','Deposit pending. Diamond added within 1–6 hours.','success');
+    }catch(e){ showAlert('Error','Submission failed.','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Sent — Confirm';
+});
+
+// Task payment TON Connect
+document.getElementById('pay-task-connect-btn')?.addEventListener('click', async()=>{
+    const btn=document.getElementById('pay-task-connect-btn');
+    const memo=document.getElementById('pay-task-memo').innerText;
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        const ton=selectedPackage?.ton||0;
+        await sendTonConnect(DEPOSIT_WALLET, ton, memo);
+        await addDoc(collection(db,'task_payments'),{
+            userId:currentUser.id, memo, status:'pending', createdAt:serverTimestamp()
+        });
+        document.getElementById('modal-task-payment').classList.remove('show');
+        showAlert('Sent!','Payment sent! Task activates within 1–6 hours.','success');
+        fetchTasks(taskFilter);
+    }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON via Connected Wallet';
+});
     const btn=document.getElementById('pay-task-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
@@ -1172,6 +1308,7 @@ document.getElementById('pay-task-confirm-btn').addEventListener('click', async(
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Paid — Confirm';
 });
 
+initTonConnect();
 initApp();
 </script>
 <!-- TASK PAYMENT MODAL -->
@@ -1184,16 +1321,44 @@ initApp();
             <div style="font-weight:800;color:var(--text-main);" id="pay-task-pkg">—</div>
             <div style="font-family:var(--mono);font-size:1.4rem;font-weight:800;color:var(--primary);margin-top:4px;"><span id="pay-task-ton-amount">0</span> TON</div>
         </div>
-        <div class="info-box">
+        <!-- TON Connect send -->
+        <div id="pay-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
+        <button class="btn btn-primary btn-full" id="pay-task-connect-btn" style="margin-bottom:10px;display:none;"><i class="fas fa-bolt"></i> Send TON via Connected Wallet</button>
+        <!-- Manual fallback -->
+        <div class="info-box" id="pay-manual-box">
             📋 Send to our wallet via Tonkeeper<br>
             🔑 <b>Memo / Comment (required):</b><br>
             <div style="font-family:var(--mono);font-size:0.85rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;background:#fff;padding:6px 10px;border-radius:8px;border:1px solid var(--border-mid);" id="pay-task-memo">...</div>
         </div>
-        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:14px;">
+        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:10px;">
             ⚠️ Copy the memo exactly. Task activates within 1–6 hours after payment confirmed.
         </div>
-        <button class="btn btn-gold btn-full" id="pay-task-tk-btn" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper to Pay</button>
-        <button class="btn btn-primary btn-full" id="pay-task-confirm-btn"><i class="fas fa-check-circle"></i> I've Paid — Confirm</button>
+        <button class="btn btn-gold btn-full" id="pay-task-tk-btn" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper Manually</button>
+        <button class="btn btn-green btn-full" id="pay-task-confirm-btn"><i class="fas fa-check-circle"></i> I've Sent — Confirm</button>
+        <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
+    </div>
+</div>
+
+<!-- DEPOSIT MODAL -->
+<div class="modal-bg" id="modal-deposit">
+    <div class="modal-box">
+        <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
+        <div class="modal-title">Deposit TON</div>
+        <div class="modal-sub" id="dep-modal-sub">Sending <b id="dep-show-ton">0</b> TON</div>
+        <div id="dep-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
+        <!-- TON Connect direct send -->
+        <button class="btn btn-primary btn-full" id="dep-send-btn" style="margin-bottom:10px;display:none;"><i class="fas fa-bolt"></i> Send TON Directly</button>
+        <!-- Manual method -->
+        <div class="info-box">
+            📋 Send to our wallet via Tonkeeper<br>
+            🔑 <b>Your Memo/Comment:</b><br>
+            <div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;" id="dep-memo-display">...</div>
+        </div>
+        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:10px;">
+            ⚠️ Memo must match exactly — without it deposit cannot be processed.
+        </div>
+        <button class="btn btn-gold btn-full" id="dep-open-tonkeeper" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper Manually</button>
+        <button class="btn btn-green btn-full" id="dep-confirm-btn"><i class="fas fa-check-circle"></i> I've Sent — Confirm</button>
         <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
     </div>
 </div>
