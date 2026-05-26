@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Coinly Task</title>
+    <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.onkeydown = function(e) {
+            if(e.keyCode==123) return false;
+            if(e.ctrlKey&&e.shiftKey&&['I','C','J'].includes(String.fromCharCode(e.keyCode))) return false;
+            if(e.ctrlKey&&e.keyCode=='U'.charCodeAt(0)) return false;
+        }
+    </script>
+    <!-- ADS SDKs -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+    <script type="text/javascript">
+        document.addEventListener('DOMContentLoaded', () => {
+            try { new AdexiumWidget({wid:'a1a296e8-82a8-4686-8740-2ecd055c403d',adFormat:'interstitial'}).autoMode(); } catch(e) {}
+        });
+    </script>
+    <script src="https://ad.gigapub.tech/script?id=4088"></script>
+    <script src='//libtl.com/sdk.js' data-zone='10135525' data-sdk='show_10135525'></script>
+
+<style>
+:root {
+    --primary:#1a6ff5;
+    --primary-dark:#1558c8;
+    --primary-light:#e8f0fe;
+    --primary-mid:#4d8ef7;
+    --accent:#0ea5e9;
+    --white:#ffffff;
+    --bg-page:#f0f4ff;
+    --bg-card:#ffffff;
+    --bg-section:#f7f9ff;
+    --text-main:#0f172a;
+    --text-sub:#475569;
+    --text-muted:#94a3b8;
+    --border:#dbeafe;
+    --border-mid:#bfdbfe;
+    --gold:#f59e0b;
+    --diamond:#06b6d4;
+    --diamond-bg:#ecfeff;
+    --green:#10b981;
+    --red:#ef4444;
+    --shadow:0 2px 12px rgba(26,111,245,0.10);
+    --shadow-md:0 4px 24px rgba(26,111,245,0.15);
+    --font:'Outfit',sans-serif;
+    --mono:'Space Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);padding:65px 0 85px;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
+
+/* HEADER */
+.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:var(--white);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:var(--shadow);}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:var(--primary);letter-spacing:0.5px;}
+.brand i{color:var(--primary);}
+.brand .t{color:var(--accent);}
+.head-actions{display:flex;gap:8px;}
+.icon-btn{width:38px;height:38px;border-radius:12px;background:var(--primary-light);border:1.5px solid var(--border-mid);color:var(--primary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:0.2s;font-size:0.95rem;}
+.icon-btn:hover{background:var(--primary);color:#fff;transform:translateY(-1px);}
+
+/* CONTAINER */
+.container{max-width:600px;margin:0 auto;padding:0 14px;}
+
+/* CARDS */
+.card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.card-blue{background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);border:none;color:#fff;}
+.card-blue .lbl{color:rgba(255,255,255,0.8);}
+.card-blue .val{color:#fff;}
+
+/* BALANCE HEADER CARD */
+.bal-header{padding:20px 18px;}
+.user-row{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.avatar{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
+.user-id-pill{font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.15);padding:4px 10px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+.bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.bal-box{background:rgba(255,255,255,0.15);border-radius:13px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.2);}
+.bal-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;opacity:0.8;margin-bottom:3px;}
+.bal-num{font-family:var(--mono);font-size:1.45rem;font-weight:800;}
+
+/* SECTION TITLE */
+.sec-title{font-size:1rem;font-weight:800;color:var(--text-main);margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;}
+.sec-title i{color:var(--primary);font-size:1rem;}
+
+/* TASK CARDS */
+.task-card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:16px;padding:14px 15px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:0.2s;box-shadow:var(--shadow);}
+.task-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md);}
+.t-icon{width:42px;height:42px;border-radius:12px;background:var(--primary-light);border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;font-size:1.15rem;color:var(--primary);flex-shrink:0;}
+.t-info{flex:1;}
+.t-name{font-size:0.92rem;font-weight:700;color:var(--text-main);}
+.t-reward{font-size:0.75rem;color:var(--primary);font-weight:600;margin-top:2px;}
+.t-limit{font-size:0.68rem;color:var(--text-muted);margin-top:1px;}
+
+/* BUTTONS */
+.btn{padding:12px 20px;border:none;border-radius:12px;font-family:var(--font);font-weight:700;font-size:0.88rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:0.2s;letter-spacing:0.3px;}
+.btn:active{transform:scale(0.97);}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 15px rgba(26,111,245,0.3);}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(14,165,233,0.3);}
+.btn-outline{background:transparent;border:1.5px solid var(--primary);color:var(--primary);}
+.btn-outline:hover{background:var(--primary-light);}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 4px 15px rgba(16,185,129,0.3);}
+.btn-gold{background:var(--gold);color:#fff;box-shadow:0 4px 15px rgba(245,158,11,0.3);}
+.btn-disabled{background:#e2e8f0!important;color:#94a3b8!important;box-shadow:none!important;cursor:not-allowed;border:none!important;}
+.btn-full{width:100%;}
+
+/* CREATE TASK SHAPE BUTTON */
+.create-task-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 20px;background:linear-gradient(135deg,var(--primary),var(--accent));border:none;border-radius:18px;color:#fff;font-family:var(--font);font-weight:800;font-size:1rem;cursor:pointer;width:100%;margin-bottom:16px;box-shadow:var(--shadow-md);transition:0.2s;position:relative;overflow:hidden;}
+.create-task-btn::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 60%);pointer-events:none;}
+.create-task-btn:active{transform:scale(0.98);}
+.create-task-icon{width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+
+/* DEPOSIT BOX - removed, handled in modal */
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid var(--border);display:flex;padding:8px 0 16px;z-index:1000;box-shadow:0 -4px 20px rgba(26,111,245,0.08);}
+.b-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);font-size:0.62rem;font-weight:700;text-transform:uppercase;cursor:pointer;transition:0.2s;}
+.b-nav-item i{font-size:1.2rem;}
+.b-nav-item.active{color:var(--primary);}
+.b-nav-item.active i{transform:translateY(-2px);}
+
+/* SECTIONS */
+.content-section{display:none;animation:slideIn 0.25s ease;}
+.content-section.active{display:block;}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
+.modal-bg.show{display:flex;}
+.modal-box{background:var(--white);border:1.5px solid var(--border);border-radius:24px;width:100%;max-width:360px;padding:24px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(26,111,245,0.2);animation:popModal 0.35s cubic-bezier(0.175,0.885,0.32,1.275);max-height:88vh;overflow-y:auto;}
+@keyframes popModal{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.modal-title{font-size:1.15rem;font-weight:800;color:var(--text-main);margin-bottom:6px;}
+.modal-sub{font-size:0.82rem;color:var(--text-sub);margin-bottom:18px;}
+.input-field{width:100%;background:var(--bg-section);border:1.5px solid var(--border-mid);padding:13px 14px;border-radius:12px;color:var(--text-main);font-family:var(--font);font-size:0.9rem;margin-bottom:12px;outline:none;transition:0.2s;}
+.input-field:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,111,245,0.1);}
+.info-box{background:var(--primary-light);border:1.5px solid var(--border-mid);border-radius:12px;padding:12px 14px;font-size:0.8rem;color:var(--text-sub);line-height:1.8;text-align:left;margin-bottom:14px;}
+.info-box b{color:var(--primary);}
+
+/* TASK TYPE BUTTONS */
+.task-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.task-type-btn{padding:14px 10px;background:var(--bg-section);border:1.5px solid var(--border);border-radius:14px;text-align:center;cursor:pointer;transition:0.2s;}
+.task-type-btn:hover,.task-type-btn.active{background:var(--primary-light);border-color:var(--primary);}
+.task-type-btn i{font-size:1.5rem;color:var(--primary);display:block;margin-bottom:5px;}
+.task-type-btn span{font-size:0.78rem;font-weight:700;color:var(--text-main);}
+
+/* REFER STATS */
+.refer-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.refer-stat-box{background:var(--primary-light);border:1.5px solid var(--border-mid);border-radius:12px;padding:10px;text-align:center;}
+.refer-stat-val{font-family:var(--mono);font-size:1.2rem;font-weight:800;color:var(--primary);}
+.refer-stat-label{font-size:0.62rem;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
+
+/* PENDING TAG */
+.status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:0.68rem;font-weight:700;text-transform:uppercase;}
+.status-pending{background:#fef3c7;color:#92400e;}
+.status-success{background:#d1fae5;color:#065f46;}
+.status-failed{background:#fee2e2;color:#991b1b;}
+
+/* ADS REWARD PILL */
+.reward-pill{display:inline-flex;align-items:center;gap:4px;background:var(--diamond-bg);border:1px solid #a5f3fc;border-radius:20px;padding:3px 10px;font-size:0.72rem;font-weight:700;color:var(--diamond);}
+
+/* LOADER */
+.loader-spin{width:22px;height:22px;border:2.5px solid var(--border-mid);border-top-color:var(--primary);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;}
+@keyframes spin{100%{transform:rotate(360deg);}}
+
+/* LOCK MODAL */
+.lock-icon{font-size:3.2rem;color:var(--primary);margin-bottom:14px;animation:floatLock 2s infinite alternate;}
+@keyframes floatLock{to{transform:translateY(-7px);}}
+
+/* DEPOSIT PENDING CARD */
+.pending-card{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #fed7aa;border-radius:14px;padding:14px;margin-bottom:10px;}
+.pending-amount{font-family:var(--mono);font-size:1.3rem;font-weight:800;color:var(--gold);}
+
+/* DIVIDER */
+.divider{height:1px;background:var(--border);margin:14px 0;}
+
+/* NAV TABS */
+.nav-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.nav-tab{flex:1;padding:10px;text-align:center;background:var(--bg-section);border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:0.82rem;color:var(--text-muted);cursor:pointer;transition:0.2s;}
+.nav-tab.active{background:var(--primary-light);border-color:var(--primary);color:var(--primary);}
+
+/* TASK PLATFORM FILTER */
+.platform-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
+.platform-pill{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:0.76rem;font-weight:700;background:var(--bg-section);border:1.5px solid var(--border);color:var(--text-muted);cursor:pointer;transition:0.2s;white-space:nowrap;}
+.platform-pill.active,.platform-pill:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:30px 20px;color:var(--text-muted);}
+.empty-state i{font-size:2.5rem;opacity:0.4;display:block;margin-bottom:10px;}
+.empty-state p{font-size:0.85rem;}
+
+/* TON ROW in bal card */
+.ton-sub-row{background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:0.78rem;color:rgba(255,255,255,0.85);}
+.ton-sub-row span{font-family:var(--mono);font-weight:700;}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+    <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
+    <div class="head-actions">
+        <div class="icon-btn" id="btn-promo" title="Promo Code"><i class="fas fa-ticket-alt"></i></div>
+        <div class="icon-btn" id="btn-refer" title="Refer & Earn"><i class="fas fa-user-plus"></i></div>
+        <div class="icon-btn" id="btn-history" title="History"><i class="fas fa-clock-rotate-left"></i></div>
+        <div class="icon-btn" id="btn-withdraw" title="Withdraw"><i class="fas fa-wallet"></i></div>
+    </div>
+</header>
+
+<main class="container">
+
+<!-- ══ TASKS SECTION ══ -->
+<section id="sec-tasks" class="content-section active">
+
+    <!-- Balance Card -->
+    <div class="card card-blue bal-header">
+        <div class="user-row">
+            <div class="avatar"><i class="fas fa-user-astronaut"></i></div>
+            <div>
+                <div style="font-weight:800;font-size:1rem;margin-bottom:3px;">My Wallet</div>
+                <div class="user-id-pill" id="uid-display"><i class="fas fa-fingerprint"></i> ID: <span>...</span> <i class="fas fa-copy" style="font-size:0.65rem;opacity:0.7;"></i></div>
+            </div>
+        </div>
+        <div class="bal-grid">
+            <div class="bal-box">
+                <div class="bal-lbl">💎 Diamond</div>
+                <div class="bal-num" id="bal-diamond">0</div>
+            </div>
+            <div class="bal-box">
+                <div class="bal-lbl">⭐ Tasks Done</div>
+                <div class="bal-num" id="tasks-done-count">0</div>
+            </div>
+        </div>
+        <div class="ton-sub-row">
+            <span>TON Balance</span>
+            <span>≈ <span id="bal-ton">0.0000</span> TON</span>
+        </div>
+    </div>
+
+    <!-- Action Buttons Row -->
+    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:16px;">
+        <button class="create-task-btn" id="btn-create-task" style="margin-bottom:0;">
+            <div class="create-task-icon"><i class="fas fa-plus"></i></div>
+            <div style="text-align:left;">
+                <div style="font-size:0.95rem;font-weight:800;">Create a Task</div>
+                <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">Pay per task completion</div>
+            </div>
+        </button>
+        <button class="btn" id="btn-collab" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-radius:16px;padding:0 14px;flex-direction:column;gap:4px;min-width:72px;box-shadow:0 4px 15px rgba(124,58,237,0.3);">
+            <i class="fas fa-handshake" style="font-size:1.1rem;"></i>
+            <span style="font-size:0.65rem;font-weight:800;letter-spacing:0.3px;">COLLAB</span>
+        </button>
+    </div>
+
+    <!-- Task List -->
+    <div>
+        <h2 class="sec-title"><i class="fas fa-clipboard-check"></i> Available Tasks</h2>
+        <div class="platform-row">
+            <div class="platform-pill active" data-filter="all">All</div>
+            <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> Channel</div>
+            <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
+            <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
+            <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
+        </div>
+        <div id="task-list-container"></div>
+    </div>
+</section>
+
+<!-- ══ ADS SECTION ══ -->
+<section id="sec-ads" class="content-section">
+
+    <!-- Balance mini -->
+    <div class="card card-blue" style="padding:16px 18px;margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="font-size:0.72rem;opacity:0.8;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Diamond Balance</div>
+                <div style="font-family:var(--mono);font-size:1.6rem;font-weight:800;" id="ads-bal-diamond">0</div>
+            </div>
+            <i class="fas fa-gem" style="font-size:2rem;opacity:0.4;"></i>
+        </div>
+    </div>
+
+    <h2 class="sec-title"><i class="fas fa-play-circle"></i> Watch Ads & Earn Diamond</h2>
+
+    <!-- AdsGram Special: 0.5 diamond -->
+    <div class="task-card">
+        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-star"></i></div>
+        <div class="t-info">
+            <div class="t-name">AdsGram Special</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad2">0/5 today</div>
+        </div>
+        <button class="btn btn-gold" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad2">Watch</button>
+    </div>
+
+    <!-- AdsGram Daily: 0.25 diamond -->
+    <div class="task-card">
+        <div class="t-icon"><i class="fas fa-film"></i></div>
+        <div class="t-info">
+            <div class="t-name">AdsGram Daily</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad1">0/10 today</div>
+        </div>
+        <button class="btn btn-primary" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad1">Watch</button>
+    </div>
+
+    <!-- Monetag: 0.25 diamond -->
+    <div class="task-card">
+        <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;"><i class="fas fa-ad"></i></div>
+        <div class="t-info">
+            <div class="t-name">Monetag Ad</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad3">0/20 today</div>
+        </div>
+        <button class="btn btn-accent" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad3">Watch</button>
+    </div>
+
+    <!-- Giga Pub: 0.25 diamond -->
+    <div class="task-card">
+        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-bullhorn"></i></div>
+        <div class="t-info">
+            <div class="t-name">Giga Pub Ad</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad4">0/20 today</div>
+        </div>
+        <button class="btn btn-outline" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad4">Watch</button>
+    </div>
+</section>
+
+</main>
+
+<!-- Bottom Nav (2 items) -->
+<nav class="bottom-nav">
+    <div class="b-nav-item active" data-target="#sec-tasks"><i class="fas fa-clipboard-check"></i><span>Tasks</span></div>
+    <div class="b-nav-item" data-target="#sec-ads"><i class="fas fa-play-circle"></i><span>Earn</span></div>
+</nav>
+
+<!-- ══ MODALS ══ -->
+
+<!-- WITHDRAW -->
+<div class="modal-bg" id="modal-withdraw">
+    <div class="modal-box">
+        <i class="fas fa-wallet" style="font-size:2.2rem;color:var(--primary);margin-bottom:8px;display:block;"></i>
+        <div class="modal-title">Withdraw</div>
+        <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:var(--primary);margin-bottom:14px;" id="wd-balance">0 💎</div>
+
+        <!-- Method tabs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+            <div class="wd-method-tab active" data-method="tonkeeper" style="padding:12px;border-radius:13px;border:1.5px solid var(--primary);background:var(--primary-light);text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-gem" style="font-size:1.2rem;color:var(--primary);display:block;margin-bottom:4px;"></i>
+                <div style="font-weight:800;font-size:0.82rem;color:var(--text-main);">Tonkeeper</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);">Min 50 💎</div>
+            </div>
+            <div class="wd-method-tab" data-method="binance" style="padding:12px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-university" style="font-size:1.2rem;color:var(--text-muted);display:block;margin-bottom:4px;" id="wd-binance-icon"></i>
+                <div style="font-weight:800;font-size:0.82rem;color:var(--text-main);">Binance UID</div>
+                <div style="font-size:0.68rem;color:var(--text-muted);">Min 100 💎</div>
+            </div>
+        </div>
+
+        <div id="wd-tonkeeper-fields">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">TON Wallet Address</label>
+            <input type="text" class="input-field" id="wd-address-ton" placeholder="UQ... or EQ... wallet address">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 50)</span></label>
+            <input type="number" class="input-field" id="wd-amount-ton" placeholder="e.g. 100" min="50">
+        </div>
+        <div id="wd-binance-fields" style="display:none;">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Binance UID</label>
+            <input type="text" class="input-field" id="wd-address-bnb" placeholder="Your Binance UID (numbers only)">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 100)</span></label>
+            <input type="number" class="input-field" id="wd-amount-bnb" placeholder="e.g. 200" min="100">
+        </div>
+
+        <div id="wd-preview" style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.82rem;color:var(--text-sub);margin-bottom:14px;display:none;"></div>
+
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline btn-full close-modal">Cancel</button>
+            <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
+        </div>
+        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing time: 1–24 hours • 1000 💎 = 0.75 TON</p>
+    </div>
+</div>
+
+<!-- PROMO CODE -->
+<div class="modal-bg" id="modal-promo">
+    <div class="modal-box">
+        <i class="fas fa-ticket-alt" style="font-size:2.2rem;color:var(--gold);margin-bottom:12px;display:block;"></i>
+        <div class="modal-title">Redeem Code</div>
+        <div class="modal-sub">Enter promo code for bonus Diamond.</div>
+        <input type="text" class="input-field" id="promo-input" placeholder="Enter promo code">
+        <button class="btn btn-gold btn-full" id="promo-submit" style="margin-bottom:10px;">Redeem Now</button>
+        <button class="btn btn-outline btn-full close-modal">Close</button>
+    </div>
+</div>
+
+<!-- REFER & EARN MODAL -->
+<div class="modal-bg" id="modal-refer">
+    <div class="modal-box">
+        <i class="fas fa-users" style="font-size:2.2rem;color:var(--primary);margin-bottom:12px;display:block;"></i>
+        <div class="modal-title">Refer & Earn</div>
+        <div class="refer-stat-grid" style="margin-bottom:16px;">
+            <div class="refer-stat-box"><div class="refer-stat-val" id="ref-total">0</div><div class="refer-stat-label">Total Refs</div></div>
+            <div class="refer-stat-box"><div class="refer-stat-val" id="ref-valid">0</div><div class="refer-stat-label">Valid Refs</div></div>
+            <div class="refer-stat-box"><div class="refer-stat-val" id="ref-earned">0</div><div class="refer-stat-label">💎 Earned</div></div>
+        </div>
+        <div class="info-box" style="margin-bottom:14px;">
+            🎁 Refer reward: <b>+5 💎 Diamond</b><br>
+            ✅ Valid when: friend completes <b>10 tasks</b><br>
+            <span style="font-size:0.75rem;color:var(--text-muted);">Referral only valid after friend completes 10 tasks</span>
+        </div>
+        <input type="text" class="input-field" id="invite-link" readonly placeholder="Loading...">
+        <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-full" id="invite-copy"><i class="fas fa-copy"></i> Copy</button>
+            <button class="btn btn-primary btn-full" id="invite-share"><i class="fas fa-share-alt"></i> Share</button>
+        </div>
+        <div style="margin-top:10px;">
+            <button class="btn btn-outline btn-full close-modal">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- HISTORY -->
+<div class="modal-bg" id="modal-history">
+    <div class="modal-box" style="text-align:left;">
+        <div class="modal-title" style="text-align:center;margin-bottom:14px;">Transaction History</div>
+        <div id="history-list" style="max-height:380px;overflow-y:auto;"></div>
+        <button class="btn btn-outline btn-full close-modal" style="margin-top:14px;">Close</button>
+    </div>
+</div>
+
+<!-- JOIN MODAL -->
+<div class="modal-bg" id="modal-join" style="z-index:5000;">
+    <div class="modal-box" style="border-color:var(--primary);">
+        <div class="lock-icon"><i class="fas fa-shield-check"></i></div>
+        <div class="modal-title">Verification Required</div>
+        <div class="modal-sub">Join official networks to unlock & get <b>5 💎 Diamond</b> welcome gift!</div>
+        <a href="https://t.me/coinly_task" target="_blank" class="btn btn-primary btn-full" style="margin-bottom:10px;text-decoration:none;"><i class="fab fa-telegram-plane"></i> 1. Official Channel</a>
+        <a href="https://t.me/newTon_Gc" target="_blank" class="btn btn-accent btn-full" style="margin-bottom:14px;text-decoration:none;"><i class="fas fa-users"></i> 2. Official Community</a>
+        <button class="btn btn-green btn-full" id="btn-verify-join"><i class="fas fa-check-circle"></i> Verify & Unlock</button>
+        <div id="join-error" style="font-size:0.78rem;color:var(--red);margin-top:10px;"></div>
+    </div>
+</div>
+
+<!-- WELCOME MODAL -->
+<div class="modal-bg" id="modal-welcome" style="z-index:6000;">
+    <div class="modal-box" style="border-color:var(--primary);">
+        <i class="fas fa-gift" style="font-size:3.5rem;color:var(--primary);margin-bottom:14px;display:block;animation:floatLock 2s infinite alternate;"></i>
+        <div class="modal-title">Welcome to Coinly Task! 🎉</div>
+        <div style="background:var(--primary-light);border:1.5px solid var(--border-mid);border-radius:14px;padding:16px;margin:14px 0;">
+            <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;color:var(--primary);">+5 💎</div>
+            <div style="font-size:0.8rem;color:var(--text-sub);">Welcome Diamond Bonus</div>
+        </div>
+        <button class="btn btn-primary btn-full close-modal">Let's Go! 🚀</button>
+    </div>
+</div>
+
+<!-- ALERT MODAL -->
+<div class="modal-bg" id="modal-alert">
+    <div class="modal-box" style="max-width:290px;">
+        <i id="alert-icon" class="fas fa-info-circle" style="font-size:2.2rem;color:var(--primary);margin-bottom:12px;display:block;"></i>
+        <div id="alert-title" class="modal-title" style="margin-bottom:6px;">Notice</div>
+        <p id="alert-msg" style="font-size:0.85rem;color:var(--text-sub);margin-bottom:16px;"></p>
+        <button class="btn btn-primary btn-full close-modal">OK</button>
+    </div>
+</div>
+
+<!-- CREATE TASK MODAL -->
+<div class="modal-bg" id="modal-create-task">
+    <div class="modal-box" style="max-width:380px;">
+        <!-- Step 1: Choose type -->
+        <div id="ct-step-type">
+            <div class="modal-title">Create a Task</div>
+            <div class="modal-sub">What type of task?</div>
+            <div class="task-type-grid" id="task-type-grid">
+                <div class="task-type-btn" data-type="telegram_channel">
+                    <i class="fab fa-telegram-plane"></i>
+                    <span>TG Channel</span>
+                </div>
+                <div class="task-type-btn" data-type="telegram_group">
+                    <i class="fas fa-users"></i>
+                    <span>TG Group</span>
+                </div>
+                <div class="task-type-btn" data-type="telegram_bot">
+                    <i class="fas fa-robot"></i>
+                    <span>TG Bot</span>
+                </div>
+                <div class="task-type-btn" data-type="social">
+                    <i class="fas fa-play-circle"></i>
+                    <span>YT/TikTok/FB</span>
+                </div>
+            </div>
+            <button class="btn btn-outline btn-full close-modal">Cancel</button>
+        </div>
+
+        <!-- Step 2: Choose package -->
+        <div id="ct-step-package" style="display:none;">
+            <div class="modal-title">Choose Package</div>
+            <div class="modal-sub">Each user who completes earns <b>2 💎</b></div>
+            <div style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.8rem;color:var(--text-sub);margin-bottom:14px;">
+                💎 Your balance: <b id="ct-balance" style="color:var(--primary);">0</b> Diamond
+            </div>
+            <div id="ct-package-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-outline btn-full" id="ct-back-to-type"><i class="fas fa-arrow-left"></i> Back</button>
+                <button class="btn btn-primary btn-full" id="ct-to-details-btn" disabled style="opacity:0.45;"><i class="fas fa-arrow-right"></i> Continue</button>
+            </div>
+            <button class="btn btn-outline btn-full close-modal" style="margin-top:8px;">Cancel</button>
+        </div>
+
+        <!-- Step 3: Task details -->
+        <div id="ct-step-details" style="display:none;">
+            <div class="modal-title">Task Details</div>
+            <div id="ct-selected-pkg-preview" style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.82rem;margin-bottom:12px;"></div>
+            <input type="text" class="input-field" id="ct-title" placeholder="Task title (e.g. Join My Channel)">
+            <input type="url" class="input-field" id="ct-url" placeholder="Link / URL">
+            <input type="text" id="ct-channel-id" class="input-field" placeholder="Channel username (e.g. @mychannel)" style="display:none;">
+            <div style="display:flex;gap:8px;">
+                <button class="btn btn-outline btn-full" id="ct-back-to-pkg"><i class="fas fa-arrow-left"></i> Back</button>
+                <button class="btn btn-primary btn-full" id="ct-submit-btn"><i class="fas fa-paper-plane"></i> Pay & Create</button>
+            </div>
+            <button class="btn btn-outline btn-full close-modal" style="margin-top:8px;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- COLLABORATION MODAL -->
+<div class="modal-bg" id="modal-collab">
+    <div class="modal-box">
+        <i class="fas fa-handshake" style="font-size:2.2rem;color:#7c3aed;margin-bottom:12px;display:block;"></i>
+        <div class="modal-title">Collaboration</div>
+        <div class="modal-sub">Grow together — cross-promote with other creators</div>
+        <div class="info-box" style="border-color:#ddd6fe;background:#f5f3ff;">
+            ✅ Available if your channel/bot has <b>2,000+ members</b><br>
+            🤝 You promote their channel — they promote yours<br>
+            💰 No cost — mutual benefit only
+        </div>
+        <div id="collab-eligibility-msg" style="font-size:0.82rem;margin-bottom:14px;"></div>
+        <div id="collab-form" style="display:none;">
+            <input type="text" class="input-field" id="collab-channel" placeholder="Your channel/bot username (e.g. @mychannel)">
+            <input type="number" class="input-field" id="collab-members" placeholder="Approx. member count (e.g. 5000)">
+            <textarea class="input-field" id="collab-desc" placeholder="Brief description of your channel/bot" style="resize:none;height:80px;"></textarea>
+            <button class="btn btn-full" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;margin-bottom:10px;box-shadow:0 4px 15px rgba(124,58,237,0.3);" id="collab-submit-btn">
+                <i class="fas fa-paper-plane"></i> Submit Collab Request
+            </button>
+        </div>
+        <button class="btn btn-outline btn-full close-modal">Close</button>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--                   FIREBASE + APP LOGIC                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-analytics.js";
+import { getFirestore, collection, getDocs, query, where, limit, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey:"AIzaSyBiCyauYlaty5Th0_uPfCnhTcaTHzzKDM4",
+    authDomain:"coinly-task.firebaseapp.com",
+    projectId:"coinly-task",
+    storageBucket:"coinly-task.firebasestorage.app",
+    messagingSenderId:"724806557550",
+    appId:"1:724806557550:web:0b7eaa270cbbf182882b7f",
+    measurementId:"G-ZTDGZE95HY"
+};
+const app = initializeApp(firebaseConfig);
+getAnalytics(app);
+const db = getFirestore(app);
+const tg = window.Telegram.WebApp;
+const VERIFICATION_API_URL = "https://ton-bot-11.vercel.app";
+
+// ── DEPOSIT WALLET ──
+const DEPOSIT_WALLET = "UQBPuFaTHpooYMbMS2oQ1UMLFGemDZvxs8Zmenl4FR3AF4y8";
+
+// ── CONSTANTS ──
+const DIAMOND_TO_TON = 0.00075;      // 1000 diamond = 0.75 TON
+const MIN_WITHDRAW_TONKEEPER = 50;
+const MIN_WITHDRAW_BINANCE = 100;
+const TASK_REWARD_DIAMOND = 2;
+const REFER_REWARD_DIAMOND = 5;
+const REFER_VALID_TASKS = 10;
+const AD_LIMITS = {ad1:10, ad2:5, ad3:20, ad4:20};
+const AD_DIAMOND_REWARDS = {ad1:0.25, ad2:0.5, ad3:0.25, ad4:0.25};
+
+// ── TASK PACKAGES (tasks → TON price) ──
+const TASK_PACKAGES = [
+    {tasks:250,  ton:0.25,  label:'250 Tasks',  popular:false},
+    {tasks:500,  ton:0.5,   label:'500 Tasks',  popular:false},
+    {tasks:1000, ton:1.0,   label:'1K Tasks',   popular:true},
+    {tasks:2000, ton:2.0,   label:'2K Tasks',   popular:false},
+    {tasks:5000, ton:4.5,   label:'5K Tasks',   popular:false},
+];
+
+let currentUser = null, isAdRunning = false, isSubmitting = false;
+let selectedPackage = null;   // for create task package
+let selectedTaskType = null;
+
+// ── HELPERS ──
+function showAlert(title, msg, type='info'){
+    document.getElementById('alert-title').innerText = title;
+    document.getElementById('alert-msg').innerText = msg;
+    const icon = document.getElementById('alert-icon');
+    icon.className = type==='success' ? 'fas fa-check-circle' : type==='error' ? 'fas fa-exclamation-triangle' : 'fas fa-info-circle';
+    icon.style.color = type==='success' ? 'var(--green)' : type==='error' ? 'var(--red)' : 'var(--primary)';
+    document.getElementById('modal-alert').classList.add('show');
+}
+function getToday(){return new Date().toLocaleDateString('en-US',{timeZone:'Asia/Dhaka'});}
+
+async function adWrapper(btnId, sdkCall, successCb){
+    if(isAdRunning) return showAlert('Warning','Ad already running.','error');
+    const btn = document.getElementById(btnId); if(!btn) return;
+    const orig = btn.innerHTML; isAdRunning = true; btn.disabled = true;
+    btn.innerHTML = '<div class="loader-spin" style="width:16px;height:16px;border-width:2px;"></div>';
+    try{
+        if(sdkCall) await sdkCall();
+        else if(window.show_10135525){ await window.show_10135525(); await new Promise(r=>setTimeout(r,7000));}
+        else throw new Error("Ad SDK not loaded");
+        await successCb();
+    }catch(e){ showAlert('Skipped','Ad unavailable or closed early.','error'); }
+    finally{ isAdRunning = false; btn.innerHTML = orig; btn.disabled = false; }
+}
+
+// ── INIT APP ──
+async function initApp(){
+    if(!tg.initDataUnsafe?.user) return document.body.innerHTML='<h3 style="text-align:center;margin-top:50px;color:#333;font-family:Outfit,sans-serif;">Open in Telegram.</h3>';
+    tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff');
+    const u = tg.initDataUnsafe.user, uid = String(u.id);
+
+    let localDevId = localStorage.getItem('coinly_device_id');
+    if(!localDevId){ localDevId='dev_'+Date.now()+Math.random().toString(36).substr(2,9); localStorage.setItem('coinly_device_id',localDevId); }
+    let multi = false;
+    try{ const chk=await getDocs(query(collection(db,'users'),where('deviceId','==',localDevId),limit(2))); chk.forEach(d=>{if(d.id!==uid)multi=true;}); }catch(e){}
+    if(multi){ document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px;text-align:center;background:#f0f4ff;font-family:Outfit,sans-serif;"><i class="fas fa-mobile-alt" style="font-size:4rem;color:var(--red);margin-bottom:20px;"></i><h2 style="color:#0f172a;">Device Blocked</h2><p style="color:#64748b;">Multiple accounts not allowed.</p></div>'; return; }
+
+    const ref = doc(db,'users',uid), snap = await getDoc(ref), today = getToday();
+    if(!snap.exists()){
+        const data = {
+            diamondBalance:0, completedTasks:[], createdTasks:[],
+            totalInvites:0, validReferrals:0, referralDiamondEarned:0,
+            createdAt:serverTimestamp(), telegramUsername:u.username||'N/A', isBanned:false,
+            adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
+            lastResetDate:today, joinGiftClaimed:false,
+            isValidatedRef:false, deviceId:localDevId
+        };
+        const sp = tg.initDataUnsafe.start_param;
+        if(sp && sp!==uid){ data.referredBy=sp; try{ await updateDoc(doc(db,'users',sp),{totalInvites:increment(1)}); }catch(e){} }
+        try{ await setDoc(ref, data); }catch(e){}
+        currentUser = {id:uid, ...data};
+    } else {
+        currentUser = {id:snap.id, ...snap.data()};
+        if(!currentUser.deviceId) try{ await updateDoc(ref,{deviceId:localDevId}); }catch(e){}
+    }
+    if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;"><i class="fas fa-ban" style="font-size:4rem;color:red;margin-bottom:20px;"></i><h3>Account Banned.</h3></div>';
+
+    if(currentUser.lastResetDate !== today){
+        const up = {adsWatchedAd1:0,adsWatchedAd2:0,adsWatchedAd3:0,adsWatchedAd4:0,lastResetDate:today};
+        Object.assign(currentUser, up);
+        try{ await updateDoc(ref, up); }catch(e){}
+        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${uid}`,0));
+    }
+
+    updateUI();
+    checkCommunityJoin();
+    fetchTasks('all');
+}
+
+// ── JOIN CHECK ──
+async function checkCommunityJoin(){
+    try{
+        const res = await fetch(`${VERIFICATION_API_URL}/api/checkJoin?userId=${currentUser.id}`);
+        const data = await res.json();
+        if(data.ok && data.channel && data.group){
+            document.getElementById('modal-join').classList.remove('show');
+            if(!currentUser.joinGiftClaimed){
+                try{
+                    await updateDoc(doc(db,'users',currentUser.id),{joinGiftClaimed:true,diamondBalance:increment(5)});
+                    currentUser.joinGiftClaimed=true; currentUser.diamondBalance=(currentUser.diamondBalance||0)+5; updateUI();
+                    document.getElementById('modal-welcome').classList.add('show');
+                }catch(e){}
+            }
+        } else { document.getElementById('modal-join').classList.add('show'); }
+    }catch(e){ document.getElementById('modal-join').classList.add('show'); }
+}
+document.getElementById('btn-verify-join').addEventListener('click', async()=>{
+    const btn=document.getElementById('btn-verify-join'), err=document.getElementById('join-error');
+    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>'; err.innerText='';
+    try{
+        const res=await fetch(`${VERIFICATION_API_URL}/api/checkJoin?userId=${currentUser.id}`);
+        const d=await res.json();
+        if(d.ok&&d.channel&&d.group) await checkCommunityJoin();
+        else err.innerText='Join BOTH networks first!';
+    }catch(e){ err.innerText='Network error. Try again.'; }
+    btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
+});
+
+// ── UPDATE UI ──
+function updateUI(){
+    if(!currentUser) return;
+    try{ document.querySelector('#uid-display span').innerText = currentUser.id; }catch(e){}
+    const diamond = parseFloat(currentUser.diamondBalance||0);
+    document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
+    document.getElementById('bal-ton').innerText = (diamond*DIAMOND_TO_TON).toFixed(4);
+    try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
+    try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
+    try{ document.getElementById('wd-balance').innerText = `${diamond.toFixed(2)} 💎`; }catch(e){}
+    try{ document.getElementById('ct-balance').innerText = diamond.toFixed(2); }catch(e){}
+
+    // refer
+    try{
+        document.getElementById('ref-total').innerText = currentUser.totalInvites||0;
+        document.getElementById('ref-valid').innerText = currentUser.validReferrals||0;
+        document.getElementById('ref-earned').innerText = currentUser.referralDiamondEarned||0;
+        const link = `https://t.me/Coinlytix_bot/coinlyTon?startapp=${currentUser.id}`;
+        document.getElementById('invite-link').value = link;
+    }catch(e){}
+
+    // ad limits
+    const updLim = (id, cloud, max)=>{
+        const loc = parseInt(localStorage.getItem(`coinly_${id}_${currentUser.id}`))||0, total = cloud+loc;
+        const lEl = document.getElementById(`limit-${id}`), btn = document.getElementById(`btn-${id}`);
+        if(lEl && btn){
+            lEl.innerText = `${total}/${max} today`;
+            if(total>=max){ btn.disabled=true; btn.innerText='Done ✓'; btn.classList.add('btn-disabled'); }
+            else{ btn.disabled=false; btn.innerText='Watch'; btn.classList.remove('btn-disabled'); }
+        }
+    };
+    updLim('ad1', currentUser.adsWatchedAd1||0, AD_LIMITS.ad1);
+    updLim('ad2', currentUser.adsWatchedAd2||0, AD_LIMITS.ad2);
+    updLim('ad3', currentUser.adsWatchedAd3||0, AD_LIMITS.ad3);
+    updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
+}
+
+// ── ADS ──
+const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
+    const reward = AD_DIAMOND_REWARDS[type];
+    const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
+    await updateDoc(doc(db,'users',currentUser.id),{diamondBalance:increment(reward),[fieldKey]:increment(1)});
+    currentUser.diamondBalance = (currentUser.diamondBalance||0)+reward;
+    currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
+    let loc = parseInt(localStorage.getItem(`coinly_${type}_${currentUser.id}`))||0;
+    localStorage.setItem(`coinly_${type}_${currentUser.id}`, loc+1);
+    updateUI();
+    showAlert('Earned!',`+${reward} 💎 Diamond added!`,'success');
+});
+
+const showGigaAd = async()=>{
+    if(typeof window.showGiga !== 'function') throw new Error("SDK not loaded");
+    await window.showGiga();
+};
+
+document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', window.Adsgram?.init({blockId:"int-22897"})?.show));
+document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', window.Adsgram?.init({blockId:"22900"})?.show));
+document.getElementById('btn-ad3').addEventListener('click', ()=>runAdMission('ad3','btn-ad3', null));
+document.getElementById('btn-ad4').addEventListener('click', ()=>runAdMission('ad4','btn-ad4', showGigaAd));
+
+// ── TASKS ──
+let taskFilter = 'all';
+
+async function fetchTasks(filter){
+    taskFilter = filter;
+    const container = document.getElementById('task-list-container');
+    container.innerHTML = '<div style="text-align:center;padding:30px 0;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
+    try{
+        let q;
+        if(filter === 'all'){
+            q = query(collection(db,'tasks'), where('isApproved','==',true), limit(40));
+        } else {
+            q = query(collection(db,'tasks'), where('isApproved','==',true), where('category','==',filter), limit(40));
+        }
+        const s = await getDocs(q);
+        container.innerHTML = '';
+        let count = 0;
+        s.forEach(d=>{
+            const t = d.data();
+            if(currentUser.completedTasks?.includes(d.id)) return;
+            count++;
+            const cat = t.category||'social';
+            const iconMap = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
+            const colorMap = {telegram_channel:'color:#0088cc;background:#e6f4fb;border-color:#b3dff7',telegram_group:'color:#7c3aed;background:#f3e8ff;border-color:#ddd6fe',telegram_bot:'color:#059669;background:#ecfdf5;border-color:#a7f3d0',social:'color:#dc2626;background:#fef2f2;border-color:#fecaca'};
+            container.innerHTML += `
+                <div class="task-card">
+                    <div class="t-icon" style="${colorMap[cat]||colorMap.social}"><i class="${iconMap[cat]||'fas fa-tasks'}"></i></div>
+                    <div class="t-info">
+                        <div class="t-name">${t.title}</div>
+                        <div class="t-reward">+${TASK_REWARD_DIAMOND} 💎 Diamond</div>
+                    </div>
+                    <button class="btn btn-outline t-task-btn" data-id="${d.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button>
+                </div>`;
+        });
+        if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
+    }catch(e){
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p></div>';
+    }
+}
+
+// Task click handler
+document.getElementById('task-list-container').addEventListener('click', async e=>{
+    const b = e.target.closest('.t-task-btn'); if(!b||b.disabled) return;
+    const {id, url, channel, cat} = b.dataset;
+    const txt = b.innerText.trim().toUpperCase();
+    if(txt==='GO'){
+        if(url) tg.openLink(url);
+        b.innerText='VERIFY'; b.style.background='var(--primary)'; b.style.color='#fff'; b.style.borderColor='var(--primary)';
+        return;
+    }
+    if(txt==='VERIFY'){
+        b.disabled=true; b.innerHTML='<div class="loader-spin" style="margin:0;width:14px;height:14px;border-width:2px;"></div>';
+        try{
+            let ok=false;
+            if((cat==='telegram_channel'||cat==='telegram_group') && channel && channel.trim()){
+                const res=await fetch(`${VERIFICATION_API_URL}/api/checkMember?userId=${currentUser.id}&channel=${encodeURIComponent(channel)}`);
+                const d=await res.json();
+                if(d.joined||d.ok||d.isMember) ok=true;
+                else{ showAlert('Notice','Join first, then verify!','error'); b.innerText='VERIFY'; b.disabled=false; b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)'; return; }
+            } else {
+                await new Promise(r=>setTimeout(r,2000)); ok=true;
+            }
+            if(ok){
+                await updateDoc(doc(db,'users',currentUser.id),{completedTasks:arrayUnion(id),diamondBalance:increment(TASK_REWARD_DIAMOND)});
+                currentUser.diamondBalance=(currentUser.diamondBalance||0)+TASK_REWARD_DIAMOND;
+                if(!currentUser.completedTasks) currentUser.completedTasks=[];
+                currentUser.completedTasks.push(id);
+                updateUI();
+                showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
+                b.parentElement.remove();
+                // check valid refer after task completion
+                checkValidRef();
+            }
+        }catch(er){ showAlert('Error','Verification failed.','error'); b.innerText='VERIFY'; b.disabled=false; }
+    }
+});
+
+// Platform filter pills
+document.querySelectorAll('.platform-pill').forEach(p=>p.addEventListener('click',()=>{
+    document.querySelectorAll('.platform-pill').forEach(x=>x.classList.remove('active'));
+    p.classList.add('active');
+    fetchTasks(p.dataset.filter);
+}));
+
+// ── VALID REFER CHECK ──
+async function checkValidRef(){
+    if(!currentUser.referredBy || currentUser.isValidatedRef) return;
+    const completedCount = (currentUser.completedTasks||[]).length;
+    if(completedCount >= REFER_VALID_TASKS){
+        try{
+            await updateDoc(doc(db,'users',currentUser.id),{isValidatedRef:true});
+            currentUser.isValidatedRef=true;
+            await runTransaction(db, async t=>{
+                const rRef=doc(db,'users',currentUser.referredBy);
+                const rDoc=await t.get(rRef);
+                if(rDoc.exists()){
+                    t.update(rRef,{diamondBalance:increment(REFER_REWARD_DIAMOND),validReferrals:increment(1),referralDiamondEarned:increment(REFER_REWARD_DIAMOND)});
+                    t.set(doc(collection(db,'transactions')),{userId:currentUser.referredBy,type:'Refer Reward',details:`Friend UID:${currentUser.id}`,diamondAmount:REFER_REWARD_DIAMOND,createdAt:serverTimestamp()});
+                }
+            });
+        }catch(e){}
+    }
+}
+
+// ── CREATE TASK (3-step: type → package → details) ──
+function showStep(step){
+    ['ct-step-type','ct-step-package','ct-step-details'].forEach(id=>{
+        document.getElementById(id).style.display = id===step ? 'block' : 'none';
+    });
+}
+
+function renderPackages(){
+    const list=document.getElementById('ct-package-list');
+    list.innerHTML=TASK_PACKAGES.map((p,i)=>{
+        return `<div class="pkg-card" data-idx="${i}" style="
+            background:${p.popular?'linear-gradient(135deg,var(--primary),var(--accent))':'var(--bg-section)'};
+            border:2px solid ${p.popular?'var(--primary)':'var(--border)'};
+            border-radius:14px;padding:14px 15px;cursor:pointer;transition:0.2s;
+            display:flex;align-items:center;justify-content:space-between;position:relative;
+            margin-top:${p.popular?'10px':'0'};">
+            ${p.popular?'<div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#f59e0b;color:#fff;font-size:0.65rem;font-weight:800;padding:3px 12px;border-radius:20px;white-space:nowrap;pointer-events:none;">⭐ MOST POPULAR</div>':''}
+            <div style="pointer-events:none;">
+                <div style="font-weight:800;font-size:0.95rem;color:${p.popular?'#fff':'var(--text-main)'};">${p.label}</div>
+                <div style="font-size:0.72rem;color:${p.popular?'rgba(255,255,255,0.8)':'var(--text-muted)'};margin-top:2px;">${p.tasks} completions × 2 💎 each</div>
+            </div>
+            <div style="text-align:right;pointer-events:none;">
+                <div style="font-family:var(--mono);font-weight:800;font-size:1.05rem;color:${p.popular?'#fff':'var(--primary)'};">${p.ton} TON</div>
+                <div style="font-size:0.68rem;color:${p.popular?'rgba(255,255,255,0.7)':'var(--text-muted)'};">≈ $${(p.ton*1.33).toFixed(2)}</div>
+            </div>
+        </div>`;
+    }).join('');
+
+    // Use event delegation on the list container — avoids inner-child click issues
+    list.onclick = (e) => {
+        const card = e.target.closest('.pkg-card');
+        if(!card) return;
+        // Reset all cards
+        list.querySelectorAll('.pkg-card').forEach(c=>{
+            const idx=parseInt(c.dataset.idx);
+            const p=TASK_PACKAGES[idx];
+            c.style.outline='none';
+            c.style.border=`2px solid ${p.popular?'var(--primary)':'var(--border)'}`;
+        });
+        // Highlight selected
+        card.style.outline='3px solid #f59e0b';
+        card.style.border='2px solid #f59e0b';
+        const idx=parseInt(card.dataset.idx);
+        selectedPackage=TASK_PACKAGES[idx];
+        // Enable continue button
+        const continueBtn=document.getElementById('ct-to-details-btn');
+        continueBtn.disabled=false;
+        continueBtn.style.opacity='1';
+    };
+}
+
+document.getElementById('btn-create-task').addEventListener('click',()=>{
+    selectedPackage=null; selectedTaskType=null;
+    document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('ct-to-details-btn').disabled=true;
+    document.getElementById('ct-title').value='';
+    document.getElementById('ct-url').value='';
+    document.getElementById('ct-channel-id').value='';
+    document.getElementById('ct-balance').innerText=(currentUser?.diamondBalance||0).toFixed(2);
+    showStep('ct-step-type');
+    document.getElementById('modal-create-task').classList.add('show');
+});
+
+document.querySelectorAll('.task-type-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedTaskType=btn.dataset.type;
+        renderPackages();
+        showStep('ct-step-package');
+    });
+});
+
+document.getElementById('ct-back-to-type').addEventListener('click',()=>{
+    selectedTaskType=null; selectedPackage=null;
+    const continueBtn=document.getElementById('ct-to-details-btn');
+    continueBtn.disabled=true; continueBtn.style.opacity='0.45';
+    showStep('ct-step-type');
+});
+
+document.getElementById('ct-to-details-btn').addEventListener('click',()=>{
+    if(!selectedPackage) return;
+    document.getElementById('ct-selected-pkg-preview').innerHTML=
+        `📦 <b>${selectedPackage.label}</b> — ${selectedPackage.tasks} tasks — <b style="color:var(--primary);">${selectedPackage.ton} TON</b>`;
+    const chanField=document.getElementById('ct-channel-id');
+    if(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group'){
+        chanField.style.display='block';
+        chanField.placeholder=selectedTaskType==='telegram_channel'?'Channel username (e.g. @mychannel)':'Group username (e.g. @mygroup)';
+    } else { chanField.style.display='none'; }
+    showStep('ct-step-details');
+});
+
+document.getElementById('ct-back-to-pkg').addEventListener('click',()=>{ showStep('ct-step-package'); });
+
+document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
+    if(!selectedTaskType||!selectedPackage) return showAlert('Error','Incomplete selection.','error');
+    const title=document.getElementById('ct-title').value.trim();
+    const url=document.getElementById('ct-url').value.trim();
+    const channelId=document.getElementById('ct-channel-id').value.trim();
+    if(!title) return showAlert('Error','Enter a task title.','error');
+    if(!url) return showAlert('Error','Enter a URL/link.','error');
+    const btn=document.getElementById('ct-submit-btn');
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        // Save task as pending payment — will be activated after TON confirmed
+        await addDoc(collection(db,'tasks'),{
+            title, url, category:selectedTaskType,
+            channelId:(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?channelId:'',
+            rewardDiamond:TASK_REWARD_DIAMOND, maxCompletions:selectedPackage.tasks,
+            completionCount:0, isApproved:false,
+            createdBy:currentUser.id, createdAt:serverTimestamp(),
+            tonCost:selectedPackage.ton, packageLabel:selectedPackage.label,
+            paymentStatus:'pending'
+        });
+        // Open tonkeeper deep link for payment
+        const taskMemo=`TASK_${currentUser.id}_${Date.now()}`;
+        const tonkeeperUrl=`https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${Math.floor(selectedPackage.ton*1e9)}&text=${encodeURIComponent(taskMemo)}`;
+        document.getElementById('modal-create-task').classList.remove('show');
+        // Show payment modal
+        document.getElementById('pay-task-ton-amount').innerText=selectedPackage.ton;
+        document.getElementById('pay-task-pkg').innerText=selectedPackage.label;
+        document.getElementById('pay-task-memo').innerText=taskMemo;
+        document.getElementById('pay-task-tk-btn').onclick=()=>tg.openLink(tonkeeperUrl);
+        document.getElementById('modal-task-payment').classList.add('show');
+    }catch(e){ showAlert('Error','Failed to create task.','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Pay & Create';
+});
+
+// ── WITHDRAW ──
+let wdMethod = 'tonkeeper';
+
+document.querySelectorAll('.wd-method-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+        wdMethod=tab.dataset.method;
+        document.querySelectorAll('.wd-method-tab').forEach(t=>{
+            const active=t.dataset.method===wdMethod;
+            t.style.background=active?'var(--primary-light)':'var(--bg-section)';
+            t.style.borderColor=active?'var(--primary)':'var(--border)';
+        });
+        document.getElementById('wd-tonkeeper-fields').style.display=wdMethod==='tonkeeper'?'block':'none';
+        document.getElementById('wd-binance-fields').style.display=wdMethod==='binance'?'block':'none';
+        document.getElementById('wd-preview').style.display='none';
+    });
+});
+
+function calcWdPreview(){
+    const isT=wdMethod==='tonkeeper';
+    const amtEl=document.getElementById(isT?'wd-amount-ton':'wd-amount-bnb');
+    const a=parseFloat(amtEl?.value||0);
+    const minAmt=isT?MIN_WITHDRAW_TONKEEPER:MIN_WITHDRAW_BINANCE;
+    const preview=document.getElementById('wd-preview');
+    if(a&&a>=minAmt){
+        preview.style.display='block';
+        preview.innerHTML=`You receive: <b style="color:var(--primary);">${(a*DIAMOND_TO_TON).toFixed(4)} TON</b> ≈ $${(a*DIAMOND_TO_TON*1.33).toFixed(2)}`;
+    } else { preview.style.display='none'; }
+}
+document.getElementById('wd-amount-ton').addEventListener('input',calcWdPreview);
+document.getElementById('wd-amount-bnb').addEventListener('input',calcWdPreview);
+
+document.getElementById('wd-submit').addEventListener('click', async()=>{
+    if(isSubmitting) return;
+    const isT=wdMethod==='tonkeeper';
+    const amt=parseFloat(document.getElementById(isT?'wd-amount-ton':'wd-amount-bnb').value);
+    const addr=document.getElementById(isT?'wd-address-ton':'wd-address-bnb').value.trim();
+    const minAmt=isT?MIN_WITHDRAW_TONKEEPER:MIN_WITHDRAW_BINANCE;
+    if(!addr) return showAlert('Error','Enter your '+(isT?'wallet address':'Binance UID')+'.','error');
+    if(isNaN(amt)||amt<minAmt) return showAlert('Notice',`Minimum ${minAmt} 💎 required.`,'error');
+    if((currentUser.diamondBalance||0)<amt) return showAlert('Error','Insufficient Diamond balance.','error');
+    isSubmitting=true;
+    const btn=document.getElementById('wd-submit');
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        await runTransaction(db, async t=>{
+            const uRef=doc(db,'users',currentUser.id), d=(await t.get(uRef)).data();
+            if((d.diamondBalance||0)<amt) throw new Error("Insufficient balance.");
+            t.set(doc(collection(db,'withdrawals')),{
+                userId:currentUser.id, method:wdMethod,
+                details:addr, status:'pending',
+                createdAt:serverTimestamp(), diamondAmount:amt,
+                tonAmount:amt*DIAMOND_TO_TON
+            });
+            t.update(uRef,{diamondBalance:increment(-amt)});
+        });
+        currentUser.diamondBalance-=amt; updateUI();
+        document.getElementById('wd-amount-ton').value='';
+        document.getElementById('wd-amount-bnb').value='';
+        document.getElementById('wd-address-ton').value='';
+        document.getElementById('wd-address-bnb').value='';
+        document.getElementById('wd-preview').style.display='none';
+        document.getElementById('modal-withdraw').classList.remove('show');
+        showAlert('Submitted!',`Withdrawal of ${amt} 💎 submitted. Processing within 1–24 hours.`,'success');
+    }catch(e){ showAlert('Error',e.message,'error'); }
+    finally{ isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw'; }
+});
+
+// ── PROMO ──
+document.getElementById('promo-submit').addEventListener('click', async()=>{
+    const code=document.getElementById('promo-input').value.trim(); if(!code) return;
+    adWrapper('promo-submit', window.Adsgram?.init({blockId:"22900"})?.show, async()=>{
+        try{
+            let msg='';
+            await runTransaction(db, async t=>{
+                const pRef=doc(db,'promo_codes',code), p=(await t.get(pRef)).data();
+                if(!p||!p.isActive||p.currentUses>=p.maxUses||p.usersClaimed?.includes(currentUser.id)) throw new Error("Invalid or already used.");
+                if(p.rewardType==='diamond'){t.update(doc(db,'users',currentUser.id),{diamondBalance:increment(p.rewardAmount)});currentUser.diamondBalance=(currentUser.diamondBalance||0)+p.rewardAmount;msg=`+${p.rewardAmount} 💎 Diamond!`;}
+                else{t.update(doc(db,'users',currentUser.id),{diamondBalance:increment(p.rewardAmount)});currentUser.diamondBalance=(currentUser.diamondBalance||0)+p.rewardAmount;msg=`+${p.rewardAmount} 💎!`;}
+                t.update(pRef,{currentUses:increment(1),usersClaimed:arrayUnion(currentUser.id)});
+            });
+            updateUI(); document.getElementById('modal-promo').classList.remove('show');
+            showAlert('Claimed!',msg,'success');
+        }catch(e){ showAlert('Error',e.message,'error'); }
+    });
+});
+
+// ── HISTORY ──
+document.getElementById('btn-history').addEventListener('click', async()=>{
+    document.getElementById('modal-history').classList.add('show');
+    const c=document.getElementById('history-list'); c.innerHTML='<div style="text-align:center;padding:20px;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
+    try{
+        const[wS,tS]=await Promise.all([getDocs(query(collection(db,'withdrawals'),where('userId','==',currentUser.id))),getDocs(query(collection(db,'transactions'),where('userId','==',currentUser.id)))]);
+        let list=[];
+        wS.forEach(d=>list.push({...d.data(),isW:true,t:d.data().createdAt}));
+        tS.forEach(d=>list.push({...d.data(),isW:false,t:d.data().createdAt}));
+        const dS=await getDocs(query(collection(db,'deposits'),where('userId','==',currentUser.id)));
+        dS.forEach(d=>list.push({...d.data(),isD:true,t:d.data().createdAt}));
+        list.sort((a,b)=>(b.t?.toMillis()||0)-(a.t?.toMillis()||0)); list=list.slice(0,30);
+        if(!list.length) return c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No history yet.</p></div>';
+        c.innerHTML=list.map(d=>{
+            const dt=d.t?d.t.toDate().toLocaleDateString():'';
+            let title,amt,badge;
+            if(d.isW){ title=`Withdraw (${d.method||''})`; amt=`-${d.diamondAmount||0} 💎`; badge=`<span class="status-badge status-${d.status||'pending'}">${d.status||'pending'}</span>`; }
+            else if(d.isD){ title=`Deposit ${d.tonAmount||0} TON`; amt=`+${d.expectedDiamond||0} 💎`; badge=`<span class="status-badge status-${d.status||'pending'}">${d.status||'pending'}</span>`; }
+            else{ title=d.type||'Reward'; amt=d.diamondAmount?`+${d.diamondAmount} 💎`:''; badge=''; }
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid var(--border);font-size:0.83rem;gap:8px;">
+                <div><div style="font-weight:700;color:var(--text-main);">${title}</div><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${dt} ${badge}</div></div>
+                <div style="font-weight:800;color:${d.isW?'var(--red)':'var(--green)'};">${amt}</div></div>`;
+        }).join('');
+    }catch(e){ c.innerHTML='<div class="empty-state"><p>Error loading history.</p></div>'; }
+});
+
+// ── COLLABORATION ──
+document.getElementById('btn-collab').addEventListener('click',()=>{
+    const el=document.getElementById('collab-eligibility-msg');
+    const form=document.getElementById('collab-form');
+    // Check if user has any tasks with 2000+ completions or self-declared
+    el.innerHTML='<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:11px;padding:11px;font-size:0.8rem;color:#5b21b6;">✅ You can submit a collaboration request. Eligibility verified after approval.</div>';
+    form.style.display='block';
+    document.getElementById('modal-collab').classList.add('show');
+});
+
+document.getElementById('collab-submit-btn').addEventListener('click', async()=>{
+    const channel=document.getElementById('collab-channel').value.trim();
+    const members=parseInt(document.getElementById('collab-members').value)||0;
+    const desc=document.getElementById('collab-desc').value.trim();
+    if(!channel) return showAlert('Error','Enter your channel/bot username.','error');
+    if(members<2000) return showAlert('Not Eligible',`Minimum 2,000 members required. You entered ${members}.`,'error');
+    const btn=document.getElementById('collab-submit-btn');
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        await addDoc(collection(db,'collaborations'),{
+            userId:currentUser.id, channel, memberCount:members,
+            description:desc, status:'pending', createdAt:serverTimestamp()
+        });
+        document.getElementById('modal-collab').classList.remove('show');
+        showAlert('Submitted!','Collab request sent! Our team will review and match you within 48 hours.','success');
+    }catch(e){ showAlert('Error','Submission failed.','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Submit Collab Request';
+});
+
+// ── MODAL TOGGLES ──
+document.getElementById('btn-withdraw').addEventListener('click',()=>{
+    // reset fields
+    document.getElementById('wd-amount-ton').value='';
+    document.getElementById('wd-amount-bnb').value='';
+    document.getElementById('wd-address-ton').value='';
+    document.getElementById('wd-address-bnb').value='';
+    document.getElementById('wd-preview').style.display='none';
+    document.getElementById('modal-withdraw').classList.add('show');
+});
+document.getElementById('btn-promo').addEventListener('click',()=>document.getElementById('modal-promo').classList.add('show'));
+document.getElementById('btn-refer').addEventListener('click',()=>document.getElementById('modal-refer').classList.add('show'));
+document.querySelectorAll('.close-modal').forEach(b=>b.addEventListener('click',e=>e.target.closest('.modal-bg').classList.remove('show')));
+document.getElementById('uid-display').addEventListener('click',()=>{ navigator.clipboard.writeText(currentUser.id); showAlert('Copied','User ID copied.','success'); });
+document.getElementById('invite-copy').addEventListener('click',()=>{ navigator.clipboard.writeText(document.getElementById('invite-link').value); showAlert('Copied','Link copied!','success'); });
+document.getElementById('invite-share').addEventListener('click',()=>{ const l=document.getElementById('invite-link').value; tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(l)}&text=${encodeURIComponent('Join Coinly Task! Earn Diamond 💎 by completing tasks 🚀')}`); });
+
+// ── NAV ──
+document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',()=>{
+    document.querySelectorAll('.b-nav-item,.content-section').forEach(e=>e.classList.remove('active'));
+    l.classList.add('active');
+    document.querySelector(l.dataset.target).classList.add('active');
+}));
+
+// Task payment confirm
+document.getElementById('pay-task-confirm-btn').addEventListener('click', async()=>{
+    const btn=document.getElementById('pay-task-confirm-btn');
+    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    try{
+        const memo=document.getElementById('pay-task-memo').innerText;
+        await addDoc(collection(db,'task_payments'),{
+            userId:currentUser.id, memo, status:'pending', createdAt:serverTimestamp()
+        });
+        document.getElementById('modal-task-payment').classList.remove('show');
+        showAlert('Payment Submitted!','Task will go live within 1–6 hours after TON payment is verified.','success');
+        fetchTasks(taskFilter);
+    }catch(e){ showAlert('Error','Submission failed.','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Paid — Confirm';
+});
+
+initApp();
+</script>
+<!-- TASK PAYMENT MODAL -->
+<div class="modal-bg" id="modal-task-payment">
+    <div class="modal-box">
+        <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
+        <div class="modal-title">Pay to Activate Task</div>
+        <div style="background:var(--primary-light);border-radius:12px;padding:13px;margin-bottom:14px;">
+            <div style="font-size:0.78rem;color:var(--text-sub);margin-bottom:4px;">Package</div>
+            <div style="font-weight:800;color:var(--text-main);" id="pay-task-pkg">—</div>
+            <div style="font-family:var(--mono);font-size:1.4rem;font-weight:800;color:var(--primary);margin-top:4px;"><span id="pay-task-ton-amount">0</span> TON</div>
+        </div>
+        <div class="info-box">
+            📋 Send to our wallet via Tonkeeper<br>
+            🔑 <b>Memo / Comment (required):</b><br>
+            <div style="font-family:var(--mono);font-size:0.85rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;background:#fff;padding:6px 10px;border-radius:8px;border:1px solid var(--border-mid);" id="pay-task-memo">...</div>
+        </div>
+        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:14px;">
+            ⚠️ Copy the memo exactly. Task activates within 1–6 hours after payment confirmed.
+        </div>
+        <button class="btn btn-gold btn-full" id="pay-task-tk-btn" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper to Pay</button>
+        <button class="btn btn-primary btn-full" id="pay-task-confirm-btn"><i class="fas fa-check-circle"></i> I've Paid — Confirm</button>
+        <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
+    </div>
+</div>
+
+</body>
+</html>
