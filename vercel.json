@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "crons": [
+    {
+      "path": "/api/cronCheck",
+      "schedule": "0 * * * *"
+    }
+  ]
+}
