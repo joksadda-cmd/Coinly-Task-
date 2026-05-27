@@ -694,20 +694,26 @@ async function initApp(){
 }
 
 // ── JOIN CHECK ──
+let _joinCheckInterval = null;
+
 async function checkCommunityJoin(){
-    // যদি আগেই join gift claimed থাকে তাহলে modal দেখানোর দরকার নেই
+    // Already verified — skip
     if(currentUser.joinGiftClaimed){
         document.getElementById('modal-join').classList.remove('show');
         return;
     }
     try{
         const res = await fetch(`${VERIFICATION_API_URL}/api/checkJoin?userId=${currentUser.id}`);
+        if(!res.ok){ document.getElementById('modal-join').classList.add('show'); return; }
         const data = await res.json();
-        if(data.ok && data.channel && data.group){
+
+        if(data.joined || data.ok){
+            // Both joined ✅
+            clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
             if(!currentUser.joinGiftClaimed){
                 try{
-                    await updateDoc(doc(db,'users',currentUser.id),{joinGiftClaimed:true,diamondBalance:increment(5)});
+                    await updateDoc(doc(db,'users',currentUser.id),{joinGiftClaimed:true, diamondBalance:increment(5)});
                     currentUser.joinGiftClaimed=true;
                     currentUser.diamondBalance=(currentUser.diamondBalance||0)+5;
                     updateUI();
@@ -715,27 +721,42 @@ async function checkCommunityJoin(){
                 }catch(e){}
             }
         } else {
+            // Not joined
             document.getElementById('modal-join').classList.add('show');
+            if(!_joinCheckInterval){
+                _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
+            }
         }
     }catch(e){
-        // Network error — don't block user if API fails
-        document.getElementById('modal-join').classList.add('show');
+        // API error → don't block user
+        console.log('checkJoin skipped:', e.message);
+        document.getElementById('modal-join').classList.remove('show');
     }
 }
+
 document.getElementById('btn-verify-join').addEventListener('click', async()=>{
-    const btn=document.getElementById('btn-verify-join'), err=document.getElementById('join-error');
+    const btn=document.getElementById('btn-verify-join');
+    const err=document.getElementById('join-error');
     btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>';
+    btn.disabled=true;
     err.innerText='';
     try{
         const res=await fetch(`${VERIFICATION_API_URL}/api/checkJoin?userId=${currentUser.id}`);
         const d=await res.json();
-        if(d.ok && d.channel && d.group){
+        if(d.joined||d.ok){
             await checkCommunityJoin();
         } else {
-            err.innerText = !d.channel ? '❌ Channel join করোনি' : '❌ Community join করোনি';
+            const missing=[];
+            if(!d.channel) missing.push('📢 Official Channel');
+            if(!d.group)   missing.push('👥 Official Community');
+            err.innerText=`❌ Join করোনি:\n${missing.join(', ')}`;
         }
-    }catch(e){ err.innerText='Network error. Try again.'; }
+    }catch(e){
+        // API fail → don't block
+        document.getElementById('modal-join').classList.remove('show');
+    }
     btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
+    btn.disabled=false;
 });
 
 // ── UPDATE UI ──
