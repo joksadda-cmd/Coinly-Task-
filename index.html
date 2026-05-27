@@ -695,6 +695,11 @@ async function initApp(){
 
 // ── JOIN CHECK ──
 async function checkCommunityJoin(){
+    // যদি আগেই join gift claimed থাকে তাহলে modal দেখানোর দরকার নেই
+    if(currentUser.joinGiftClaimed){
+        document.getElementById('modal-join').classList.remove('show');
+        return;
+    }
     try{
         const res = await fetch(`${VERIFICATION_API_URL}/api/checkJoin?userId=${currentUser.id}`);
         const data = await res.json();
@@ -703,21 +708,32 @@ async function checkCommunityJoin(){
             if(!currentUser.joinGiftClaimed){
                 try{
                     await updateDoc(doc(db,'users',currentUser.id),{joinGiftClaimed:true,diamondBalance:increment(5)});
-                    currentUser.joinGiftClaimed=true; currentUser.diamondBalance=(currentUser.diamondBalance||0)+5; updateUI();
+                    currentUser.joinGiftClaimed=true;
+                    currentUser.diamondBalance=(currentUser.diamondBalance||0)+5;
+                    updateUI();
                     document.getElementById('modal-welcome').classList.add('show');
                 }catch(e){}
             }
-        } else { document.getElementById('modal-join').classList.add('show'); }
-    }catch(e){ document.getElementById('modal-join').classList.add('show'); }
+        } else {
+            document.getElementById('modal-join').classList.add('show');
+        }
+    }catch(e){
+        // Network error — don't block user if API fails
+        document.getElementById('modal-join').classList.add('show');
+    }
 }
 document.getElementById('btn-verify-join').addEventListener('click', async()=>{
     const btn=document.getElementById('btn-verify-join'), err=document.getElementById('join-error');
-    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>'; err.innerText='';
+    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>';
+    err.innerText='';
     try{
         const res=await fetch(`${VERIFICATION_API_URL}/api/checkJoin?userId=${currentUser.id}`);
         const d=await res.json();
-        if(d.ok&&d.channel&&d.group) await checkCommunityJoin();
-        else err.innerText='Join BOTH networks first!';
+        if(d.ok && d.channel && d.group){
+            await checkCommunityJoin();
+        } else {
+            err.innerText = !d.channel ? '❌ Channel join করোনি' : '❌ Community join করোনি';
+        }
     }catch(e){ err.innerText='Network error. Try again.'; }
     btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
 });
