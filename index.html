@@ -576,7 +576,7 @@ const firebaseConfig = {
     measurementId:"G-ZTDGZE95HY"
 };
 const app = initializeApp(firebaseConfig);
-try { getAnalytics(app); } catch(e) { console.warn("Analytics unavailable"); }
+getAnalytics(app);
 const db = getFirestore(app);
 const tg = window.Telegram.WebApp;
 const VERIFICATION_API_URL = "https://coinly-task.vercel.app"; // legacy
@@ -652,8 +652,8 @@ async function adWrapper(btnId, sdkCall, successCb){
 
 // ── INIT APP ──
 async function initApp(){
-    if(!tg.initDataUnsafe?.user) return document.body.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Outfit,sans-serif;text-align:center;padding:20px;"><div><div style="font-size:3rem;margin-bottom:16px;">📱</div><h3 style="color:#0f172a;">Open in Telegram</h3><p style="color:#64748b;font-size:0.9rem;">This app must be opened inside Telegram.</p></div></div>';
-    try { tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff'); } catch(e) {}
+    if(!tg.initDataUnsafe?.user) return document.body.innerHTML='<h3 style="text-align:center;margin-top:50px;color:#333;font-family:Outfit,sans-serif;">Open in Telegram.</h3>';
+    tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff');
     const u = tg.initDataUnsafe.user, uid = String(u.id);
 
     let localDevId = localStorage.getItem('coinly_device_id');
@@ -907,31 +907,15 @@ document.getElementById('task-list-container').addEventListener('click', async e
                 await new Promise(r=>setTimeout(r,2000)); ok=true;
             }
             if(ok){
-                try {
-                    const claimRes = await fetch(`${API_BASE}/claimTask`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: currentUser.id, taskId: id })
-                    });
-                    const claimData = await claimRes.json();
-                    if (!claimData.ok) {
-                        if (claimData.error === 'already_completed') {
-                            b.parentElement.remove(); return;
-                        }
-                        showAlert('Error', claimData.message || 'Failed.', 'error');
-                        b.innerText='VERIFY'; b.disabled=false; return;
-                    }
-                    currentUser.diamondBalance = (currentUser.diamondBalance||0) + TASK_REWARD_DIAMOND;
-                    if(!currentUser.completedTasks) currentUser.completedTasks=[];
-                    currentUser.completedTasks.push(id);
-                    updateUI();
-                    showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
-                    b.parentElement.remove();
-                    checkValidRef();
-                } catch(claimErr) {
-                    showAlert('Error','Claim failed.','error');
-                    b.innerText='VERIFY'; b.disabled=false;
-                }
+                await updateDoc(doc(db,'users',currentUser.id),{completedTasks:arrayUnion(id),diamondBalance:increment(TASK_REWARD_DIAMOND)});
+                currentUser.diamondBalance=(currentUser.diamondBalance||0)+TASK_REWARD_DIAMOND;
+                if(!currentUser.completedTasks) currentUser.completedTasks=[];
+                currentUser.completedTasks.push(id);
+                updateUI();
+                showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
+                b.parentElement.remove();
+                // check valid refer after task completion
+                checkValidRef();
             }
         }catch(er){ showAlert('Error','Verification failed.','error'); b.innerText='VERIFY'; b.disabled=false; }
     }
@@ -1372,6 +1356,8 @@ document.getElementById('pay-task-connect-btn')?.addEventListener('click', async
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON via Connected Wallet';
 });
+
+document.getElementById('pay-task-confirm-btn')?.addEventListener('click', async()=>{
     const btn=document.getElementById('pay-task-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
