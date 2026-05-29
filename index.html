@@ -119,8 +119,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .create-task-btn:active{transform:scale(0.98);}
 .create-task-icon{width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
 
-/* DEPOSIT BOX - removed, handled in modal */
-
 /* BOTTOM NAV */
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid var(--border);display:flex;padding:8px 0 16px;z-index:1000;box-shadow:0 -4px 20px rgba(26,111,245,0.08);}
 .b-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);font-size:0.62rem;font-weight:700;text-transform:uppercase;cursor:pointer;transition:0.2s;}
@@ -175,19 +173,28 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .lock-icon{font-size:3.2rem;color:var(--primary);margin-bottom:14px;animation:floatLock 2s infinite alternate;}
 @keyframes floatLock{to{transform:translateY(-7px);}}
 
-/* DEPOSIT PENDING CARD */
-.pending-card{background:linear-gradient(135deg,#fff7ed,#fef3c7);border:1.5px solid #fed7aa;border-radius:14px;padding:14px;margin-bottom:10px;}
-.pending-amount{font-family:var(--mono);font-size:1.3rem;font-weight:800;color:var(--gold);}
-
 /* DIVIDER */
 .divider{height:1px;background:var(--border);margin:14px 0;}
 
-/* NAV TABS */
-.nav-tabs{display:flex;gap:8px;margin-bottom:14px;}
-.nav-tab{flex:1;padding:10px;text-align:center;background:var(--bg-section);border:1.5px solid var(--border);border-radius:11px;font-weight:700;font-size:0.82rem;color:var(--text-muted);cursor:pointer;transition:0.2s;}
-.nav-tab.active{background:var(--primary-light);border-color:var(--primary);color:var(--primary);}
+/* NAVIGATION & DEPOSIT OPTIONS */
+.dep-amount-btn {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-section);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.dep-amount-btn.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
 
-/* TASK PLATFORM FILTER */
+/* PLATFORM FILTER */
 .platform-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
 .platform-pill{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:0.76rem;font-weight:700;background:var(--bg-section);border:1.5px solid var(--border);color:var(--text-muted);cursor:pointer;transition:0.2s;white-space:nowrap;}
 .platform-pill.active,.platform-pill:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
@@ -197,7 +204,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .empty-state i{font-size:2.5rem;opacity:0.4;display:block;margin-bottom:10px;}
 .empty-state p{font-size:0.85rem;}
 
-/* TON ROW in bal card */
+/* TON ROW */
 .ton-sub-row{background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:0.78rem;color:rgba(255,255,255,0.85);}
 .ton-sub-row span{font-family:var(--mono);font-weight:700;}
 </style>
@@ -242,8 +249,9 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span>TON Balance</span>
             <span>≈ <span id="bal-ton">0.0000</span> TON</span>
         </div>
-        <div style="margin-top:10px;">
-            <div id="ton-connect-btn" style="width:100%;"></div>
+        <div style="margin-top:10px; display: flex; gap: 8px;">
+            <div id="ton-connect-btn" style="flex: 1;"></div>
+            <button class="btn btn-gold" id="btn-deposit" style="flex: 1; border-radius: 10px; padding: 10px;"><i class="fas fa-coins"></i> Deposit TON</button>
         </div>
     </div>
 
@@ -327,7 +335,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
     <!-- Giga Pub: 0.25 diamond -->
     <div class="task-card">
-        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-bullhorn"></i></div>
+        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
             <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
@@ -557,31 +565,89 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     </div>
 </div>
 
+<!-- DEPOSIT MODAL -->
+<div class="modal-bg" id="modal-deposit">
+    <div class="modal-box">
+        <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
+        <div class="modal-title">Deposit TON</div>
+        <div class="modal-sub" id="dep-modal-sub">Sending <b id="dep-show-ton">0.5</b> TON</div>
+        
+        <!-- Selection options added -->
+        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:14px;">
+            <button class="dep-amount-btn active" data-ton="0.5">0.5 TON</button>
+            <button class="dep-amount-btn" data-ton="1.0">1.0 TON</button>
+            <button class="dep-amount-btn" data-ton="2.0">2.0 TON</button>
+        </div>
+
+        <div id="dep-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
+        <!-- TON Connect direct send -->
+        <button class="btn btn-primary btn-full" id="dep-send-btn" style="margin-bottom:10px;display:none;"><i class="fas fa-bolt"></i> Send TON Directly</button>
+        <!-- Manual method -->
+        <div class="info-box">
+            📋 Send to our wallet via Tonkeeper<br>
+            🔑 <b>Your Memo/Comment:</b><br>
+            <div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;" id="dep-memo-display">...</div>
+        </div>
+        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:10px;">
+            ⚠️ Memo must match exactly — without it deposit cannot be processed.
+        </div>
+        <button class="btn btn-gold btn-full" id="dep-open-tonkeeper" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper Manually</button>
+        <button class="btn btn-green btn-full" id="dep-confirm-btn"><i class="fas fa-check-circle"></i> I've Sent — Confirm</button>
+        <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
+    </div>
+</div>
+
+<!-- TASK PAYMENT MODAL -->
+<div class="modal-bg" id="modal-task-payment">
+    <div class="modal-box">
+        <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
+        <div class="modal-title">Pay to Activate Task</div>
+        <div style="background:var(--primary-light);border-radius:12px;padding:13px;margin-bottom:14px;">
+            <div style="font-size:0.78rem;color:var(--text-sub);margin-bottom:4px;">Package</div>
+            <div style="font-weight:800;color:var(--text-main);" id="pay-task-pkg">—</div>
+            <div style="font-family:var(--mono);font-size:1.4rem;font-weight:800;color:var(--primary);margin-top:4px;"><span id="pay-task-ton-amount">0</span> TON</div>
+        </div>
+        <!-- TON Connect send -->
+        <div id="pay-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
+        <button class="btn btn-primary btn-full" id="pay-task-connect-btn" style="margin-bottom:10px;display:none;"><i class="fas fa-bolt"></i> Send TON via Connected Wallet</button>
+        <!-- Manual fallback -->
+        <div class="info-box" id="pay-manual-box">
+            📋 Send to our wallet via Tonkeeper<br>
+            🔑 <b>Memo / Comment (required):</b><br>
+            <div style="font-family:var(--mono);font-size:0.85rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;background:#fff;padding:6px 10px;border-radius:8px;border:1px solid var(--border-mid);" id="pay-task-memo">...</div>
+        </div>
+        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:10px;">
+            ⚠️ Copy the memo exactly. Task activates within 1–6 hours after payment confirmed.
+        </div>
+        <button class="btn btn-gold btn-full" id="pay-task-tk-btn" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper Manually</button>
+        <button class="btn btn-green btn-full" id="pay-task-confirm-btn"><i class="fas fa-check-circle"></i> I've Sent — Confirm</button>
+        <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
+    </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════ -->
 <!--                   FIREBASE + APP LOGIC                    -->
 <!-- ══════════════════════════════════════════════════════════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-analytics.js";
-import { getFirestore, collection, getDocs, query, orderBy, where, limit, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, increment, arrayUnion, writeBatch, FieldValue } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, query, where, limit, addDoc, serverTimestamp, doc, getDoc, setDoc, updateDoc, runTransaction, increment, arrayUnion } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey:            "AIzaSyBiCyauYlaty5Th0_uPfCnhTcaTHzzKDM4",
-    authDomain:        "coinly-task.firebaseapp.com",
-    databaseURL:       "https://coinly-task-default-rtdb.firebaseio.com",
-    projectId:         "coinly-task",
-    storageBucket:     "coinly-task.firebasestorage.app",
-    messagingSenderId: "724806557550",
-    appId:             "1:724806557550:web:0b7eaa270cbbf182882b7f",
-    measurementId:     "G-ZTDGZE95HY"
+    apiKey:"AIzaSyBiCyauYlaty5Th0_uPfCnhTcaTHzzKDM4",
+    authDomain:"coinly-task.firebaseapp.com",
+    databaseURL:"https://coinly-task-default-rtdb.firebaseio.com",
+    projectId:"coinly-task",
+    storageBucket:"coinly-task.firebasestorage.app",
+    messagingSenderId:"724806557550",
+    appId:"1:724806557550:web:0b7eaa270cbbf182882b7f",
+    measurementId:"G-ZTDGZE95HY"
 };
 const app = initializeApp(firebaseConfig);
 getAnalytics(app);
 const db = getFirestore(app);
 const tg = window.Telegram.WebApp;
-// ── API BASE ──
 const API_BASE = "https://coinly-task.vercel.app/api";
-const VERIFICATION_API_URL = "https://coinly-task.vercel.app"; // legacy compat
 
 // ── TON CONNECT ──
 let tonConnectUI = null;
@@ -613,7 +679,7 @@ const REFER_VALID_TASKS = 10;
 const AD_LIMITS = {ad1:10, ad2:5, ad3:20, ad4:20};
 const AD_DIAMOND_REWARDS = {ad1:0.25, ad2:0.5, ad3:0.25, ad4:0.25};
 
-// ── TASK PACKAGES (tasks → TON price) ──
+// ── TASK PACKAGES ──
 const TASK_PACKAGES = [
     {tasks:250,  ton:0.25,  label:'250 Tasks',  popular:false},
     {tasks:500,  ton:0.5,   label:'500 Tasks',  popular:false},
@@ -623,7 +689,7 @@ const TASK_PACKAGES = [
 ];
 
 let currentUser = null, isAdRunning = false, isSubmitting = false;
-let selectedPackage = null;   // for create task package
+let selectedPackage = null;
 let selectedTaskType = null;
 
 // ── HELPERS ──
@@ -664,22 +730,43 @@ async function initApp(){
     if(multi){ document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px;text-align:center;background:#f0f4ff;font-family:Outfit,sans-serif;"><i class="fas fa-mobile-alt" style="font-size:4rem;color:var(--red);margin-bottom:20px;"></i><h2 style="color:#0f172a;">Device Blocked</h2><p style="color:#64748b;">Multiple accounts not allowed.</p></div>'; return; }
 
     const ref = doc(db,'users',uid), snap = await getDoc(ref), today = getToday();
+    const sp = tg.initDataUnsafe.start_param;
     if(!snap.exists()){
+        try {
+            await fetch(`${API_BASE}/init`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    userId:       uid,
+                    firstName:    u.firstName || '',
+                    lastName:     u.lastName  || '',
+                    username:     u.username  || '',
+                    referrerCode: (sp && sp !== uid) ? sp : null,
+                })
+            });
+        } catch(e) { console.warn('[initApp] init API failed:', e.message); }
+
         const data = {
             diamondBalance:0, completedTasks:[], createdTasks:[],
             totalInvites:0, validReferrals:0, referralDiamondEarned:0,
             createdAt:serverTimestamp(), telegramUsername:u.username||'N/A', isBanned:false,
             adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
             lastResetDate:today, joinGiftClaimed:false,
-            isValidatedRef:false, deviceId:localDevId
+            isValidatedRef:false, deviceId:localDevId,
+            referredBy: (sp && sp !== uid) ? sp : null,
         };
-        const sp = tg.initDataUnsafe.start_param;
-        if(sp && sp!==uid){ data.referredBy=sp; try{ await updateDoc(doc(db,'users',sp),{totalInvites:increment(1)}); }catch(e){} }
         try{ await setDoc(ref, data); }catch(e){}
         currentUser = {id:uid, ...data};
     } else {
         currentUser = {id:snap.id, ...snap.data()};
         if(!currentUser.deviceId) try{ await updateDoc(ref,{deviceId:localDevId}); }catch(e){}
+        try {
+            fetch(`${API_BASE}/init`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: uid, firstName: u.firstName||'', username: u.username||'' })
+            });
+        } catch(e) {}
     }
     if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;"><i class="fas fa-ban" style="font-size:4rem;color:red;margin-bottom:20px;"></i><h3>Account Banned.</h3></div>';
 
@@ -699,7 +786,6 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
-    // Already verified — skip
     if(currentUser.joinGiftClaimed){
         document.getElementById('modal-join').classList.remove('show');
         return;
@@ -710,7 +796,6 @@ async function checkCommunityJoin(){
         const data = await res.json();
 
         if(data.joined || data.ok){
-            // Both joined ✅
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
             if(!currentUser.joinGiftClaimed){
@@ -723,15 +808,12 @@ async function checkCommunityJoin(){
                 }catch(e){}
             }
         } else {
-            // Not joined
             document.getElementById('modal-join').classList.add('show');
             if(!_joinCheckInterval){
                 _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
             }
         }
     }catch(e){
-        // API error → don't block user
-        console.log('checkJoin skipped:', e.message);
         document.getElementById('modal-join').classList.remove('show');
     }
 }
@@ -754,7 +836,6 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
             err.innerText=`❌ Join করোনি:\n${missing.join(', ')}`;
         }
     }catch(e){
-        // API fail → don't block
         document.getElementById('modal-join').classList.remove('show');
     }
     btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
@@ -891,7 +972,6 @@ document.getElementById('task-list-container').addEventListener('click', async e
                 updateUI();
                 showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
                 b.parentElement.remove();
-                // check valid refer after task completion
                 checkValidRef();
             }
         }catch(er){ showAlert('Error','Verification failed.','error'); b.innerText='VERIFY'; b.disabled=false; }
@@ -925,7 +1005,7 @@ async function checkValidRef(){
     }
 }
 
-// ── CREATE TASK (3-step: type → package → details) ──
+// ── CREATE TASK (3-step) ──
 function showStep(step){
     ['ct-step-type','ct-step-package','ct-step-details'].forEach(id=>{
         document.getElementById(id).style.display = id===step ? 'block' : 'none';
@@ -953,23 +1033,19 @@ function renderPackages(){
         </div>`;
     }).join('');
 
-    // Use event delegation on the list container — avoids inner-child click issues
     list.onclick = (e) => {
         const card = e.target.closest('.pkg-card');
         if(!card) return;
-        // Reset all cards
         list.querySelectorAll('.pkg-card').forEach(c=>{
             const idx=parseInt(c.dataset.idx);
             const p=TASK_PACKAGES[idx];
             c.style.outline='none';
             c.style.border=`2px solid ${p.popular?'var(--primary)':'var(--border)'}`;
         });
-        // Highlight selected
         card.style.outline='3px solid #f59e0b';
         card.style.border='2px solid #f59e0b';
         const idx=parseInt(card.dataset.idx);
         selectedPackage=TASK_PACKAGES[idx];
-        // Enable continue button
         const continueBtn=document.getElementById('ct-to-details-btn');
         continueBtn.disabled=false;
         continueBtn.style.opacity='1';
@@ -1029,7 +1105,6 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('ct-submit-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        // Save task as pending payment — will be activated after TON confirmed
         await addDoc(collection(db,'tasks'),{
             title, url, category:selectedTaskType,
             channelId:(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?channelId:'',
@@ -1039,16 +1114,15 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
             tonCost:selectedPackage.ton, packageLabel:selectedPackage.label,
             paymentStatus:'pending'
         });
-        // Open tonkeeper deep link for payment
         const taskMemo=`TASK_${currentUser.id}_${Date.now()}`;
         const tonkeeperUrl=`https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${Math.floor(selectedPackage.ton*1e9)}&text=${encodeURIComponent(taskMemo)}`;
         document.getElementById('modal-create-task').classList.remove('show');
-        // Show payment modal
+        
         document.getElementById('pay-task-ton-amount').innerText=selectedPackage.ton;
         document.getElementById('pay-task-pkg').innerText=selectedPackage.label;
         document.getElementById('pay-task-memo').innerText=taskMemo;
         document.getElementById('pay-task-tk-btn').onclick=()=>tg.openLink(tonkeeperUrl);
-        // Wallet status
+        
         const pwEl=document.getElementById('pay-wallet-status');
         const pcBtn=document.getElementById('pay-task-connect-btn');
         if(connectedWallet){
@@ -1143,8 +1217,9 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
             await runTransaction(db, async t=>{
                 const pRef=doc(db,'promo_codes',code), p=(await t.get(pRef)).data();
                 if(!p||!p.isActive||p.currentUses>=p.maxUses||p.usersClaimed?.includes(currentUser.id)) throw new Error("Invalid or already used.");
-                if(p.rewardType==='diamond'){t.update(doc(db,'users',currentUser.id),{diamondBalance:increment(p.rewardAmount)});currentUser.diamondBalance=(currentUser.diamondBalance||0)+p.rewardAmount;msg=`+${p.rewardAmount} 💎 Diamond!`;}
-                else{t.update(doc(db,'users',currentUser.id),{diamondBalance:increment(p.rewardAmount)});currentUser.diamondBalance=(currentUser.diamondBalance||0)+p.rewardAmount;msg=`+${p.rewardAmount} 💎!`;}
+                t.update(doc(db,'users',currentUser.id),{diamondBalance:increment(p.rewardAmount)});
+                currentUser.diamondBalance=(currentUser.diamondBalance||0)+p.rewardAmount;
+                msg=`+${p.rewardAmount} 💎!`;
                 t.update(pRef,{currentUses:increment(1),usersClaimed:arrayUnion(currentUser.id)});
             });
             updateUI(); document.getElementById('modal-promo').classList.remove('show');
@@ -1183,7 +1258,6 @@ document.getElementById('btn-history').addEventListener('click', async()=>{
 document.getElementById('btn-collab').addEventListener('click',()=>{
     const el=document.getElementById('collab-eligibility-msg');
     const form=document.getElementById('collab-form');
-    // Check if user has any tasks with 2000+ completions or self-declared
     el.innerHTML='<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:11px;padding:11px;font-size:0.8rem;color:#5b21b6;">✅ You can submit a collaboration request. Eligibility verified after approval.</div>';
     form.style.display='block';
     document.getElementById('modal-collab').classList.add('show');
@@ -1210,7 +1284,6 @@ document.getElementById('collab-submit-btn').addEventListener('click', async()=>
 
 // ── MODAL TOGGLES ──
 document.getElementById('btn-withdraw').addEventListener('click',()=>{
-    // reset fields
     document.getElementById('wd-amount-ton').value='';
     document.getElementById('wd-amount-bnb').value='';
     document.getElementById('wd-address-ton').value='';
@@ -1241,6 +1314,8 @@ document.querySelectorAll('.dep-amount-btn').forEach(btn=>{
         document.querySelectorAll('.dep-amount-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         selectedDepositTon=parseFloat(btn.dataset.ton);
+        document.getElementById('dep-show-ton').innerText=selectedDepositTon;
+        document.getElementById('dep-modal-sub').innerHTML=`Sending <b>${selectedDepositTon} TON</b> → <b>+${Math.floor(selectedDepositTon*TON_TO_DIAMOND)} 💎</b>`;
     });
 });
 
@@ -1284,7 +1359,6 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
         await sendTonConnect(DEPOSIT_WALLET, selectedDepositTon, currentUser.id);
-        // Log deposit pending
         await addDoc(collection(db,'deposits'),{
             userId:currentUser.id, tonAmount:selectedDepositTon,
             expectedDiamond:Math.floor(selectedDepositTon*TON_TO_DIAMOND),
@@ -1305,18 +1379,35 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('dep-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        await addDoc(collection(db,'deposits'),{
-            userId:currentUser.id, tonAmount:selectedDepositTon,
-            expectedDiamond:Math.floor(selectedDepositTon*TON_TO_DIAMOND),
-            memo:currentUser.id, status:'pending', createdAt:serverTimestamp()
+        const depRef = await addDoc(collection(db,'deposits'),{
+            userId:          currentUser.id,
+            username:        currentUser.telegramUsername||'',
+            firstName:       currentUser.firstName||'',
+            tonAmount:       selectedDepositTon,
+            expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+            memo:            String(currentUser.id),
+            status:          'pending',
+            createdAt:       serverTimestamp()
         });
+        fetch(`${API_BASE}/notifyDeposit`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                depositId:       depRef.id,
+                userId:          currentUser.id,
+                username:        currentUser.telegramUsername||'',
+                firstName:       currentUser.firstName||'',
+                tonAmount:       selectedDepositTon,
+                expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+                memo:            String(currentUser.id),
+            })
+        }).catch(e=>console.warn('notify failed:',e.message));
         document.getElementById('modal-deposit').classList.remove('show');
-        showAlert('Submitted!','Deposit pending. Diamond added within 1–6 hours.','success');
-    }catch(e){ showAlert('Error','Submission failed.','error'); }
+        showAlert('Submitted! ✅','Deposit request received. Diamond will be added within 1–6 hours after verification.','success');
+    }catch(e){ showAlert('Error','Submission failed. Try again.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Sent — Confirm';
 });
 
-// Task payment TON Connect
+// Task payment TON Connect (Fixed syntax issue)
 document.getElementById('pay-task-connect-btn')?.addEventListener('click', async()=>{
     const btn=document.getElementById('pay-task-connect-btn');
     const memo=document.getElementById('pay-task-memo').innerText;
@@ -1333,6 +1424,9 @@ document.getElementById('pay-task-connect-btn')?.addEventListener('click', async
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON via Connected Wallet';
 });
+
+// Task manual payment confirmation (Fixed Syntax issue)
+document.getElementById('pay-task-confirm-btn')?.addEventListener('click', async()=>{
     const btn=document.getElementById('pay-task-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
@@ -1350,57 +1444,6 @@ document.getElementById('pay-task-connect-btn')?.addEventListener('click', async
 initTonConnect();
 initApp();
 </script>
-<!-- TASK PAYMENT MODAL -->
-<div class="modal-bg" id="modal-task-payment">
-    <div class="modal-box">
-        <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
-        <div class="modal-title">Pay to Activate Task</div>
-        <div style="background:var(--primary-light);border-radius:12px;padding:13px;margin-bottom:14px;">
-            <div style="font-size:0.78rem;color:var(--text-sub);margin-bottom:4px;">Package</div>
-            <div style="font-weight:800;color:var(--text-main);" id="pay-task-pkg">—</div>
-            <div style="font-family:var(--mono);font-size:1.4rem;font-weight:800;color:var(--primary);margin-top:4px;"><span id="pay-task-ton-amount">0</span> TON</div>
-        </div>
-        <!-- TON Connect send -->
-        <div id="pay-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
-        <button class="btn btn-primary btn-full" id="pay-task-connect-btn" style="margin-bottom:10px;display:none;"><i class="fas fa-bolt"></i> Send TON via Connected Wallet</button>
-        <!-- Manual fallback -->
-        <div class="info-box" id="pay-manual-box">
-            📋 Send to our wallet via Tonkeeper<br>
-            🔑 <b>Memo / Comment (required):</b><br>
-            <div style="font-family:var(--mono);font-size:0.85rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;background:#fff;padding:6px 10px;border-radius:8px;border:1px solid var(--border-mid);" id="pay-task-memo">...</div>
-        </div>
-        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:10px;">
-            ⚠️ Copy the memo exactly. Task activates within 1–6 hours after payment confirmed.
-        </div>
-        <button class="btn btn-gold btn-full" id="pay-task-tk-btn" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper Manually</button>
-        <button class="btn btn-green btn-full" id="pay-task-confirm-btn"><i class="fas fa-check-circle"></i> I've Sent — Confirm</button>
-        <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
-    </div>
-</div>
-
-<!-- DEPOSIT MODAL -->
-<div class="modal-bg" id="modal-deposit">
-    <div class="modal-box">
-        <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
-        <div class="modal-title">Deposit TON</div>
-        <div class="modal-sub" id="dep-modal-sub">Sending <b id="dep-show-ton">0</b> TON</div>
-        <div id="dep-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
-        <!-- TON Connect direct send -->
-        <button class="btn btn-primary btn-full" id="dep-send-btn" style="margin-bottom:10px;display:none;"><i class="fas fa-bolt"></i> Send TON Directly</button>
-        <!-- Manual method -->
-        <div class="info-box">
-            📋 Send to our wallet via Tonkeeper<br>
-            🔑 <b>Your Memo/Comment:</b><br>
-            <div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:var(--primary);margin-top:5px;word-break:break-all;" id="dep-memo-display">...</div>
-        </div>
-        <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.76rem;color:#92400e;margin-bottom:10px;">
-            ⚠️ Memo must match exactly — without it deposit cannot be processed.
-        </div>
-        <button class="btn btn-gold btn-full" id="dep-open-tonkeeper" style="margin-bottom:10px;"><i class="fas fa-external-link-alt"></i> Open Tonkeeper Manually</button>
-        <button class="btn btn-green btn-full" id="dep-confirm-btn"><i class="fas fa-check-circle"></i> I've Sent — Confirm</button>
-        <div style="margin-top:10px;"><button class="btn btn-outline btn-full close-modal">Cancel</button></div>
-    </div>
-</div>
 
 </body>
 </html>
