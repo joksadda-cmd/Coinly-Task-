@@ -246,8 +246,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
         </div>
         <div class="ton-sub-row">
-            <span>TON Balance</span>
-            <span>≈ <span id="bal-ton">0.0000</span> TON</span>
+            <span>My TON Balance</span>
+            <span><span id="bal-ton">0.0000</span> TON</span>
         </div>
         <div style="margin-top:10px; display: flex; gap: 8px;">
             <div id="ton-connect-btn" style="flex: 1;"></div>
@@ -395,7 +395,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <button class="btn btn-outline btn-full close-modal">Cancel</button>
             <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
         </div>
-        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing time: 1–24 hours • 1000 💎 = 0.75 TON</p>
+        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing time: 1–24 hours • 1000 💎 = 0.60 TON</p>
     </div>
 </div>
 
@@ -774,7 +774,7 @@ async function initApp(){
         const up = {adsWatchedAd1:0,adsWatchedAd2:0,adsWatchedAd3:0,adsWatchedAd4:0,lastResetDate:today};
         Object.assign(currentUser, up);
         try{ await updateDoc(ref, up); }catch(e){}
-        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${uid}`,0));
+        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
     }
 
     updateUI();
