@@ -1328,14 +1328,32 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('dep-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        await addDoc(collection(db,'deposits'),{
-            userId:currentUser.id, tonAmount:selectedDepositTon,
-            expectedDiamond:Math.floor(selectedDepositTon*TON_TO_DIAMOND),
-            memo:currentUser.id, status:'pending', createdAt:serverTimestamp()
+        const depRef = await addDoc(collection(db,'deposits'),{
+            userId:          currentUser.id,
+            username:        currentUser.telegramUsername||'',
+            firstName:       currentUser.firstName||'',
+            tonAmount:       selectedDepositTon,
+            expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+            memo:            String(currentUser.id),
+            status:          'pending',
+            createdAt:       serverTimestamp()
         });
+        // Notify admin
+        fetch(`${API_BASE}/notifyDeposit`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                depositId:       depRef.id,
+                userId:          currentUser.id,
+                username:        currentUser.telegramUsername||'',
+                firstName:       currentUser.firstName||'',
+                tonAmount:       selectedDepositTon,
+                expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+                memo:            String(currentUser.id),
+            })
+        }).catch(e=>console.warn('notify failed:',e.message));
         document.getElementById('modal-deposit').classList.remove('show');
-        showAlert('Submitted!','Deposit pending. Diamond added within 1–6 hours.','success');
-    }catch(e){ showAlert('Error','Submission failed.','error'); }
+        showAlert('Submitted! ✅','Deposit request received. Diamond will be added within 1–6 hours after verification.','success');
+    }catch(e){ showAlert('Error','Submission failed. Try again.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Sent — Confirm';
 });
 
@@ -1356,8 +1374,6 @@ document.getElementById('pay-task-connect-btn')?.addEventListener('click', async
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON via Connected Wallet';
 });
-
-document.getElementById('pay-task-confirm-btn')?.addEventListener('click', async()=>{
     const btn=document.getElementById('pay-task-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
