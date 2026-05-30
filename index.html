@@ -711,53 +711,55 @@ async function initApp(){
     if(!tg.initDataUnsafe?.user) return document.body.innerHTML='<h3 style="text-align:center;margin-top:50px;color:#333;font-family:Outfit,sans-serif;">Open in Telegram.</h3>';
     tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff');
     const u = tg.initDataUnsafe.user, uid = String(u.id);
-
-    let localDevId = localStorage.getItem('coinly_device_id');
-    if(!localDevId){ localDevId='dev_'+Date.now()+Math.random().toString(36).substr(2,9); localStorage.setItem('coinly_device_id',localDevId); }
-    let multi = false;
-    try{ const chk=await getDocs(query(collection(db,'users'),where('deviceId','==',localDevId),limit(2))); chk.forEach(d=>{if(d.id!==uid)multi=true;}); }catch(e){}
-    if(multi){ document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px;text-align:center;background:#f0f4ff;font-family:Outfit,sans-serif;"><i class="fas fa-mobile-alt" style="font-size:4rem;color:var(--red);margin-bottom:20px;"></i><h2 style="color:#0f172a;">Device Blocked</h2><p style="color:#64748b;">Multiple accounts not allowed.</p></div>'; return; }
-
-    const ref = doc(db,'users',uid), snap = await getDoc(ref), today = getToday();
+    const today = getToday();
     const sp = tg.initDataUnsafe.start_param;
-    if(!snap.exists()){
-        try {
-            await fetch(`${API_BASE}/init`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId:       uid,
-                    firstName:    u.firstName || '',
-                    lastName:     u.lastName  || '',
-                    username:     u.username  || '',
-                    referrerCode: (sp && sp !== uid) ? sp : null,
-                })
-            });
-        } catch(e) { console.warn('[initApp] init API failed:', e.message); }
 
-        const data = {
-            diamondBalance:0, completedTasks:[], createdTasks:[],
-            totalInvites:0, validReferrals:0, referralDiamondEarned:0,
-            createdAt:serverTimestamp(), telegramUsername:u.username||'N/A', isBanned:false,
-            adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
-            lastResetDate:today, joinGiftClaimed:false,
-            isValidatedRef:false, deviceId:localDevId,
-            referredBy: (sp && sp !== uid) ? sp : null,
-        };
-        try{ await setDoc(ref, data); }catch(e){}
-        currentUser = {id:uid, ...data};
-    } else {
-        currentUser = {id:snap.id, ...snap.data()};
-        if(!currentUser.deviceId) try{ await updateDoc(ref,{deviceId:localDevId}); }catch(e){}
-        try {
-            fetch(`${API_BASE}/init`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: uid, firstName: u.firstName||'', username: u.username||'' })
-            });
-        } catch(e) {}
+    // ── Load user via API (no direct Firestore read — works regardless of rules) ──
+    let apiData = null;
+    try{
+        const res = await fetch(`${API_BASE}/init`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                userId:       uid,
+                firstName:    u.firstName || '',
+                lastName:     u.lastName  || '',
+                username:     u.username  || '',
+                referrerCode: (sp && sp !== uid) ? sp : null,
+            })
+        });
+        apiData = await res.json();
+    }catch(e){ console.warn('[initApp] API failed:', e.message); }
+
+    if(apiData?.blocked){
+        document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;padding:20px;text-align:center;background:#f0f4ff;font-family:Outfit,sans-serif;"><i class="fas fa-mobile-alt" style="font-size:4rem;color:var(--red);margin-bottom:20px;"></i><h2 style="color:#0f172a;">Device Blocked</h2><p style="color:#64748b;">Multiple accounts not allowed.</p></div>';
+        return;
     }
+
+    if(apiData?.user){
+        // API returned user data — use it directly
+        currentUser = { id: uid, ...apiData.user };
+    } else {
+        // API failed — build minimal currentUser from Telegram data
+        currentUser = {
+            id: uid,
+            diamondBalance: 0, completedTasks: [], lootboxBalance: 0,
+            totalInvites: 0, validReferrals: 0, referralDiamondEarned: 0,
+            telegramUsername: u.username||'', firstName: u.firstName||'',
+            adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
+            lastResetDate: today, joinGiftClaimed: false, isValidatedRef: false,
+            isBanned: false,
+        };
+    }
+
     if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;"><i class="fas fa-ban" style="font-size:4rem;color:red;margin-bottom:20px;"></i><h3>Account Banned.</h3></div>';
+
+    // Ad count reset if new day
+    if(currentUser.lastResetDate !== today){
+        currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
+        currentUser.adsWatchedAd3 = 0; currentUser.adsWatchedAd4 = 0;
+        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${uid}`, 0));
+    }
 
     if(currentUser.lastResetDate !== today){
         const up = {adsWatchedAd1:0,adsWatchedAd2:0,adsWatchedAd3:0,adsWatchedAd4:0,lastResetDate:today};
@@ -921,20 +923,21 @@ async function fetchTasks(filter){
     const container = document.getElementById('task-list-container');
     container.innerHTML = '<div style="text-align:center;padding:30px 0;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
     try{
-        // Single-field query only — no composite index needed
-        const q = query(collection(db,'tasks'), where('isApproved','==',true), limit(80));
-        const s = await getDocs(q);
+        // Load via API — no Firestore rules issue
+        const res  = await fetch(`${API_BASE}/getTasks`);
+        const data = await res.json();
+        const allTasks = data.tasks || [];
+
         container.innerHTML = '';
         let count = 0;
-        s.forEach(d=>{
-            const t = d.data();
-            if(currentUser.completedTasks?.includes(d.id)) return;
-            // Client-side category filter
+        const iconMap  = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
+        const colorMap = {telegram_channel:'color:#0088cc;background:#e6f4fb;border-color:#b3dff7',telegram_group:'color:#7c3aed;background:#f3e8ff;border-color:#ddd6fe',telegram_bot:'color:#059669;background:#ecfdf5;border-color:#a7f3d0',social:'color:#dc2626;background:#fef2f2;border-color:#fecaca'};
+
+        allTasks.forEach(t=>{
+            if((currentUser.completedTasks||[]).includes(t.id)) return;
             if(filter !== 'all' && t.category !== filter) return;
             count++;
             const cat = t.category||'social';
-            const iconMap = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
-            const colorMap = {telegram_channel:'color:#0088cc;background:#e6f4fb;border-color:#b3dff7',telegram_group:'color:#7c3aed;background:#f3e8ff;border-color:#ddd6fe',telegram_bot:'color:#059669;background:#ecfdf5;border-color:#a7f3d0',social:'color:#dc2626;background:#fef2f2;border-color:#fecaca'};
             container.innerHTML += `
                 <div class="task-card">
                     <div class="t-icon" style="${colorMap[cat]||colorMap.social}"><i class="${iconMap[cat]||'fas fa-tasks'}"></i></div>
@@ -942,17 +945,13 @@ async function fetchTasks(filter){
                         <div class="t-name">${t.title}</div>
                         <div class="t-reward">+${TASK_REWARD_DIAMOND} 💎 Diamond</div>
                     </div>
-                    <button class="btn btn-outline t-task-btn" data-id="${d.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button>
+                    <button class="btn btn-outline t-task-btn" data-id="${t.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button>
                 </div>`;
         });
         if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
     }catch(e){
         container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>`;
-        console.error('[fetchTasks]', e.code, e.message);
-        // If permission denied, suggest Firebase rules fix
-        if(e.code === 'permission-denied'){
-            container.innerHTML = `<div class="empty-state"><i class="fas fa-lock"></i><p style="font-size:0.8rem;">Firebase permission error.<br>Check Firestore Rules.</p></div>`;
-        }
+        console.error('[fetchTasks]', e.message);
     }
 }
 
