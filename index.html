@@ -345,7 +345,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="card" style="margin-top:16px;border:2px solid var(--border-mid);border-radius:18px;padding:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
         <div style="position:absolute;top:-20px;right:-20px;font-size:5rem;opacity:0.07;">🎁</div>
         <div style="font-weight:800;font-size:1rem;margin-bottom:4px;">🎁 Lootbox</div>
-        <div style="font-size:0.75rem;opacity:0.7;margin-bottom:12px;">Ads থেকে earned diamond এখানে জমা হয়। রাত ১২টায় main balance-এ যোগ হবে।</div>
+        <div style="font-size:0.75rem;opacity:0.7;margin-bottom:12px;">Ads earned diamond stored here. Transfers to main balance at midnight.</div>
         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;margin-bottom:10px;">
             <div>
                 <div style="font-size:0.7rem;opacity:0.6;text-transform:uppercase;letter-spacing:1px;">Lootbox Balance</div>
@@ -353,7 +353,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="font-size:2.5rem;">🎁</div>
         </div>
-        <div style="font-size:0.72rem;opacity:0.55;text-align:center;" id="lootbox-timer">রাত ১২টায় transfer হবে</div>
+        <div style="font-size:0.72rem;opacity:0.55;text-align:center;" id="lootbox-timer">Transfers at midnight</div>
     </div>
 
 </section>
@@ -872,7 +872,7 @@ function updateUI(){
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
 }
 
-// ── ADS → lootbox এ জমা হবে (main balance এ নয়) ──
+// ── ADS → stored in Lootbox (not main balance) ──
 const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
     const reward = AD_DIAMOND_REWARDS[type];
     const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
@@ -887,7 +887,7 @@ const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
     localStorage.setItem(`coinly_${type}_${currentUser.id}`, loc+1);
     updateUI();
     updateLootbox();
-    showAlert('Earned!',`+${reward} 💎 Lootbox-এ জমা হলো! রাত ১২টায় main balance-এ যাবে।`,'success');
+    showAlert('Earned!',`+${reward} 💎 Added to Lootbox! Transfers to main balance at midnight.`,'success');
 });
 
 const showGigaAd = async()=>{
@@ -921,18 +921,16 @@ async function fetchTasks(filter){
     const container = document.getElementById('task-list-container');
     container.innerHTML = '<div style="text-align:center;padding:30px 0;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
     try{
-        let q;
-        if(filter === 'all'){
-            q = query(collection(db,'tasks'), where('isApproved','==',true), limit(40));
-        } else {
-            q = query(collection(db,'tasks'), where('isApproved','==',true), where('category','==',filter), limit(40));
-        }
+        // Single-field query only — no composite index needed
+        const q = query(collection(db,'tasks'), where('isApproved','==',true), limit(80));
         const s = await getDocs(q);
         container.innerHTML = '';
         let count = 0;
         s.forEach(d=>{
             const t = d.data();
             if(currentUser.completedTasks?.includes(d.id)) return;
+            // Client-side category filter
+            if(filter !== 'all' && t.category !== filter) return;
             count++;
             const cat = t.category||'social';
             const iconMap = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
@@ -949,7 +947,12 @@ async function fetchTasks(filter){
         });
         if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
     }catch(e){
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>'; console.error('[fetchTasks]', e);
+        container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>`;
+        console.error('[fetchTasks]', e.code, e.message);
+        // If permission denied, suggest Firebase rules fix
+        if(e.code === 'permission-denied'){
+            container.innerHTML = `<div class="empty-state"><i class="fas fa-lock"></i><p style="font-size:0.8rem;">Firebase permission error.<br>Check Firestore Rules.</p></div>`;
+        }
     }
 }
 
@@ -1243,42 +1246,37 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
     btn.disabled=false; btn.innerHTML='Redeem Now';
 });
 
-// ── HISTORY (শুধু withdraw: pending + success) ──
+// ── HISTORY — withdraw only (pending + success) via API ──
 document.getElementById('btn-history').addEventListener('click', async()=>{
     document.getElementById('modal-history').classList.add('show');
     const c=document.getElementById('history-list');
     c.innerHTML='<div style="text-align:center;padding:20px;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
     try{
-        const wS = await getDocs(query(
-            collection(db,'withdrawals'),
-            where('userId','==',currentUser.id)
-        ));
-        let list=[];
-        wS.forEach(d=>{
-            const data=d.data();
-            if(data.status==='pending'||data.status==='success'||data.status==='completed'){
-                list.push({...data, t:data.createdAt});
-            }
-        });
-        list.sort((a,b)=>(b.t?.toMillis()||0)-(a.t?.toMillis()||0));
-        list=list.slice(0,30);
-        if(!list.length) return c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>কোনো withdraw history নেই।</p></div>';
-        c.innerHTML=list.map(d=>{
-            const dt=d.t?d.t.toDate().toLocaleDateString('en-GB'):'';
+        const res  = await fetch(`${API_BASE}/getHistory?userId=${currentUser.id}`);
+        const data = await res.json();
+        const list = data.history || [];
+        if(!list.length){
+            c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No withdraw history yet.</p></div>';
+            return;
+        }
+        c.innerHTML = list.map(d=>{
             const statusColor = d.status==='success'||d.status==='completed' ? '#10b981' : '#f59e0b';
             const statusBg   = d.status==='success'||d.status==='completed' ? '#ecfdf5' : '#fffbeb';
-            const badge=`<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${d.status||'pending'}</span>`;
-            const ton = d.tonAmount ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">≈ ${parseFloat(d.tonAmount).toFixed(4)} TON</div>` : '';
+            const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${d.status||'pending'}</span>`;
+            const ton   = d.tonAmount ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">≈ ${parseFloat(d.tonAmount).toFixed(4)} TON</div>` : '';
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1.5px solid var(--border);font-size:0.83rem;gap:8px;">
                 <div>
                     <div style="font-weight:700;color:var(--text-main);">Withdraw (${d.method||'tonkeeper'})</div>
-                    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${dt} ${badge}</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${d.date||''} ${badge}</div>
                     ${ton}
                 </div>
                 <div style="font-weight:800;color:var(--red);white-space:nowrap;">-${d.diamondAmount||0} 💎</div>
             </div>`;
         }).join('');
-    }catch(e){ c.innerHTML='<div class="empty-state"><p>Error loading history.</p></div>'; console.error(e); }
+    }catch(e){
+        c.innerHTML='<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Error loading history. Try again.</p></div>';
+        console.error('[history]', e);
+    }
 });
 
 // Collab system removed
@@ -1293,7 +1291,16 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
     document.getElementById('modal-withdraw').classList.add('show');
 });
 document.getElementById('btn-promo').addEventListener('click',()=>document.getElementById('modal-promo').classList.add('show'));
-document.getElementById('btn-refer').addEventListener('click',()=>document.getElementById('modal-refer').classList.add('show'));
+document.getElementById('btn-refer').addEventListener('click',()=>{
+    if(currentUser){
+        const link = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${currentUser.id}`;
+        document.getElementById('invite-link').value = link;
+        document.getElementById('ref-total').innerText  = currentUser.totalInvites||0;
+        document.getElementById('ref-valid').innerText  = currentUser.validReferrals||0;
+        document.getElementById('ref-earned').innerText = currentUser.referralDiamondEarned||0;
+    }
+    document.getElementById('modal-refer').classList.add('show');
+});
 document.querySelectorAll('.close-modal').forEach(b=>b.addEventListener('click',e=>e.target.closest('.modal-bg').classList.remove('show')));
 document.getElementById('uid-display').addEventListener('click',()=>{ navigator.clipboard.writeText(currentUser.id); showAlert('Copied','User ID copied.','success'); });
 document.getElementById('invite-copy').addEventListener('click',()=>{ navigator.clipboard.writeText(document.getElementById('invite-link').value); showAlert('Copied','Link copied!','success'); });
@@ -1459,12 +1466,12 @@ function updateLootbox(){
         const h = Math.floor(diff/3600000);
         const m = Math.floor((diff%3600000)/60000);
         timerEl.innerText = lb > 0
-            ? `রাত ১২টায় transfer হবে (${h}h ${m}m বাকি)`
-            : 'Ads দেখলে এখানে জমা হবে';
+            ? `Transfers at midnight (${h}h ${m}m left)`
+            : 'Watch ads to earn here';
     }
 }
 
-// রাত ১২টায় lootbox → main balance transfer
+// Midnight: lootbox → main balance transfer
 async function checkLootboxTransfer(){
     if(!currentUser) return;
     const lb = parseFloat(currentUser.lootboxBalance||0);
@@ -1494,7 +1501,7 @@ async function checkLootboxTransfer(){
         ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
         updateUI();
         updateLootbox();
-        showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Main balance-এ transfer হয়েছে!`, 'success');
+        showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Transferred to main balance!`, 'success');
     }catch(e){ console.warn('[lootbox transfer]', e); }
 }
 
