@@ -97,7 +97,18 @@ export default async function handler(req, res) {
         }
 
         const finalUser = { ...userData, ...updates, id: uid };
-        return res.status(200).json({ success: true, isNew: false, user: finalUser });
+
+        // Check pending deposit
+        let pendingDeposit = false;
+        try {
+            const depSnap = await db.collection('deposits')
+                .where('userId', '==', uid)
+                .where('status', '==', 'pending')
+                .limit(1).get();
+            pendingDeposit = !depSnap.empty;
+        } catch(e) {}
+
+        return res.status(200).json({ success: true, isNew: false, user: finalUser, pendingDeposit });
 
     } catch (e) {
         console.error('[init]', e.message);
