@@ -24,10 +24,10 @@
     <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
-            try { new AdexiumWidget({wid:'a1a296e8-82a8-4686-8740-2ecd055c403d',adFormat:'interstitial'}).autoMode(); } catch(e) {}
+            // AdexiumWidget autoMode disabled to prevent unwanted pop-ups
         });
     </script>
-    <script src="https://ad.gigapub.tech/script?id=4088"></script>
+    <!-- GigaPub auto-play disabled -->
     <script src='//libtl.com/sdk.js' data-zone='10135525' data-sdk='show_10135525'></script>
 
 <style>
@@ -256,7 +256,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     </div>
 
     <!-- Action Buttons Row -->
-    <div style="display:grid;grid-template-columns:1fr auto;gap:10px;margin-bottom:16px;">
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:16px;">
         <button class="create-task-btn" id="btn-create-task" style="margin-bottom:0;">
             <div class="create-task-icon"><i class="fas fa-plus"></i></div>
             <div style="text-align:left;">
@@ -264,10 +264,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">Pay per task completion</div>
             </div>
         </button>
-        <button class="btn" id="btn-collab" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border-radius:16px;padding:0 14px;flex-direction:column;gap:4px;min-width:72px;box-shadow:0 4px 15px rgba(124,58,237,0.3);">
-            <i class="fas fa-handshake" style="font-size:1.1rem;"></i>
-            <span style="font-size:0.65rem;font-weight:800;letter-spacing:0.3px;">COLLAB</span>
-        </button>
+
     </div>
 
     <!-- Task List -->
@@ -343,6 +340,22 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         </div>
         <button class="btn btn-outline" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad4">Watch</button>
     </div>
+
+    <!-- Lootbox Section -->
+    <div class="card" style="margin-top:16px;border:2px solid var(--border-mid);border-radius:18px;padding:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-20px;right:-20px;font-size:5rem;opacity:0.07;">🎁</div>
+        <div style="font-weight:800;font-size:1rem;margin-bottom:4px;">🎁 Lootbox</div>
+        <div style="font-size:0.75rem;opacity:0.7;margin-bottom:12px;">Ads থেকে earned diamond এখানে জমা হয়। রাত ১২টায় main balance-এ যোগ হবে।</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;margin-bottom:10px;">
+            <div>
+                <div style="font-size:0.7rem;opacity:0.6;text-transform:uppercase;letter-spacing:1px;">Lootbox Balance</div>
+                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;color:#fbbf24;" id="lootbox-balance">0.00</div>
+            </div>
+            <div style="font-size:2.5rem;">🎁</div>
+        </div>
+        <div style="font-size:0.72rem;opacity:0.55;text-align:center;" id="lootbox-timer">রাত ১২টায় transfer হবে</div>
+    </div>
+
 </section>
 
 </main>
@@ -538,30 +551,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <button class="btn btn-outline btn-full close-modal" style="margin-top:8px;">Cancel</button>
         </div>
-    </div>
-</div>
-
-<!-- COLLABORATION MODAL -->
-<div class="modal-bg" id="modal-collab">
-    <div class="modal-box">
-        <i class="fas fa-handshake" style="font-size:2.2rem;color:#7c3aed;margin-bottom:12px;display:block;"></i>
-        <div class="modal-title">Collaboration</div>
-        <div class="modal-sub">Grow together — cross-promote with other creators</div>
-        <div class="info-box" style="border-color:#ddd6fe;background:#f5f3ff;">
-            ✅ Available if your channel/bot has <b>2,000+ members</b><br>
-            🤝 You promote their channel — they promote yours<br>
-            💰 No cost — mutual benefit only
-        </div>
-        <div id="collab-eligibility-msg" style="font-size:0.82rem;margin-bottom:14px;"></div>
-        <div id="collab-form" style="display:none;">
-            <input type="text" class="input-field" id="collab-channel" placeholder="Your channel/bot username (e.g. @mychannel)">
-            <input type="number" class="input-field" id="collab-members" placeholder="Approx. member count (e.g. 5000)">
-            <textarea class="input-field" id="collab-desc" placeholder="Brief description of your channel/bot" style="resize:none;height:80px;"></textarea>
-            <button class="btn btn-full" style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;margin-bottom:10px;box-shadow:0 4px 15px rgba(124,58,237,0.3);" id="collab-submit-btn">
-                <i class="fas fa-paper-plane"></i> Submit Collab Request
-            </button>
-        </div>
-        <button class="btn btn-outline btn-full close-modal">Close</button>
     </div>
 </div>
 
@@ -845,12 +834,16 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
 // ── UPDATE UI ──
 function updateUI(){
     if(!currentUser) return;
-    try{ document.querySelector('#uid-display span').innerText = currentUser.id; }catch(e){}
+    try{
+        const uidSpan = document.querySelector('#uid-display span');
+        if(uidSpan) uidSpan.innerText = currentUser.id || tg?.initDataUnsafe?.user?.id || '---';
+    }catch(e){}
     const diamond = parseFloat(currentUser.diamondBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
     document.getElementById('bal-ton').innerText = (diamond*DIAMOND_TO_TON).toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
+    updateLootbox();
     try{ document.getElementById('wd-balance').innerText = `${diamond.toFixed(2)} 💎`; }catch(e){}
     try{ document.getElementById('ct-balance').innerText = diamond.toFixed(2); }catch(e){}
 
@@ -879,22 +872,40 @@ function updateUI(){
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
 }
 
-// ── ADS ──
+// ── ADS → lootbox এ জমা হবে (main balance এ নয়) ──
 const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
     const reward = AD_DIAMOND_REWARDS[type];
     const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
-    await updateDoc(doc(db,'users',currentUser.id),{diamondBalance:increment(reward),[fieldKey]:increment(1)});
-    currentUser.diamondBalance = (currentUser.diamondBalance||0)+reward;
+    // lootboxBalance এ increment, diamondBalance এ নয়
+    await updateDoc(doc(db,'users',currentUser.id),{
+        lootboxBalance: increment(reward),
+        [fieldKey]: increment(1)
+    });
+    currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
     currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
     let loc = parseInt(localStorage.getItem(`coinly_${type}_${currentUser.id}`))||0;
     localStorage.setItem(`coinly_${type}_${currentUser.id}`, loc+1);
     updateUI();
-    showAlert('Earned!',`+${reward} 💎 Diamond added!`,'success');
+    updateLootbox();
+    showAlert('Earned!',`+${reward} 💎 Lootbox-এ জমা হলো! রাত ১২টায় main balance-এ যাবে।`,'success');
 });
 
 const showGigaAd = async()=>{
-    if(typeof window.showGiga !== 'function') throw new Error("SDK not loaded");
-    await window.showGiga();
+    // GigaPub SDK manually loaded on demand (auto-play disabled)
+    if(typeof window.showGiga === 'function'){
+        await window.showGiga();
+    } else {
+        // fallback: load script on demand then show
+        await new Promise((resolve, reject)=>{
+            const s = document.createElement('script');
+            s.src = 'https://ad.gigapub.tech/script?id=4088';
+            s.onload = ()=> setTimeout(resolve, 1000);
+            s.onerror = ()=> reject(new Error('GigaPub unavailable'));
+            document.head.appendChild(s);
+        });
+        if(typeof window.showGiga === 'function') await window.showGiga();
+        else throw new Error('GigaPub SDK not loaded');
+    }
 };
 
 document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', window.Adsgram?.init({blockId:"int-22897"})?.show));
@@ -938,7 +949,7 @@ async function fetchTasks(filter){
         });
         if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
     }catch(e){
-        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p></div>';
+        container.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>'; console.error('[fetchTasks]', e);
     }
 }
 
@@ -985,23 +996,22 @@ document.querySelectorAll('.platform-pill').forEach(p=>p.addEventListener('click
     fetchTasks(p.dataset.filter);
 }));
 
-// ── VALID REFER CHECK ──
+// ── VALID REFER CHECK (API-secured) ──
 async function checkValidRef(){
     if(!currentUser.referredBy || currentUser.isValidatedRef) return;
     const completedCount = (currentUser.completedTasks||[]).length;
     if(completedCount >= REFER_VALID_TASKS){
         try{
-            await updateDoc(doc(db,'users',currentUser.id),{isValidatedRef:true});
-            currentUser.isValidatedRef=true;
-            await runTransaction(db, async t=>{
-                const rRef=doc(db,'users',currentUser.referredBy);
-                const rDoc=await t.get(rRef);
-                if(rDoc.exists()){
-                    t.update(rRef,{diamondBalance:increment(REFER_REWARD_DIAMOND),validReferrals:increment(1),referralDiamondEarned:increment(REFER_REWARD_DIAMOND)});
-                    t.set(doc(collection(db,'transactions')),{userId:currentUser.referredBy,type:'Refer Reward',details:`Friend UID:${currentUser.id}`,diamondAmount:REFER_REWARD_DIAMOND,createdAt:serverTimestamp()});
-                }
+            const res = await fetch(`${API_BASE}/claimRefer`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ userId: currentUser.id })
             });
-        }catch(e){}
+            const data = await res.json();
+            if(data.success){
+                currentUser.isValidatedRef = true;
+            }
+        }catch(e){ console.warn('[checkValidRef]', e); }
     }
 }
 
@@ -1208,79 +1218,70 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
     finally{ isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw'; }
 });
 
-// ── PROMO ──
+// ── PROMO (API-secured — no client-side Firestore write) ──
 document.getElementById('promo-submit').addEventListener('click', async()=>{
     const code=document.getElementById('promo-input').value.trim(); if(!code) return;
-    adWrapper('promo-submit', window.Adsgram?.init({blockId:"22900"})?.show, async()=>{
-        try{
-            let msg='';
-            await runTransaction(db, async t=>{
-                const pRef=doc(db,'promo_codes',code), p=(await t.get(pRef)).data();
-                if(!p||!p.isActive||p.currentUses>=p.maxUses||p.usersClaimed?.includes(currentUser.id)) throw new Error("Invalid or already used.");
-                t.update(doc(db,'users',currentUser.id),{diamondBalance:increment(p.rewardAmount)});
-                currentUser.diamondBalance=(currentUser.diamondBalance||0)+p.rewardAmount;
-                msg=`+${p.rewardAmount} 💎!`;
-                t.update(pRef,{currentUses:increment(1),usersClaimed:arrayUnion(currentUser.id)});
-            });
-            updateUI(); document.getElementById('modal-promo').classList.remove('show');
-            showAlert('Claimed!',msg,'success');
-        }catch(e){ showAlert('Error',e.message,'error'); }
-    });
-});
-
-// ── HISTORY ──
-document.getElementById('btn-history').addEventListener('click', async()=>{
-    document.getElementById('modal-history').classList.add('show');
-    const c=document.getElementById('history-list'); c.innerHTML='<div style="text-align:center;padding:20px;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
-    try{
-        const[wS,tS]=await Promise.all([getDocs(query(collection(db,'withdrawals'),where('userId','==',currentUser.id))),getDocs(query(collection(db,'transactions'),where('userId','==',currentUser.id)))]);
-        let list=[];
-        wS.forEach(d=>list.push({...d.data(),isW:true,t:d.data().createdAt}));
-        tS.forEach(d=>list.push({...d.data(),isW:false,t:d.data().createdAt}));
-        const dS=await getDocs(query(collection(db,'deposits'),where('userId','==',currentUser.id)));
-        dS.forEach(d=>list.push({...d.data(),isD:true,t:d.data().createdAt}));
-        list.sort((a,b)=>(b.t?.toMillis()||0)-(a.t?.toMillis()||0)); list=list.slice(0,30);
-        if(!list.length) return c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No history yet.</p></div>';
-        c.innerHTML=list.map(d=>{
-            const dt=d.t?d.t.toDate().toLocaleDateString():'';
-            let title,amt,badge;
-            if(d.isW){ title=`Withdraw (${d.method||''})`; amt=`-${d.diamondAmount||0} 💎`; badge=`<span class="status-badge status-${d.status||'pending'}">${d.status||'pending'}</span>`; }
-            else if(d.isD){ title=`Deposit ${d.tonAmount||0} TON`; amt=`+${d.expectedDiamond||0} 💎`; badge=`<span class="status-badge status-${d.status||'pending'}">${d.status||'pending'}</span>`; }
-            else{ title=d.type||'Reward'; amt=d.diamondAmount?`+${d.diamondAmount} 💎`:''; badge=''; }
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid var(--border);font-size:0.83rem;gap:8px;">
-                <div><div style="font-weight:700;color:var(--text-main);">${title}</div><div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">${dt} ${badge}</div></div>
-                <div style="font-weight:800;color:${d.isW?'var(--red)':'var(--green)'};">${amt}</div></div>`;
-        }).join('');
-    }catch(e){ c.innerHTML='<div class="empty-state"><p>Error loading history.</p></div>'; }
-});
-
-// ── COLLABORATION ──
-document.getElementById('btn-collab').addEventListener('click',()=>{
-    const el=document.getElementById('collab-eligibility-msg');
-    const form=document.getElementById('collab-form');
-    el.innerHTML='<div style="background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:11px;padding:11px;font-size:0.8rem;color:#5b21b6;">✅ You can submit a collaboration request. Eligibility verified after approval.</div>';
-    form.style.display='block';
-    document.getElementById('modal-collab').classList.add('show');
-});
-
-document.getElementById('collab-submit-btn').addEventListener('click', async()=>{
-    const channel=document.getElementById('collab-channel').value.trim();
-    const members=parseInt(document.getElementById('collab-members').value)||0;
-    const desc=document.getElementById('collab-desc').value.trim();
-    if(!channel) return showAlert('Error','Enter your channel/bot username.','error');
-    if(members<2000) return showAlert('Not Eligible',`Minimum 2,000 members required. You entered ${members}.`,'error');
-    const btn=document.getElementById('collab-submit-btn');
+    const btn=document.getElementById('promo-submit');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        await addDoc(collection(db,'collaborations'),{
-            userId:currentUser.id, channel, memberCount:members,
-            description:desc, status:'pending', createdAt:serverTimestamp()
+        const res = await fetch(`${API_BASE}/claimPromo`, {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id, code })
         });
-        document.getElementById('modal-collab').classList.remove('show');
-        showAlert('Submitted!','Collab request sent! Our team will review and match you within 48 hours.','success');
-    }catch(e){ showAlert('Error','Submission failed.','error'); }
-    btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Submit Collab Request';
+        const data = await res.json();
+        if(data.success){
+            currentUser.diamondBalance = (currentUser.diamondBalance||0) + data.reward;
+            updateUI();
+            document.getElementById('promo-input').value='';
+            document.getElementById('modal-promo').classList.remove('show');
+            showAlert('Claimed!', `+${data.reward} 💎 Diamond added!`, 'success');
+        } else {
+            showAlert('Error', data.error || 'Invalid or already used.', 'error');
+        }
+    }catch(e){ showAlert('Error','Server error. Try again.','error'); }
+    btn.disabled=false; btn.innerHTML='Redeem Now';
 });
+
+// ── HISTORY (শুধু withdraw: pending + success) ──
+document.getElementById('btn-history').addEventListener('click', async()=>{
+    document.getElementById('modal-history').classList.add('show');
+    const c=document.getElementById('history-list');
+    c.innerHTML='<div style="text-align:center;padding:20px;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
+    try{
+        const wS = await getDocs(query(
+            collection(db,'withdrawals'),
+            where('userId','==',currentUser.id)
+        ));
+        let list=[];
+        wS.forEach(d=>{
+            const data=d.data();
+            if(data.status==='pending'||data.status==='success'||data.status==='completed'){
+                list.push({...data, t:data.createdAt});
+            }
+        });
+        list.sort((a,b)=>(b.t?.toMillis()||0)-(a.t?.toMillis()||0));
+        list=list.slice(0,30);
+        if(!list.length) return c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>কোনো withdraw history নেই।</p></div>';
+        c.innerHTML=list.map(d=>{
+            const dt=d.t?d.t.toDate().toLocaleDateString('en-GB'):'';
+            const statusColor = d.status==='success'||d.status==='completed' ? '#10b981' : '#f59e0b';
+            const statusBg   = d.status==='success'||d.status==='completed' ? '#ecfdf5' : '#fffbeb';
+            const badge=`<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${d.status||'pending'}</span>`;
+            const ton = d.tonAmount ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">≈ ${parseFloat(d.tonAmount).toFixed(4)} TON</div>` : '';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1.5px solid var(--border);font-size:0.83rem;gap:8px;">
+                <div>
+                    <div style="font-weight:700;color:var(--text-main);">Withdraw (${d.method||'tonkeeper'})</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${dt} ${badge}</div>
+                    ${ton}
+                </div>
+                <div style="font-weight:800;color:var(--red);white-space:nowrap;">-${d.diamondAmount||0} 💎</div>
+            </div>`;
+        }).join('');
+    }catch(e){ c.innerHTML='<div class="empty-state"><p>Error loading history.</p></div>'; console.error(e); }
+});
+
+// Collab system removed
 
 // ── MODAL TOGGLES ──
 document.getElementById('btn-withdraw').addEventListener('click',()=>{
@@ -1440,6 +1441,67 @@ document.getElementById('pay-task-confirm-btn')?.addEventListener('click', async
     }catch(e){ showAlert('Error','Submission failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Paid — Confirm';
 });
+
+
+// ── LOOTBOX SYSTEM ──
+function updateLootbox(){
+    const lb = parseFloat(currentUser.lootboxBalance||0);
+    const el = document.getElementById('lootbox-balance');
+    if(el) el.innerText = lb.toFixed(2);
+    // countdown to midnight (Dhaka time)
+    const timerEl = document.getElementById('lootbox-timer');
+    if(timerEl){
+        const now = new Date();
+        const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
+        const midnight = new Date(dhaka);
+        midnight.setHours(24,0,0,0);
+        const diff = midnight - dhaka;
+        const h = Math.floor(diff/3600000);
+        const m = Math.floor((diff%3600000)/60000);
+        timerEl.innerText = lb > 0
+            ? `রাত ১২টায় transfer হবে (${h}h ${m}m বাকি)`
+            : 'Ads দেখলে এখানে জমা হবে';
+    }
+}
+
+// রাত ১২টায় lootbox → main balance transfer
+async function checkLootboxTransfer(){
+    if(!currentUser) return;
+    const lb = parseFloat(currentUser.lootboxBalance||0);
+    if(lb <= 0) return;
+
+    const today = getToday();
+    if(currentUser.lastLootboxTransfer === today) return;
+
+    const now = new Date();
+    const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
+    const hour = dhaka.getHours();
+    // 0:00–0:05 এর মধ্যে transfer হবে
+    if(hour !== 0) return;
+
+    try{
+        await updateDoc(doc(db,'users',currentUser.id),{
+            diamondBalance: increment(lb),
+            lootboxBalance: 0,
+            lastLootboxTransfer: today,
+            // ads reset
+            adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
+            lastResetDate: today
+        });
+        currentUser.diamondBalance = (currentUser.diamondBalance||0) + lb;
+        currentUser.lootboxBalance = 0;
+        currentUser.lastLootboxTransfer = today;
+        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
+        updateUI();
+        updateLootbox();
+        showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Main balance-এ transfer হয়েছে!`, 'success');
+    }catch(e){ console.warn('[lootbox transfer]', e); }
+}
+
+// প্রতি মিনিটে check করবে
+setInterval(checkLootboxTransfer, 60000);
+// Lootbox timer update প্রতি মিনিটে
+setInterval(updateLootbox, 60000);
 
 initTonConnect();
 initApp();
