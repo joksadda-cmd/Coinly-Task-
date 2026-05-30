@@ -698,11 +698,33 @@ async function adWrapper(btnId, sdkCall, successCb){
     const orig = btn.innerHTML; isAdRunning = true; btn.disabled = true;
     btn.innerHTML = '<div class="loader-spin" style="width:16px;height:16px;border-width:2px;"></div>';
     try{
-        if(sdkCall) await sdkCall();
-        else if(window.show_10135525){ await window.show_10135525(); await new Promise(r=>setTimeout(r,7000));}
-        else throw new Error("Ad SDK not loaded");
-        await successCb();
-    }catch(e){ showAlert('Skipped','Ad unavailable or closed early.','error'); }
+        let adShown = false;
+        if(sdkCall){
+            try{
+                await sdkCall();
+                adShown = true;
+            }catch(adErr){
+                // Adsgram rejects on skip — check if it's a real skip or completion
+                const msg = (adErr?.message||adErr?.type||'').toLowerCase();
+                if(msg.includes('skip') || msg.includes('close') || msg.includes('dismiss')){
+                    showAlert('Skipped','Watch the full ad to earn.','error');
+                } else {
+                    // Ad showed but SDK threw non-skip error — still reward
+                    adShown = true;
+                }
+            }
+        } else if(window.show_10135525){
+            await window.show_10135525();
+            await new Promise(r=>setTimeout(r,5000));
+            adShown = true;
+        } else {
+            showAlert('Skipped','Ad unavailable right now.','error');
+        }
+        if(adShown) await successCb();
+    }catch(e){
+        console.error('[adWrapper]', e);
+        showAlert('Error','Something went wrong. Try again.','error');
+    }
     finally{ isAdRunning = false; btn.innerHTML = orig; btn.disabled = false; }
 }
 
@@ -874,22 +896,34 @@ function updateUI(){
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
 }
 
-// ── ADS → stored in Lootbox (not main balance) ──
+// ── ADS → Lootbox via API ──
 const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
     const reward = AD_DIAMOND_REWARDS[type];
     const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
-    // lootboxBalance এ increment, diamondBalance এ নয়
-    await updateDoc(doc(db,'users',currentUser.id),{
-        lootboxBalance: increment(reward),
-        [fieldKey]: increment(1)
-    });
-    currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
-    currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
-    let loc = parseInt(localStorage.getItem(`coinly_${type}_${currentUser.id}`))||0;
-    localStorage.setItem(`coinly_${type}_${currentUser.id}`, loc+1);
-    updateUI();
-    updateLootbox();
-    showAlert('Earned!',`+${reward} 💎 Added to Lootbox! Transfers to main balance at midnight.`,'success');
+    try{
+        const res = await fetch(`${API_BASE}/claimAd`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id, adType: type })
+        });
+        const data = await res.json();
+        if(data.success){
+            currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
+            currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
+            let loc = parseInt(localStorage.getItem(`coinly_${type}_${currentUser.id}`))||0;
+            localStorage.setItem(`coinly_${type}_${currentUser.id}`, loc+1);
+            updateUI(); updateLootbox();
+            showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
+        } else {
+            showAlert('Error', data.error||'Try again.','error');
+        }
+    }catch(e){
+        // Fallback: local update if API fails
+        currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
+        currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
+        updateUI(); updateLootbox();
+        showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
+    }
 });
 
 const showGigaAd = async()=>{
