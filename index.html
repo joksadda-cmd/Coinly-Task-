@@ -559,6 +559,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="modal-box">
         <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
         <div class="modal-title">Deposit TON</div>
+        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:8px 12px;font-size:0.72rem;color:#856404;margin:8px 0;text-align:left;">⚠️ <b>Warning:</b> Fake/duplicate requests = permanent ban. Submit only after actual TON transfer.</div>
         <div class="modal-sub" id="dep-modal-sub">Sending <b id="dep-show-ton">0.5</b> TON</div>
         
         <!-- Selection options added -->
@@ -645,7 +646,7 @@ let connectedWallet = null;
 async function initTonConnect(){
     try{
         tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://coinly-task.vercel.app/tonconnect-manifest.json',
+            manifestUrl: 'https://raw.githubusercontent.com/joksadda-cmd/Coinly-Task-/main/Tonconnect manifest.json',
             buttonRootId: 'ton-connect-btn'
         });
         tonConnectUI.onStatusChange(wallet=>{
@@ -761,6 +762,8 @@ async function initApp(){
     if(apiData?.user){
         // API returned user data — use it directly
         currentUser = { id: uid, ...apiData.user };
+        // Check pending deposit from Firestore via API response
+        if(apiData.pendingDeposit) currentUser._pendingDeposit = true;
     } else {
         // API failed — build minimal currentUser from Telegram data
         currentUser = {
@@ -1012,14 +1015,25 @@ document.getElementById('task-list-container').addEventListener('click', async e
                 await new Promise(r=>setTimeout(r,2000)); ok=true;
             }
             if(ok){
-                await updateDoc(doc(db,'users',currentUser.id),{completedTasks:arrayUnion(id),diamondBalance:increment(TASK_REWARD_DIAMOND)});
-                currentUser.diamondBalance=(currentUser.diamondBalance||0)+TASK_REWARD_DIAMOND;
-                if(!currentUser.completedTasks) currentUser.completedTasks=[];
-                currentUser.completedTasks.push(id);
-                updateUI();
-                showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
-                b.parentElement.remove();
-                checkValidRef();
+                // claimTask API — Firestore direct write নয়
+                const claimRes = await fetch(`${API_BASE}/claimTask`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ userId: currentUser.id, taskId: id })
+                });
+                const claimData = await claimRes.json();
+                if(claimData.success){
+                    currentUser.diamondBalance = (currentUser.diamondBalance||0) + TASK_REWARD_DIAMOND;
+                    if(!currentUser.completedTasks) currentUser.completedTasks=[];
+                    currentUser.completedTasks.push(id);
+                    updateUI();
+                    showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
+                    b.parentElement.remove();
+                    checkValidRef();
+                } else {
+                    showAlert('Error', claimData.error||'Claim failed.', 'error');
+                    b.innerText='VERIFY'; b.disabled=false;
+                }
             }
         }catch(er){ showAlert('Error','Verification failed.','error'); b.innerText='VERIFY'; b.disabled=false; }
     }
@@ -1377,6 +1391,11 @@ async function sendTonConnect(toAddress, tonAmount, memo){
 
 document.getElementById('btn-deposit').addEventListener('click',()=>{
     if(!currentUser) return;
+    // Block if pending deposit exists — scam/spam prevention
+    if(currentUser._pendingDeposit){
+        showAlert('⏳ Pending','You already have a pending deposit request. Wait for admin approval before submitting another.','error');
+        return;
+    }
     document.getElementById('dep-show-ton').innerText=selectedDepositTon;
     document.getElementById('dep-memo-display').innerText=currentUser.id;
     document.getElementById('dep-modal-sub').innerHTML=`Sending <b>${selectedDepositTon} TON</b> → <b>+${Math.floor(selectedDepositTon*TON_TO_DIAMOND)} 💎</b>`;
@@ -1443,7 +1462,8 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
             })
         }).catch(e=>console.warn('notify failed:',e.message));
         document.getElementById('modal-deposit').classList.remove('show');
-        showAlert('Submitted! ✅','Deposit request received. Diamond will be added within 1–6 hours after verification.','success');
+        currentUser._pendingDeposit = true;
+        showAlert('Submitted! ✅', '⚠️ Your deposit request is received. Admin will verify and approve. Making fake/duplicate requests will result in a permanent account ban.', 'success');
     }catch(e){ showAlert('Error','Submission failed. Try again.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Sent — Confirm';
 });
