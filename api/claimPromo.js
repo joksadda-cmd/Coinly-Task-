@@ -2,13 +2,12 @@
 // Promo code redeem API — hacker proof
 // Client-side Firestore write বন্ধ — সব server-side verify করা হবে
 
-import { initializeApp, getApps } from "firebase-admin/app";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { credential } from "firebase-admin";
 
 if (!getApps().length) {
     initializeApp({
-        credential: credential.cert({
+        credential: cert({
             projectId:   process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
             privateKey:  process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
@@ -91,4 +90,4 @@ export default async function handler(req, res) {
         // User-friendly error পাঠাও
         return res.status(200).json({ success: false, error: e.message });
     }
-                }
+}
