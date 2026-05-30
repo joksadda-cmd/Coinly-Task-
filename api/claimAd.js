@@ -16,7 +16,7 @@ if (!getApps().length) {
 const db = getFirestore();
 
 const AD_REWARDS = { ad1:0.25, ad2:0.5, ad3:0.25, ad4:0.25, joinGift:5 };
-const AD_LIMITS  = { ad1:10, ad2:5, ad3:10, ad4:8 }; // daily limits
+const AD_LIMITS  = { ad1:10, ad2:5, ad3:20, ad4:20 }; // daily limits — matches UI
 const AD_FIELDS  = {
     ad1:'adsWatchedAd1', ad2:'adsWatchedAd2',
     ad3:'adsWatchedAd3', ad4:'adsWatchedAd4'
@@ -80,4 +80,4 @@ export default async function handler(req, res) {
         console.error('[claimAd]', e.message);
         return res.status(500).json({ error: e.message });
     }
-}
+            }
