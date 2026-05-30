@@ -373,6 +373,12 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="modal-box">
         <i class="fas fa-wallet" style="font-size:2.2rem;color:var(--primary);margin-bottom:8px;display:block;"></i>
         <div class="modal-title">Withdraw</div>
+        <div id="wd-eligibility-info" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 12px;font-size:0.73rem;color:#0369a1;margin-bottom:12px;text-align:left;line-height:1.6;">
+            <b>Requirements:</b><br>
+            ✅ Min 10 tasks completed<br>
+            ✅ Watch 20 ads per withdrawal<br>
+            💎 Min: Tonkeeper 50, Binance 100
+        </div>
         <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:var(--primary);margin-bottom:14px;" id="wd-balance">0 💎</div>
 
         <!-- Method tabs -->
@@ -660,10 +666,14 @@ async function initTonConnect(){
 const DEPOSIT_WALLET = "UQBPuFaTHpooYMbMS2oQ1UMLFGemDZvxs8Zmenl4FR3AF4y8";
 
 // ── CONSTANTS ──
-const DIAMOND_TO_TON = 0.00075;      // 1000 diamond = 0.75 TON
-const MIN_WITHDRAW_TONKEEPER = 50;
-const MIN_WITHDRAW_BINANCE = 100;
-const TASK_REWARD_DIAMOND = 2;
+const DIAMOND_TO_TON = 0.0005;       // 1000 Diamond = 0.5 TON
+const MIN_WITHDRAW_TONKEEPER = 50;  // 50 Diamond minimum
+const MIN_WITHDRAW_BINANCE   = 100; // 100 Diamond minimum
+const WITHDRAW_MIN_TASKS     = 10;  // must complete 10 tasks
+const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
+
+
+const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
 const REFER_REWARD_DIAMOND = 5;
 const REFER_VALID_TASKS = 10;
 const AD_LIMITS = {ad1:10, ad2:5, ad3:20, ad4:20};
@@ -816,7 +826,12 @@ async function checkCommunityJoin(){
             document.getElementById('modal-join').classList.remove('show');
             if(!currentUser.joinGiftClaimed){
                 try{
-                    await updateDoc(doc(db,'users',currentUser.id),{joinGiftClaimed:true, diamondBalance:increment(5)});
+                    try{
+                        await fetch(`${API_BASE}/claimAd`,{
+                            method:'POST',headers:{'Content-Type':'application/json'},
+                            body:JSON.stringify({userId:currentUser.id,batch:{joinGift:1}})
+                        });
+                    }catch(e){}
                     currentUser.joinGiftClaimed=true;
                     currentUser.diamondBalance=(currentUser.diamondBalance||0)+5;
                     updateUI();
@@ -899,35 +914,54 @@ function updateUI(){
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
 }
 
-// ── ADS → Lootbox via API ──
-const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
-    const reward = AD_DIAMOND_REWARDS[type];
-    const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
+// ── ADS → Batch write (local first, sync every 5 ads) ──
+let _adPendingSync = {}; // { adType: count }
+let _adSyncTimer   = null;
+
+async function flushAdSync(){
+    if(!Object.keys(_adPendingSync).length) return;
+    const toSync = {..._adPendingSync};
+    _adPendingSync = {};
     try{
-        const res = await fetch(`${API_BASE}/claimAd`, {
+        await fetch(`${API_BASE}/claimAd`, {
             method: 'POST',
             headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ userId: currentUser.id, adType: type })
+            body: JSON.stringify({ userId: currentUser.id, batch: toSync })
         });
-        const data = await res.json();
-        if(data.success){
-            currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
-            currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
-            let loc = parseInt(localStorage.getItem(`coinly_${type}_${currentUser.id}`))||0;
-            localStorage.setItem(`coinly_${type}_${currentUser.id}`, loc+1);
-            updateUI(); updateLootbox();
-            showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
-        } else {
-            showAlert('Error', data.error||'Try again.','error');
-        }
-    }catch(e){
-        // Fallback: local update if API fails
-        currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
-        currentUser[fieldKey] = (currentUser[fieldKey]||0)+1;
-        updateUI(); updateLootbox();
-        showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
+    }catch(e){ console.warn('[adSync]', e.message); }
+}
+
+const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
+    const reward   = AD_DIAMOND_REWARDS[type];
+    const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
+    const limit    = AD_LIMITS[type]||10;
+    const current  = currentUser[fieldKey]||0;
+
+    if(current >= limit){
+        showAlert('Limit Reached',`Daily limit reached for this ad.`,'error');
+        return;
+    }
+
+    // Local update immediately (no wait)
+    currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
+    currentUser[fieldKey] = current + 1;
+    _adPendingSync[type] = (_adPendingSync[type]||0) + 1;
+
+    updateUI(); updateLootbox();
+    showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
+
+    // Batch sync: write every 5 ads OR after 10s idle
+    clearTimeout(_adSyncTimer);
+    const totalPending = Object.values(_adPendingSync).reduce((a,b)=>a+b,0);
+    if(totalPending >= 5){
+        await flushAdSync();
+    } else {
+        _adSyncTimer = setTimeout(flushAdSync, 10000);
     }
 });
+
+// Page unload এ sync
+window.addEventListener('beforeunload', flushAdSync);
 
 const showGigaAd = async()=>{
     // GigaPub SDK manually loaded on demand (auto-play disabled)
@@ -1022,16 +1056,18 @@ document.getElementById('task-list-container').addEventListener('click', async e
                     body: JSON.stringify({ userId: currentUser.id, taskId: id })
                 });
                 const claimData = await claimRes.json();
-                if(claimData.success){
-                    currentUser.diamondBalance = (currentUser.diamondBalance||0) + TASK_REWARD_DIAMOND;
+                if(claimData.ok){
+                    const earned = claimData.reward || TASK_REWARD_DIAMOND;
+                    currentUser.diamondBalance = (currentUser.diamondBalance||0) + earned;
                     if(!currentUser.completedTasks) currentUser.completedTasks=[];
                     currentUser.completedTasks.push(id);
                     updateUI();
-                    showAlert('Task Completed!',`+${TASK_REWARD_DIAMOND} 💎 Diamond earned!`,'success');
+                    showAlert('Task Completed!',`+${earned} 💎 Diamond earned!`,'success');
                     b.parentElement.remove();
                     checkValidRef();
                 } else {
-                    showAlert('Error', claimData.error||'Claim failed.', 'error');
+                    const errMsg = claimData.error === 'already_completed' ? 'Already completed.' : claimData.error||'Claim failed.';
+                    showAlert('Error', errMsg, 'error');
                     b.innerText='VERIFY'; b.disabled=false;
                 }
             }
@@ -1165,12 +1201,13 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('ct-submit-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        await addDoc(collection(db,'tasks'),{
+        // Task create via API (no direct Firestore write)
+        const _taskPayload = {
             title, url, category:selectedTaskType,
             channelId:(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?channelId:'',
             rewardDiamond:TASK_REWARD_DIAMOND, maxCompletions:selectedPackage.tasks,
             completionCount:0, isApproved:false,
-            createdBy:currentUser.id, createdAt:serverTimestamp(),
+            createdBy:currentUser.id,
             tonCost:selectedPackage.ton, packageLabel:selectedPackage.label,
             paymentStatus:'pending'
         });
@@ -1241,30 +1278,61 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
     if(!addr) return showAlert('Error','Enter your '+(isT?'wallet address':'Binance UID')+'.','error');
     if(isNaN(amt)||amt<minAmt) return showAlert('Notice',`Minimum ${minAmt} 💎 required.`,'error');
     if((currentUser.diamondBalance||0)<amt) return showAlert('Error','Insufficient Diamond balance.','error');
+
+    // ── Eligibility checks ──
+    const tasksDone = (currentUser.completedTasks||[]).length;
+    if(tasksDone < WITHDRAW_MIN_TASKS){
+        return showAlert('Not Eligible',
+            `Complete at least ${WITHDRAW_MIN_TASKS} tasks to withdraw.
+You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
+            'error');
+    }
+    // Total ads watched this session (from all ad types)
+    const totalAds = (currentUser.adsWatchedAd1||0)+(currentUser.adsWatchedAd2||0)+
+                     (currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
+    const adsThisWithdraw = totalAds - (currentUser._lastWithdrawAdsCount||0);
+    if(adsThisWithdraw < WITHDRAW_ADS_REQUIRED){
+        const remaining = WITHDRAW_ADS_REQUIRED - adsThisWithdraw;
+        return showAlert('Not Eligible',
+            `Watch ${remaining} more ads to unlock withdrawal.
+(${adsThisWithdraw}/${WITHDRAW_ADS_REQUIRED} ads watched)`,
+            'error');
+    }
     isSubmitting=true;
     const btn=document.getElementById('wd-submit');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        await runTransaction(db, async t=>{
-            const uRef=doc(db,'users',currentUser.id), d=(await t.get(uRef)).data();
-            if((d.diamondBalance||0)<amt) throw new Error("Insufficient balance.");
-            t.set(doc(collection(db,'withdrawals')),{
-                userId:currentUser.id, method:wdMethod,
-                details:addr, status:'pending',
-                createdAt:serverTimestamp(), diamondAmount:amt,
-                tonAmount:amt*DIAMOND_TO_TON
-            });
-            t.update(uRef,{diamondBalance:increment(-amt)});
+        // processWithdraw API — server-side balance deduct + save + user notification
+        const wRes = await fetch(`${API_BASE}/notifyDeposit`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+                userId:        currentUser.id,
+                username:      currentUser.telegramUsername||'',
+                firstName:     currentUser.firstName||'',
+                method:        wdMethod,
+                address:       addr,
+                diamondAmount: amt,
+                tonAmount:     parseFloat((amt*DIAMOND_TO_TON).toFixed(4)),
+            })
         });
-        currentUser.diamondBalance-=amt; updateUI();
-        document.getElementById('wd-amount-ton').value='';
-        document.getElementById('wd-amount-bnb').value='';
-        document.getElementById('wd-address-ton').value='';
-        document.getElementById('wd-address-bnb').value='';
-        document.getElementById('wd-preview').style.display='none';
-        document.getElementById('modal-withdraw').classList.remove('show');
-        showAlert('Submitted!',`Withdrawal of ${amt} 💎 submitted. Processing within 1–24 hours.`,'success');
-    }catch(e){ showAlert('Error',e.message,'error'); }
+        const wData = await wRes.json();
+        if(wData.success){
+            currentUser.diamondBalance = wData.newBalance ?? (currentUser.diamondBalance - amt);
+            updateUI();
+            ['wd-amount-ton','wd-amount-bnb','wd-address-ton','wd-address-bnb'].forEach(id=>{
+                const el=document.getElementById(id); if(el) el.value='';
+            });
+            document.getElementById('wd-preview').style.display='none';
+            document.getElementById('modal-withdraw').classList.remove('show');
+            // Reset ads counter for next withdraw cycle
+            currentUser._lastWithdrawAdsCount = (currentUser.adsWatchedAd1||0)+
+                (currentUser.adsWatchedAd2||0)+(currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
+            showAlert('Submitted! ✅',`Withdrawal of ${amt} 💎 submitted. You will receive a Telegram notification once it is processed.`,'success');
+        } else {
+            showAlert('Error', wData.error||'Withdrawal failed. Try again.','error');
+        }
+    }catch(e){ showAlert('Error','Server error. Try again.','error'); console.error(e); }
     finally{ isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw'; }
 });
 
@@ -1286,6 +1354,16 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
             document.getElementById('promo-input').value='';
             document.getElementById('modal-promo').classList.remove('show');
             showAlert('Claimed!', `+${data.reward} 💎 Diamond added!`, 'success');
+            // Play a random ad after promo claim
+            setTimeout(()=>{
+                try{
+                    const adFns = [
+                        ()=>{ if(window.Adsgram?.init) window.Adsgram.init({blockId:'22900'}).show().catch(()=>{}); },
+                        ()=>{ if(window.show_10135525) window.show_10135525().catch(()=>{}); },
+                    ];
+                    adFns[Math.floor(Math.random()*adFns.length)]();
+                }catch(e){}
+            }, 1500);
         } else {
             showAlert('Error', data.error || 'Invalid or already used.', 'error');
         }
@@ -1330,6 +1408,24 @@ document.getElementById('btn-history').addEventListener('click', async()=>{
 
 // ── MODAL TOGGLES ──
 document.getElementById('btn-withdraw').addEventListener('click',()=>{
+    // Update eligibility display
+    const tasksDone = (currentUser.completedTasks||[]).length;
+    const totalAds  = (currentUser.adsWatchedAd1||0)+(currentUser.adsWatchedAd2||0)+
+                      (currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
+    const adsForWd  = totalAds - (currentUser._lastWithdrawAdsCount||0);
+    const info = document.getElementById('wd-eligibility-info');
+    if(info){
+        const t_ok  = tasksDone >= WITHDRAW_MIN_TASKS;
+        const ad_ok = adsForWd  >= WITHDRAW_ADS_REQUIRED;
+        info.innerHTML =
+            `<b>Your Status:</b><br>` +
+            `${t_ok ?'✅':'❌'} Tasks: ${tasksDone}/${WITHDRAW_MIN_TASKS}<br>` +
+            `${ad_ok?'✅':'❌'} Ads watched: ${adsForWd}/${WITHDRAW_ADS_REQUIRED}<br>` +
+            `💎 Min: Tonkeeper 50 | Binance 100`;
+        info.style.background = (t_ok && ad_ok) ? '#f0fdf4' : '#fff7ed';
+        info.style.borderColor = (t_ok && ad_ok) ? '#86efac' : '#fed7aa';
+        info.style.color = (t_ok && ad_ok) ? '#166534' : '#9a3412';
+    }
     document.getElementById('wd-amount-ton').value='';
     document.getElementById('wd-amount-bnb').value='';
     document.getElementById('wd-address-ton').value='';
@@ -1361,7 +1457,7 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
 }));
 
 // ── DEPOSIT BUTTON ──
-const TON_TO_DIAMOND = 1333;
+const TON_TO_DIAMOND = 2000; // 0.5 TON = 1000 Diamond (1 TON = 2000 Diamond)
 let selectedDepositTon = 0.5;
 
 document.querySelectorAll('.dep-amount-btn').forEach(btn=>{
@@ -1419,13 +1515,20 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
         await sendTonConnect(DEPOSIT_WALLET, selectedDepositTon, currentUser.id);
-        await addDoc(collection(db,'deposits'),{
-            userId:currentUser.id, tonAmount:selectedDepositTon,
-            expectedDiamond:Math.floor(selectedDepositTon*TON_TO_DIAMOND),
-            memo:currentUser.id, status:'pending', createdAt:serverTimestamp()
+        // Save via API after TonConnect send
+        await fetch(`${API_BASE}/notifyDeposit`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                userId: currentUser.id, username: currentUser.telegramUsername||'',
+                firstName: currentUser.firstName||'',
+                tonAmount: selectedDepositTon,
+                expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+                memo: String(currentUser.id),
+            })
         });
         document.getElementById('modal-deposit').classList.remove('show');
-        showAlert('Sent!','TON sent! Diamond will be added within 1–6 hours.','success');
+        currentUser._pendingDeposit = true;
+        showAlert('Sent! ✅','TON sent via wallet! Admin will verify and credit your Diamond.','success');
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON Directly';
 });
@@ -1439,32 +1542,30 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('dep-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        const depRef = await addDoc(collection(db,'deposits'),{
-            userId:          currentUser.id,
-            username:        currentUser.telegramUsername||'',
-            firstName:       currentUser.firstName||'',
-            tonAmount:       selectedDepositTon,
-            expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
-            memo:            String(currentUser.id),
-            status:          'pending',
-            createdAt:       serverTimestamp()
-        });
-        fetch(`${API_BASE}/notifyDeposit`,{
+        // notifyDeposit API — saves to Firestore AND notifies admin (no direct Firestore write)
+        const res = await fetch(`${API_BASE}/notifyDeposit`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
-                depositId:       depRef.id,
                 userId:          currentUser.id,
                 username:        currentUser.telegramUsername||'',
                 firstName:       currentUser.firstName||'',
                 tonAmount:       selectedDepositTon,
-                expectedDiamond: Math.floor(selectedDepositTon*TON_TO_DIAMOND),
+                expectedDiamond: Math.floor(selectedDepositTon * TON_TO_DIAMOND),
                 memo:            String(currentUser.id),
             })
-        }).catch(e=>console.warn('notify failed:',e.message));
-        document.getElementById('modal-deposit').classList.remove('show');
-        currentUser._pendingDeposit = true;
-        showAlert('Submitted! ✅', '⚠️ Your deposit request is received. Admin will verify and approve. Making fake/duplicate requests will result in a permanent account ban.', 'success');
-    }catch(e){ showAlert('Error','Submission failed. Try again.','error'); }
+        });
+        const data = await res.json();
+        if(data.success || data.depositId){
+            document.getElementById('modal-deposit').classList.remove('show');
+            currentUser._pendingDeposit = true;
+            showAlert('Submitted! ✅', '⚠️ Deposit request received. Admin will verify and approve your TON. Fake/duplicate requests = permanent ban.', 'success');
+        } else {
+            showAlert('Error', data.error||'Submission failed. Try again.', 'error');
+        }
+    }catch(e){
+        showAlert('Error','Server error. Try again later.','error');
+        console.error('[deposit]',e);
+    }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Sent — Confirm';
 });
 
@@ -1476,11 +1577,16 @@ document.getElementById('pay-task-connect-btn')?.addEventListener('click', async
     try{
         const ton=selectedPackage?.ton||0;
         await sendTonConnect(DEPOSIT_WALLET, ton, memo);
-        await addDoc(collection(db,'task_payments'),{
-            userId:currentUser.id, memo, status:'pending', createdAt:serverTimestamp()
+        await fetch(`${API_BASE}/notifyDeposit`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                type:'task_payment', userId:currentUser.id,
+                username:currentUser.telegramUsername||'', firstName:currentUser.firstName||'',
+                tonAmount:ton, memo, taskTitle:selectedPackage?.label||'Task',
+            })
         });
         document.getElementById('modal-task-payment').classList.remove('show');
-        showAlert('Sent!','Payment sent! Task activates within 1–6 hours.','success');
+        showAlert('Sent! ✅','Payment sent! Task will go live after admin approval.','success');
         fetchTasks(taskFilter);
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON via Connected Wallet';
@@ -1492,13 +1598,22 @@ document.getElementById('pay-task-confirm-btn')?.addEventListener('click', async
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
         const memo=document.getElementById('pay-task-memo').innerText;
-        await addDoc(collection(db,'task_payments'),{
-            userId:currentUser.id, memo, status:'pending', createdAt:serverTimestamp()
+        const res = await fetch(`${API_BASE}/notifyDeposit`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                userId: currentUser.id,
+                username: currentUser.telegramUsername||'',
+                firstName: currentUser.firstName||'',
+                memo, type:'task_payment',
+                tonAmount: selectedPackage?.ton||0,
+                taskTitle: selectedPackage?.label||'Task',
+            })
         });
+        const data = await res.json();
         document.getElementById('modal-task-payment').classList.remove('show');
-        showAlert('Payment Submitted!','Task will go live within 1–6 hours after TON payment is verified.','success');
+        showAlert('Payment Submitted!','Task will go live after admin verifies your TON payment.','success');
         fetchTasks(taskFilter);
-    }catch(e){ showAlert('Error','Submission failed.','error'); }
+    }catch(e){ showAlert('Error','Submission failed. Try again.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-check-circle"></i> I\'ve Paid — Confirm';
 });
 
@@ -1540,13 +1655,9 @@ async function checkLootboxTransfer(){
     if(hour !== 0) return;
 
     try{
-        await updateDoc(doc(db,'users',currentUser.id),{
-            diamondBalance: increment(lb),
-            lootboxBalance: 0,
-            lastLootboxTransfer: today,
-            // ads reset
-            adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
-            lastResetDate: today
+        const lbRes = await fetch(`${API_BASE}/claimAd`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id, batch: { lootboxTransfer: lb } })
         });
         currentUser.diamondBalance = (currentUser.diamondBalance||0) + lb;
         currentUser.lootboxBalance = 0;
