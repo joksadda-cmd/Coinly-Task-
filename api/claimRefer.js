@@ -1,12 +1,10 @@
-// api/claimRefer.js
-// Refer reward API — client-side থেকে Firestore write বন্ধ
-// User 10 task complete করলে referrer কে 5 diamond দেওয়া হবে
+// api/claimPromo.js
+// Promo code redeem API — hacker proof
+// Client-side Firestore write বন্ধ — সব server-side verify করা হবে
 
-import { initializeApp, getApps } from "firebase-admin/app";
+import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-
-// Firebase Admin init
 if (!getApps().length) {
     initializeApp({
         credential: cert({
@@ -18,9 +16,6 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-const REFER_REWARD    = 5;
-const REFER_MIN_TASKS = 10;
-
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -28,63 +23,71 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST')   return res.status(405).json({ error: 'Method not allowed' });
 
-    const { userId } = req.body || {};
-    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const { userId, code } = req.body || {};
+    if (!userId || !code) return res.status(400).json({ error: 'userId and code required' });
+
+    const cleanCode = String(code).trim().toUpperCase();
+    const uid       = String(userId);
 
     try {
-        const userRef  = db.collection('users').doc(String(userId));
-        const userSnap = await userRef.get();
-        if (!userSnap.exists) return res.status(404).json({ error: 'User not found' });
+        let rewardAmount = 0;
 
-        const user = userSnap.data();
-
-        // Already validated — double-claim থেকে রক্ষা
-        if (user.isValidatedRef) {
-            return res.status(200).json({ success: true, alreadyClaimed: true });
-        }
-
-        // Referrer নেই
-        const referrerId = user.referredBy;
-        if (!referrerId) return res.status(400).json({ error: 'No referrer' });
-
-        // Task count check — server-side
-        const completedTasks = user.completedTasks || [];
-        if (completedTasks.length < REFER_MIN_TASKS) {
-            return res.status(400).json({
-                error: `Need ${REFER_MIN_TASKS} tasks. Done: ${completedTasks.length}`
-            });
-        }
-
-        // Transaction: referrer reward + mark user validated
         await db.runTransaction(async (t) => {
-            const referrerRef  = db.collection('users').doc(String(referrerId));
-            const referrerSnap = await t.get(referrerRef);
-            if (!referrerSnap.exists) throw new Error('Referrer not found');
+            const promoRef  = db.collection('promo_codes').doc(cleanCode);
+            const promoSnap = await t.get(promoRef);
 
-            // user কে validated mark করো
-            t.update(userRef, { isValidatedRef: true });
+            // Promo exist করে না
+            if (!promoSnap.exists) throw new Error('Invalid promo code.');
 
-            // referrer কে diamond দাও
-            t.update(referrerRef, {
-                diamondBalance:        FieldValue.increment(REFER_REWARD),
-                validReferrals:        FieldValue.increment(1),
-                referralDiamondEarned: FieldValue.increment(REFER_REWARD),
+            const promo = promoSnap.data();
+
+            // Active check
+            if (!promo.isActive) throw new Error('This promo code is no longer active.');
+
+            // Max uses check
+            if (promo.currentUses >= promo.maxUses) throw new Error('Promo code limit reached.');
+
+            // Already claimed check
+            if ((promo.usersClaimed || []).includes(uid)) throw new Error('You already used this code.');
+
+            // Expiry check (optional)
+            if (promo.expiresAt && promo.expiresAt.toDate() < new Date()) {
+                throw new Error('Promo code has expired.');
+            }
+
+            rewardAmount = promo.rewardAmount || 0;
+            if (rewardAmount <= 0) throw new Error('Invalid reward amount.');
+
+            const userRef = db.collection('users').doc(uid);
+            const userSnap = await t.get(userRef);
+            if (!userSnap.exists) throw new Error('User not found.');
+
+            // Diamond credit করো
+            t.update(userRef, {
+                diamondBalance: FieldValue.increment(rewardAmount)
             });
 
-            // transaction log
+            // Promo usage update
+            t.update(promoRef, {
+                currentUses:  FieldValue.increment(1),
+                usersClaimed: FieldValue.arrayUnion(uid),
+            });
+
+            // Log
             t.set(db.collection('transactions').doc(), {
-                userId:    referrerId,
-                type:      'Refer Reward',
-                details:   `Friend UID: ${userId}`,
-                diamondAmount: REFER_REWARD,
-                createdAt: FieldValue.serverTimestamp(),
+                userId:        uid,
+                type:          'Promo Code',
+                details:       `Code: ${cleanCode}`,
+                diamondAmount: rewardAmount,
+                createdAt:     FieldValue.serverTimestamp(),
             });
         });
 
-        return res.status(200).json({ success: true, reward: REFER_REWARD });
+        return res.status(200).json({ success: true, reward: rewardAmount });
 
     } catch (e) {
-        console.error('[claimRefer]', e.message);
-        return res.status(500).json({ error: e.message });
+        console.error('[claimPromo]', e.message);
+        // User-friendly error পাঠাও
+        return res.status(200).json({ success: false, error: e.message });
     }
 }
