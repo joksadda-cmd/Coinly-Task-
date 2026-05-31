@@ -1,5 +1,4 @@
-// api/claimAd.js
-// Ad reward + joinGift — server-side, Firestore rules bypass
+// api/claimAd.js — batch write support + lootbox transfer + joinGift
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -16,11 +15,9 @@ if (!getApps().length) {
 const db = getFirestore();
 
 const AD_REWARDS = { ad1:0.25, ad2:0.5, ad3:0.25, ad4:0.25, joinGift:5 };
-const AD_LIMITS  = { ad1:10, ad2:5, ad3:20, ad4:20 }; // daily limits — matches UI
-const AD_FIELDS  = {
-    ad1:'adsWatchedAd1', ad2:'adsWatchedAd2',
-    ad3:'adsWatchedAd3', ad4:'adsWatchedAd4'
-};
+const AD_LIMITS  = { ad1:10, ad2:5, ad3:20, ad4:20 };
+const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
+const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -29,55 +26,93 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { userId, adType } = req.body || {};
-    if (!userId || !adType) return res.status(400).json({ error: 'userId and adType required' });
-    if (!(adType in AD_REWARDS)) return res.status(400).json({ error: 'Invalid adType' });
+    const { userId, adType, batch } = req.body || {};
+    if (!userId) return res.status(400).json({ error: 'userId required' });
 
-    const uid    = String(userId);
+    const uid   = String(userId);
+    const today = TODAY();
+    const userRef = db.collection('users').doc(uid);
+
+    // ── BATCH MODE (multiple ad types at once) ──
+    if (batch && typeof batch === 'object') {
+        try {
+            const userSnap = await userRef.get();
+            if (!userSnap.exists) return res.status(404).json({ error: 'User not found' });
+            const user = userSnap.data();
+            const updates = {};
+            let totalReward = 0;
+
+            // Lootbox midnight transfer
+            if (batch.lootboxTransfer && parseFloat(batch.lootboxTransfer) > 0) {
+                const lb = parseFloat(batch.lootboxTransfer);
+                updates.diamondBalance    = FieldValue.increment(lb);
+                updates.lootboxBalance    = 0;
+                updates.lastLootboxTransfer = today;
+                updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
+                updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
+                updates.lastResetDate = today;
+                totalReward = lb;
+            }
+
+            // joinGift
+            if (batch.joinGift && !user.joinGiftClaimed) {
+                updates.joinGiftClaimed = true;
+                updates.diamondBalance  = FieldValue.increment(5);
+                totalReward += 5;
+            }
+
+            // Regular ad batch: { ad1: 3, ad2: 1, ... }
+            const isNewDay = user.lastResetDate !== today;
+            for (const [type, count] of Object.entries(batch)) {
+                if (!AD_REWARDS[type] || !AD_FIELDS[type]) continue;
+                const field   = AD_FIELDS[type];
+                const watched = isNewDay ? 0 : (user[field] || 0);
+                const limit   = AD_LIMITS[type] || 10;
+                const allowed = Math.min(count, limit - watched);
+                if (allowed <= 0) continue;
+                const reward  = AD_REWARDS[type] * allowed;
+                updates[field]         = FieldValue.increment(allowed);
+                updates.lootboxBalance = FieldValue.increment(reward);
+                totalReward += reward;
+            }
+
+            if (isNewDay && !batch.lootboxTransfer) {
+                updates.lastResetDate = today;
+                if (!updates.adsWatchedAd1) { updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0; updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0; }
+            }
+
+            if (Object.keys(updates).length > 0) await userRef.update(updates);
+            return res.status(200).json({ success: true, reward: totalReward });
+        } catch(e) {
+            console.error('[claimAd batch]', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
+    // ── SINGLE MODE (legacy) ──
+    if (!adType || !(adType in AD_REWARDS)) {
+        return res.status(400).json({ error: 'Invalid adType' });
+    }
     const reward = AD_REWARDS[adType];
-    const today  = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
-
     try {
-        const userRef  = db.collection('users').doc(uid);
         const userSnap = await userRef.get();
         if (!userSnap.exists) return res.status(404).json({ error: 'User not found' });
-
-        const user = userSnap.data();
-
-        // joinGift — one time only
-        if (adType === 'joinGift') {
-            if (user.joinGiftClaimed) return res.status(200).json({ success: false, error: 'Already claimed' });
-            await userRef.update({
-                joinGiftClaimed: true,
-                diamondBalance: FieldValue.increment(reward),
-            });
-            return res.status(200).json({ success: true, reward });
-        }
-
-        // Daily limit check
+        const user    = userSnap.data();
         const field   = AD_FIELDS[adType];
-        const watched = user.lastResetDate === today ? (user[field] || 0) : 0;
-        const limit   = AD_LIMITS[adType] || 10;
-
-        if (watched >= limit) {
-            return res.status(200).json({ success: false, error: `Daily limit reached (${limit}/day)` });
-        }
+        const isNewDay = user.lastResetDate !== today;
+        const watched  = isNewDay ? 0 : (user[field] || 0);
+        const limit    = AD_LIMITS[adType] || 10;
+        if (watched >= limit) return res.status(200).json({ success: false, error: 'Daily limit reached' });
 
         const updates = {
             lootboxBalance: FieldValue.increment(reward),
             [field]: FieldValue.increment(1),
         };
-        // Reset if new day
-        if (user.lastResetDate !== today) {
-            updates.lastResetDate = today;
-            Object.values(AD_FIELDS).forEach(f => { if (f !== field) updates[f] = 0; });
-        }
-
+        if (isNewDay) { updates.lastResetDate = today; }
         await userRef.update(updates);
         return res.status(200).json({ success: true, reward, watched: watched + 1, limit });
-
-    } catch (e) {
-        console.error('[claimAd]', e.message);
+    } catch(e) {
+        console.error('[claimAd single]', e.message);
         return res.status(500).json({ error: e.message });
     }
-            }
+}
