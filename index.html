@@ -177,7 +177,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .divider{height:1px;background:var(--border);margin:14px 0;}
 
 /* NAVIGATION & DEPOSIT OPTIONS */
-.dep-amount-btn {
+.dep-pkg-btn {
     padding: 10px;
     border-radius: 10px;
     border: 1.5px solid var(--border);
@@ -188,7 +188,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     cursor: pointer;
     transition: 0.2s;
 }
-.dep-amount-btn.active {
+.dep-pkg-btn.active {
     background: var(--primary-light);
     border-color: var(--primary);
     color: var(--primary);
@@ -276,7 +276,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
             <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
             <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
-            <div class="filter-tab" data-filter="my_tasks"><i class="fas fa-star"></i> My Tasks</div>
+            <div class="platform-pill" data-filter="my_tasks"><i class="fas fa-star"></i> My Tasks</div>
         </div>
         <div id="task-list-container"></div>
     </div>
@@ -533,9 +533,9 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <!-- Step 2: Choose package -->
         <div id="ct-step-package" style="display:none;">
             <div class="modal-title">Choose Package</div>
-            <div class="modal-sub">Each user who completes earns <b>2 💎</b></div>
+            <div class="modal-sub">Each user earns <b>1 💎</b> per completion</div>
             <div style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.8rem;color:var(--text-sub);margin-bottom:14px;">
-                💎 Your balance: <b id="ct-balance" style="color:var(--primary);">0</b> Diamond
+                💰 Your TON balance: <b id="ct-balance" style="color:var(--primary);">0</b> TON
             </div>
             <div id="ct-package-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
             <div style="display:flex;gap:8px;">
@@ -569,11 +569,29 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:8px 12px;font-size:0.72rem;color:#856404;margin:8px 0;text-align:left;">⚠️ <b>Warning:</b> Fake/duplicate requests = permanent ban. Submit only after actual TON transfer.</div>
         <div class="modal-sub" id="dep-modal-sub">Sending <b id="dep-show-ton">0.5</b> TON</div>
         
-        <!-- Selection options added -->
-        <div style="display:grid;grid-template-columns:repeat(3, 1fr);gap:8px;margin-bottom:14px;">
-            <button class="dep-amount-btn active" data-ton="0.5">0.5 TON</button>
-            <button class="dep-amount-btn" data-ton="1.0">1.0 TON</button>
-            <button class="dep-amount-btn" data-ton="2.0">2.0 TON</button>
+        <!-- Deposit packages with 40% discount -->
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+            <div style="font-size:0.72rem;color:var(--text-muted);text-align:center;margin-bottom:2px;">Select deposit package</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:2px solid var(--border-mid);border-radius:12px;cursor:pointer;" class="dep-pkg-btn" data-ton="0.25" data-tasks="250">
+                <div><div style="font-weight:700;font-size:0.85rem;">250 Tasks</div><div style="font-size:0.7rem;color:var(--text-muted);">0.25 TON</div></div>
+                <div style="text-align:right;"><span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;">40% OFF</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:2px solid var(--border-mid);border-radius:12px;cursor:pointer;" class="dep-pkg-btn" data-ton="0.5" data-tasks="500">
+                <div><div style="font-weight:700;font-size:0.85rem;">500 Tasks</div><div style="font-size:0.7rem;color:var(--text-muted);">0.5 TON</div></div>
+                <div style="text-align:right;"><span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;">40% OFF</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:2px solid var(--primary);border-radius:12px;cursor:pointer;background:var(--primary-light);" class="dep-pkg-btn active" data-ton="1.0" data-tasks="1000">
+                <div><div style="font-weight:700;font-size:0.85rem;">1K Tasks <span style="background:var(--primary);color:#fff;font-size:0.6rem;padding:2px 6px;border-radius:8px;margin-left:4px;">POPULAR</span></div><div style="font-size:0.7rem;color:var(--text-muted);">1.0 TON</div></div>
+                <div style="text-align:right;"><span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;">40% OFF</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:2px solid var(--border-mid);border-radius:12px;cursor:pointer;" class="dep-pkg-btn" data-ton="2.0" data-tasks="2000">
+                <div><div style="font-weight:700;font-size:0.85rem;">2K Tasks</div><div style="font-size:0.7rem;color:var(--text-muted);">2.0 TON</div></div>
+                <div style="text-align:right;"><span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;">40% OFF</span></div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border:2px solid var(--border-mid);border-radius:12px;cursor:pointer;" class="dep-pkg-btn" data-ton="5.0" data-tasks="5000">
+                <div><div style="font-weight:700;font-size:0.85rem;">5K Tasks</div><div style="font-size:0.7rem;color:var(--text-muted);">5.0 TON</div></div>
+                <div style="text-align:right;"><span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:2px 7px;border-radius:10px;">40% OFF</span></div>
+            </div>
         </div>
 
         <div id="dep-wallet-status" style="font-size:0.8rem;margin-bottom:10px;padding:10px;background:var(--bg-section);border-radius:10px;text-align:center;"></div>
@@ -779,7 +797,7 @@ async function initApp(){
         // API failed — build minimal currentUser from Telegram data
         currentUser = {
             id: uid,
-            diamondBalance: 0, completedTasks: [], lootboxBalance: 0,
+            diamondBalance: 0, tonBalance: 0, completedTasks: [], lootboxBalance: 0,
             totalInvites: 0, validReferrals: 0, referralDiamondEarned: 0,
             telegramUsername: u.username||'', firstName: u.firstName||'',
             adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
@@ -870,8 +888,9 @@ function updateUI(){
         if(uidSpan) uidSpan.innerText = currentUser.id || tg?.initDataUnsafe?.user?.id || '---';
     }catch(e){}
     const diamond = parseFloat(currentUser.diamondBalance||0);
+    const tonBal  = parseFloat(currentUser.tonBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
-    document.getElementById('bal-ton').innerText = (diamond*DIAMOND_TO_TON).toFixed(4);
+    document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
     updateLootbox();
@@ -1154,7 +1173,9 @@ function showStep(step){
 
 function renderPackages(){
     const list=document.getElementById('ct-package-list');
+    const userTon = parseFloat(currentUser?.tonBalance||0);
     list.innerHTML=TASK_PACKAGES.map((p,i)=>{
+        const canAfford = userTon >= p.ton;
         return `<div class="pkg-card" data-idx="${i}" style="
             background:${p.popular?'linear-gradient(135deg,var(--primary),var(--accent))':'var(--bg-section)'};
             border:2px solid ${p.popular?'var(--primary)':'var(--border)'};
@@ -1204,7 +1225,7 @@ document.getElementById('btn-create-task').addEventListener('click',()=>{
     document.getElementById('ct-title').value='';
     document.getElementById('ct-url').value='';
     document.getElementById('ct-channel-id').value='';
-    document.getElementById('ct-balance').innerText=(currentUser?.diamondBalance||0).toFixed(2);
+    document.getElementById('ct-balance').innerText=(currentUser?.tonBalance||0).toFixed(4);
     showStep('ct-step-type');
     document.getElementById('modal-create-task').classList.add('show');
 });
@@ -1247,6 +1268,14 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
     const channelId=document.getElementById('ct-channel-id').value.trim();
     if(!title) return showAlert('Error','Enter a task title.','error');
     if(!url) return showAlert('Error','Enter a URL/link.','error');
+    // TON balance check
+    const userTon = parseFloat(currentUser?.tonBalance||0);
+    if(userTon < selectedPackage.ton){
+        document.getElementById('modal-create-task').classList.remove('show');
+        showAlert('Insufficient TON',`You need ${selectedPackage.ton} TON but have ${userTon.toFixed(4)} TON. Please deposit first.`,'error');
+        setTimeout(()=>document.getElementById('btn-deposit').click(), 1500);
+        return;
+    }
     const btn=document.getElementById('ct-submit-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
@@ -1514,9 +1543,9 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
 const TON_TO_DIAMOND = 2000; // 0.5 TON = 1000 Diamond (1 TON = 2000 Diamond)
 let selectedDepositTon = 0.5;
 
-document.querySelectorAll('.dep-amount-btn').forEach(btn=>{
+document.querySelectorAll('.dep-pkg-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
-        document.querySelectorAll('.dep-amount-btn').forEach(b=>b.classList.remove('active'));
+        document.querySelectorAll('.dep-pkg-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         selectedDepositTon=parseFloat(btn.dataset.ton);
         document.getElementById('dep-show-ton').innerText=selectedDepositTon;
@@ -1548,7 +1577,10 @@ document.getElementById('btn-deposit').addEventListener('click',()=>{
     }
     document.getElementById('dep-show-ton').innerText=selectedDepositTon;
     document.getElementById('dep-memo-display').innerText=currentUser.id;
-    document.getElementById('dep-modal-sub').innerHTML=`Sending <b>${selectedDepositTon} TON</b> → <b>+${Math.floor(selectedDepositTon*TON_TO_DIAMOND)} 💎</b>`;
+    // Find selected package
+    const selPkg = document.querySelector('.dep-pkg-btn.active');
+    const tasks = selPkg?.dataset?.tasks || '1000';
+    document.getElementById('dep-modal-sub').innerHTML=`Package: <b>${tasks} Tasks</b> · <b>${selectedDepositTon} TON</b>`;
     const connEl=document.getElementById('dep-wallet-status');
     if(connectedWallet){
         const addr=connectedWallet.account?.address;
