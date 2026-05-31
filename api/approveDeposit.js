@@ -1,14 +1,11 @@
 // api/approveDeposit.js
-// Admin approves a deposit → adds diamond to user account
+// Admin approves or rejects a deposit — notifies user via Telegram
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-const BOT_TOKEN = process.env.BOT_TOKEN;
-
-function getAdminApp() {
-    if (getApps().length > 0) return getApps()[0];
-    return initializeApp({
+if (!getApps().length) {
+    initializeApp({
         credential: cert({
             projectId:   process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -16,68 +13,88 @@ function getAdminApp() {
         }),
     });
 }
+const db  = getFirestore();
+const BOT = process.env.BOT_TOKEN;
 
-async function sendMsg(chatId, text) {
-    if (!BOT_TOKEN || !chatId) return;
+async function tgMsg(chatId, text) {
+    if (!BOT || !chatId) return;
     try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),
+            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML' })
         });
-    } catch(e) {}
+    } catch(e) { console.warn('[tgMsg]', e.message); }
 }
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Origin',  '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { depositId, userId, diamondAmount } = req.body || {};
-    if (!depositId || !userId || !diamondAmount) {
-        return res.status(400).json({ ok: false, error: 'missing_fields' });
-    }
+    const { depositId, action, adminNote } = req.body || {};
+    // action: 'approve' | 'reject'
+    if (!depositId || !action) return res.status(400).json({ error: 'depositId and action required' });
 
     try {
-        const app = getAdminApp();
-        const db  = getFirestore(app);
+        const depRef  = db.collection('deposits').doc(depositId);
+        const depSnap = await depRef.get();
+        if (!depSnap.exists) return res.status(404).json({ error: 'Deposit not found' });
 
-        const depositRef = db.collection('deposits').doc(String(depositId));
-        const userRef    = db.collection('users').doc(String(userId));
+        const dep = depSnap.data();
+        const uid = dep.userId;
+        const ton = dep.tonAmount || 0;
+        const diamond = dep.expectedDiamond || 0;
 
-        await db.runTransaction(async (t) => {
-            const depSnap = await t.get(depositRef);
-            if (!depSnap.exists) throw new Error('deposit_not_found');
-            if (depSnap.data().status === 'approved') throw new Error('already_approved');
-
-            t.update(depositRef, {
-                status:     'approved',
-                approvedAt: FieldValue.serverTimestamp(),
+        if (action === 'approve') {
+            // Credit diamond to user
+            await db.runTransaction(async (t) => {
+                const uRef = db.collection('users').doc(String(uid));
+                t.update(uRef, {
+                    diamondBalance: FieldValue.increment(diamond),
+                });
+                t.update(depRef, {
+                    status: 'approved',
+                    approvedAt: FieldValue.serverTimestamp(),
+                });
             });
-            t.update(userRef, {
-                diamondBalance: FieldValue.increment(Number(diamondAmount)),
-                totalEarned:    FieldValue.increment(Number(diamondAmount)),
+
+            // Notify user
+            await tgMsg(uid,
+                `🎉 <b>Deposit Approved!</b>\n\n` +
+                `✅ Your deposit of <b>${ton} TON</b> has been verified.\n` +
+                `💎 <b>${diamond} Diamond</b> has been added to your wallet!\n\n` +
+                `You can now create tasks or withdraw your earnings. 🚀`
+            );
+
+            return res.status(200).json({ success: true, action: 'approved', diamond });
+
+        } else if (action === 'reject') {
+            await depRef.update({
+                status: 'rejected',
+                rejectedAt: FieldValue.serverTimestamp(),
+                adminNote: adminNote || '',
             });
-        });
 
-        // Notify user
-        await sendMsg(userId,
-`✅ <b>Deposit Approved!</b>
+            // Warn user
+            await tgMsg(uid,
+                `⚠️ <b>Deposit Request Rejected</b>\n\n` +
+                `Your deposit request of <b>${ton} TON</b> could not be verified.\n\n` +
+                `<b>Reason:</b> ${adminNote || 'Payment not received or invalid.'}\n\n` +
+                `⚠️ <b>Warning:</b> Submitting fake deposit requests is a violation of our terms.\n` +
+                `🚫 Repeated violations will result in a <b>permanent account ban</b>.\n\n` +
+                `If you believe this is an error, contact support.`
+            );
 
-💎 <b>+${diamondAmount} Diamond</b> added to your account!
-
-You can now use Diamond to create tasks or withdraw.`
-        );
-
-        return res.status(200).json({ ok: true, diamondAmount });
-
-    } catch(err) {
-        if (err.message === 'already_approved') {
-            return res.status(200).json({ ok: false, error: 'already_approved' });
+            return res.status(200).json({ success: true, action: 'rejected' });
         }
-        console.error('[approveDeposit]', err);
-        return res.status(500).json({ ok: false, error: 'server_error', message: err.message });
+
+        return res.status(400).json({ error: 'Invalid action' });
+
+    } catch(e) {
+        console.error('[approveDeposit]', e.message);
+        return res.status(500).json({ error: e.message });
     }
 }
