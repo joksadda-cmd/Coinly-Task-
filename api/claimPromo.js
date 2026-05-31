@@ -62,9 +62,11 @@ export default async function handler(req, res) {
             const userSnap = await t.get(userRef);
             if (!userSnap.exists) throw new Error('User not found.');
 
-            // Diamond credit করো
+            // Credit based on rewardType (diamond or ton)
+            const rewardType = promo.rewardType || 'diamond';
+            const field = rewardType === 'ton' ? 'tonBalance' : 'diamondBalance';
             t.update(userRef, {
-                diamondBalance: FieldValue.increment(rewardAmount)
+                [field]: FieldValue.increment(rewardAmount)
             });
 
             // Promo usage update
@@ -90,4 +92,4 @@ export default async function handler(req, res) {
         // User-friendly error পাঠাও
         return res.status(200).json({ success: false, error: e.message });
     }
-}
+                     }
