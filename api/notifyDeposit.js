@@ -40,12 +40,13 @@ export default async function handler(req, res) {
 
     // ── WITHDRAWAL ──
     if (type === 'withdrawal') {
-        const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
+        const { userId, username, firstName, method, address, diamondAmount, tonAmount, tasksDone } = body;
         if (!userId || !diamondAmount || !address) {
             return res.status(400).json({ error: 'Missing fields' });
         }
         const amt = parseFloat(diamondAmount);
         const uid = String(userId);
+        const MIN_TASKS = 10;
         try {
             let newBalance = 0, withdrawId = '';
             await db.runTransaction(async (t) => {
@@ -63,7 +64,12 @@ export default async function handler(req, res) {
                     diamondAmount: amt, tonAmount: parseFloat(tonAmount)||0,
                     status: 'pending', createdAt: FieldValue.serverTimestamp(),
                 });
-                t.update(uRef, { diamondBalance: FieldValue.increment(-amt) });
+                const newAdsCount = (user.adsWatchedAd1||0)+(user.adsWatchedAd2||0)+
+                    (user.adsWatchedAd3||0)+(user.adsWatchedAd4||0);
+                t.update(uRef, {
+                    diamondBalance: FieldValue.increment(-amt),
+                    _lastWithdrawAdsCount: newAdsCount,
+                });
             });
 
             // User notification
@@ -120,16 +126,51 @@ export default async function handler(req, res) {
 
     try {
         // Save deposit record
-        const collection_name = type === 'task_payment' ? 'task_payments' : 'deposits';
-        const docRef = await db.collection(collection_name).add({
+        const collection_name = type === 'task_payment' ? 'task_payments' : 
+                               type === 'task_create' ? 'tasks' : 'deposits';
+        
+        const docData = {
             userId: uid, username: username||'', firstName: firstName||'',
-            tonAmount: parseFloat(tonAmount)||0,
-            expectedDiamond: parseInt(expectedDiamond)||0,
-            memo: memo||uid, status: 'pending',
+            status: type === 'task_create' ? 'pending_approval' : 'pending',
             type: type||'deposit',
             createdAt: FieldValue.serverTimestamp(),
-            ...(taskTitle ? { taskTitle } : {}),
-        });
+        };
+
+        if (type === 'task_create') {
+            // Save task + deduct TON from user balance
+            const { title, url, category, channelId, rewardDiamond, maxCompletions, tonCost, packageLabel, createdBy } = body;
+            Object.assign(docData, {
+                title: title||'', url: url||'', category: category||'social',
+                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||1,
+                maxCompletions: parseInt(maxCompletions)||100, completionCount: 0,
+                isApproved: false, tonCost: parseFloat(tonCost)||0,
+                packageLabel: packageLabel||'', createdBy: createdBy||uid,
+            });
+            // Deduct TON from user balance server-side
+            const tonCostVal = parseFloat(tonCost)||0;
+            if (tonCostVal > 0) {
+                try {
+                    const uRef = db.collection('users').doc(uid);
+                    const uSnap = await uRef.get();
+                    if (uSnap.exists) {
+                        const curTon = uSnap.data().tonBalance || 0;
+                        if (curTon < tonCostVal) {
+                            return res.status(200).json({ success: false, error: 'Insufficient TON balance' });
+                        }
+                        await uRef.update({ tonBalance: FieldValue.increment(-tonCostVal) });
+                    }
+                } catch(e) { console.warn('[task_create deduct]', e.message); }
+            }
+        } else {
+            Object.assign(docData, {
+                tonAmount: parseFloat(tonAmount)||0,
+                expectedDiamond: parseInt(expectedDiamond)||0,
+                memo: memo||uid,
+                ...(taskTitle ? { taskTitle } : {}),
+            });
+        }
+
+        const docRef = await db.collection(collection_name).add(docData);
 
         // Admin notification
         const isTask = type === 'task_payment';
