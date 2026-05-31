@@ -87,6 +87,32 @@ export default async function handler(req, res) {
         }
     }
 
+    // ── BROADCAST (admin sends message to all users) ──
+    if (type === 'broadcast') {
+        const { message, adminKey } = body;
+        if (adminKey !== process.env.FIREBASE_PROJECT_ID) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        if (!message) return res.status(400).json({ error: 'message required' });
+        try {
+            // Get all user IDs
+            const usersSnap = await db.collection('users').select('id').limit(500).get();
+            let sent = 0, failed = 0;
+            const promises = [];
+            usersSnap.forEach(d => {
+                promises.push(
+                    tgMsg(d.id, `📢 <b>Announcement</b>\n\n${message}`)
+                        .then(()=>sent++)
+                        .catch(()=>failed++)
+                );
+            });
+            await Promise.allSettled(promises);
+            return res.status(200).json({ success: true, sent, failed });
+        } catch(e) {
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
     // ── DEPOSIT / TASK PAYMENT ──
     const { userId, username, firstName, tonAmount, expectedDiamond, memo, taskTitle } = body;
     if (!userId) return res.status(400).json({ error: 'userId required' });
@@ -130,4 +156,4 @@ export default async function handler(req, res) {
         console.error('[notifyDeposit]', e.message);
         return res.status(500).json({ error: e.message });
     }
-}
+                    }
