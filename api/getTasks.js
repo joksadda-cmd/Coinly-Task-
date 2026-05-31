@@ -22,22 +22,36 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-    try {
-        const snap = await db.collection('tasks')
-            .where('isApproved', '==', true)
-            .limit(100)
-            .get();
+    const createdBy = req.query?.createdBy;
 
+    try {
+        let query = db.collection('tasks');
+
+        if (createdBy) {
+            // My Tasks: all tasks by this user (approved or not)
+            query = query.where('createdBy', '==', String(createdBy)).limit(50);
+        } else {
+            // Public tasks: approved only
+            query = query.where('isApproved', '==', true).limit(100);
+        }
+
+        const snap = await query.get();
         const tasks = [];
         snap.forEach(d => {
             const t = d.data();
             tasks.push({
-                id:        d.id,
-                title:     t.title || '',
-                url:       t.url   || '',
-                category:  t.category || 'social',
-                channelId: t.channelId || '',
-                rewardDiamond: t.rewardDiamond || 2,
+                id:              d.id,
+                title:           t.title || '',
+                url:             t.url   || '',
+                category:        t.category || 'social',
+                channelId:       t.channelId || '',
+                rewardDiamond:   t.rewardDiamond || 1,
+                isApproved:      t.isApproved || false,
+                completionCount: t.completionCount || 0,
+                maxCompletions:  t.maxCompletions || 0,
+                createdBy:       t.createdBy || '',
+                tonCost:         t.tonCost || 0,
+                packageLabel:    t.packageLabel || '',
             });
         });
 
