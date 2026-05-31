@@ -789,21 +789,21 @@ async function initApp(){
 
     if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;"><i class="fas fa-ban" style="font-size:4rem;color:red;margin-bottom:20px;"></i><h3>Account Banned.</h3></div>';
 
-    // Ad count reset if new day
+    // Ad count reset if new day (single clean block)
     if(currentUser.lastResetDate !== today){
         currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
         currentUser.adsWatchedAd3 = 0; currentUser.adsWatchedAd4 = 0;
+        currentUser.lastResetDate = today;
         ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${uid}`, 0));
-    }
-
-    if(currentUser.lastResetDate !== today){
-        const up = {adsWatchedAd1:0,adsWatchedAd2:0,adsWatchedAd3:0,adsWatchedAd4:0,lastResetDate:today};
-        Object.assign(currentUser, up);
-        try{ await updateDoc(ref, up); }catch(e){}
-        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
+        // Sync reset via claimAd batch (no direct updateDoc)
+        fetch(`${API_BASE}/claimAd`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({userId:uid, batch:{_resetOnly:true}})
+        }).catch(()=>{});
     }
 
     updateUI();
+    checkLootboxTransfer();
     checkCommunityJoin();
     fetchTasks('all');
 }
