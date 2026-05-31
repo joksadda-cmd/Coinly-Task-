@@ -470,7 +470,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="modal-box" style="border-color:var(--primary);">
         <div class="lock-icon"><i class="fas fa-shield-check"></i></div>
         <div class="modal-title">Verification Required</div>
-        <div class="modal-sub">Join official networks to unlock & get <b>5 💎 Diamond</b> welcome gift!</div>
+        <div class="modal-sub">Join our official networks to unlock the app.</div>
         <a href="https://t.me/coinly_task" target="_blank" class="btn btn-primary btn-full" style="margin-bottom:10px;text-decoration:none;"><i class="fab fa-telegram-plane"></i> 1. Official Channel</a>
         <a href="https://t.me/newTon_Gc" target="_blank" class="btn btn-accent btn-full" style="margin-bottom:14px;text-decoration:none;"><i class="fas fa-users"></i> 2. Official Community</a>
         <button class="btn btn-green btn-full" id="btn-verify-join"><i class="fas fa-check-circle"></i> Verify & Unlock</button>
@@ -824,20 +824,7 @@ async function checkCommunityJoin(){
         if(data.joined || data.ok){
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
-            if(!currentUser.joinGiftClaimed){
-                try{
-                    try{
-                        await fetch(`${API_BASE}/claimAd`,{
-                            method:'POST',headers:{'Content-Type':'application/json'},
-                            body:JSON.stringify({userId:currentUser.id,batch:{joinGift:1}})
-                        });
-                    }catch(e){}
-                    currentUser.joinGiftClaimed=true;
-                    currentUser.diamondBalance=(currentUser.diamondBalance||0)+5;
-                    updateUI();
-                    document.getElementById('modal-welcome').classList.add('show');
-                }catch(e){}
-            }
+            currentUser.joinGiftClaimed=true;
         } else {
             document.getElementById('modal-join').classList.add('show');
             if(!_joinCheckInterval){
@@ -859,12 +846,13 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
         const res=await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         const d=await res.json();
         if(d.joined||d.ok){
-            await checkCommunityJoin();
+            currentUser.joinGiftClaimed=true;
+            document.getElementById('modal-join').classList.remove('show');
         } else {
             const missing=[];
-            if(!d.channel) missing.push('📢 Official Channel');
-            if(!d.group)   missing.push('👥 Official Community');
-            err.innerText=`❌ Join করোনি:\n${missing.join(', ')}`;
+            if(!d.channel) missing.push('📢 Channel');
+            if(!d.group)   missing.push('👥 Group');
+            err.innerText=`❌ Not joined: ${missing.join(', ')}. Please join and try again.`;
         }
     }catch(e){
         document.getElementById('modal-join').classList.remove('show');
@@ -1201,15 +1189,20 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('ct-submit-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        // Task create via API (no direct Firestore write)
-        const _taskPayload = {
-            title, url, category:selectedTaskType,
-            channelId:(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?channelId:'',
-            rewardDiamond:TASK_REWARD_DIAMOND, maxCompletions:selectedPackage.tasks,
-            completionCount:0, isApproved:false,
-            createdBy:currentUser.id,
-            tonCost:selectedPackage.ton, packageLabel:selectedPackage.label,
-            paymentStatus:'pending'
+        // Task create via notifyDeposit API
+        await fetch(`${API_BASE}/notifyDeposit`,{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({
+                type:'task_create',
+                userId: currentUser.id,
+                username: currentUser.telegramUsername||'',
+                firstName: currentUser.firstName||'',
+                title, url, category:selectedTaskType,
+                channelId:(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?channelId:'',
+                rewardDiamond:TASK_REWARD_DIAMOND, maxCompletions:selectedPackage.tasks,
+                tonCost:selectedPackage.ton, packageLabel:selectedPackage.label,
+                createdBy:currentUser.id, paymentStatus:'pending'
+            })
         });
         const taskMemo=`TASK_${currentUser.id}_${Date.now()}`;
         const tonkeeperUrl=`https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${Math.floor(selectedPackage.ton*1e9)}&text=${encodeURIComponent(taskMemo)}`;
