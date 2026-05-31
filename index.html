@@ -189,9 +189,9 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     transition: 0.2s;
 }
 .dep-pkg-btn.active {
-    background: var(--primary-light);
-    border-color: var(--primary);
-    color: var(--primary);
+    background: #1e1b4b;
+    border-color: #6366f1 !important;
+    color: #a5b4fc;
 }
 
 /* PLATFORM FILTER */
@@ -793,6 +793,13 @@ async function initApp(){
         currentUser = { id: uid, ...apiData.user };
         // Check pending deposit from Firestore via API response
         if(apiData.pendingDeposit) currentUser._pendingDeposit = true;
+        // Also check localStorage (survives app restart)
+        if(localStorage.getItem(`coinly_pendingDep_${uid}`) === '1') currentUser._pendingDeposit = true;
+        // Clear if API says no pending deposit
+        if(!apiData.pendingDeposit && localStorage.getItem(`coinly_pendingDep_${uid}`)){
+            localStorage.removeItem(`coinly_pendingDep_${uid}`);
+            currentUser._pendingDeposit = false;
+        }
     } else {
         // API failed — build minimal currentUser from Telegram data
         currentUser = {
@@ -831,7 +838,8 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
-    if(currentUser.joinGiftClaimed){
+    // Use hasJoinedCommunity field (separate from gift)
+    if(currentUser.hasJoinedCommunity || currentUser.joinGiftClaimed){
         document.getElementById('modal-join').classList.remove('show');
         return;
     }
@@ -843,7 +851,9 @@ async function checkCommunityJoin(){
         if(data.joined || data.ok){
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
-            currentUser.joinGiftClaimed=true;
+            currentUser.hasJoinedCommunity = true;
+            currentUser.joinGiftClaimed = true;
+            // Save to Firestore via init API on next load — no direct write needed
         } else {
             document.getElementById('modal-join').classList.add('show');
             if(!_joinCheckInterval){
@@ -865,7 +875,8 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
         const res=await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         const d=await res.json();
         if(d.joined||d.ok){
-            currentUser.joinGiftClaimed=true;
+            currentUser.hasJoinedCommunity = true;
+            currentUser.joinGiftClaimed = true;
             document.getElementById('modal-join').classList.remove('show');
         } else {
             const missing=[];
@@ -1279,8 +1290,8 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('ct-submit-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        // Task create via notifyDeposit API
-        await fetch(`${API_BASE}/notifyDeposit`,{
+        // Task create — deduct TON from balance via API
+        const taskRes = await fetch(`${API_BASE}/notifyDeposit`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
                 type:'task_create',
@@ -1291,9 +1302,12 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
                 channelId:(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?channelId:'',
                 rewardDiamond:TASK_REWARD_DIAMOND, maxCompletions:selectedPackage.tasks,
                 tonCost:selectedPackage.ton, packageLabel:selectedPackage.label,
-                createdBy:currentUser.id, paymentStatus:'pending'
+                createdBy:currentUser.id, paymentStatus:'paid'
             })
         });
+        // Deduct TON from local balance immediately
+        currentUser.tonBalance = Math.max(0, (currentUser.tonBalance||0) - selectedPackage.ton);
+        updateUI();
         const taskMemo=`TASK_${currentUser.id}_${Date.now()}`;
         const tonkeeperUrl=`https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${Math.floor(selectedPackage.ton*1e9)}&text=${encodeURIComponent(taskMemo)}`;
         document.getElementById('modal-create-task').classList.remove('show');
@@ -1390,6 +1404,7 @@ You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
             method: 'POST',
             headers: {'Content-Type':'application/json'},
             body: JSON.stringify({
+                type:          'withdrawal',
                 userId:        currentUser.id,
                 username:      currentUser.telegramUsername||'',
                 firstName:     currentUser.firstName||'',
@@ -1397,6 +1412,7 @@ You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
                 address:       addr,
                 diamondAmount: amt,
                 tonAmount:     parseFloat((amt*DIAMOND_TO_TON).toFixed(4)),
+                tasksDone:     (currentUser.completedTasks||[]).length,
             })
         });
         const wData = await wRes.json();
@@ -1527,7 +1543,18 @@ document.getElementById('btn-refer').addEventListener('click',()=>{
     }
     document.getElementById('modal-refer').classList.add('show');
 });
-document.querySelectorAll('.close-modal').forEach(b=>b.addEventListener('click',e=>e.target.closest('.modal-bg').classList.remove('show')));
+document.querySelectorAll('.close-modal').forEach(b=>b.addEventListener('click', e=>{
+    e.target.closest('.modal-bg').classList.remove('show');
+    // Reset deposit package selection state
+    selectedDepositTon = 1.0;
+    document.querySelectorAll('.dep-pkg-btn').forEach(p=>{
+        const isDefault = parseFloat(p.dataset.ton) === 1.0;
+        p.classList.toggle('active', isDefault);
+        p.style.border = isDefault ? '2px solid #6366f1' : '2px solid #334155';
+        p.style.background = isDefault ? '#1e1b4b' : '';
+        p.style.transform = '';
+    });
+}));
 document.getElementById('uid-display').addEventListener('click',()=>{ navigator.clipboard.writeText(currentUser.id); showAlert('Copied','User ID copied.','success'); });
 document.getElementById('invite-copy').addEventListener('click',()=>{ navigator.clipboard.writeText(document.getElementById('invite-link').value); showAlert('Copied','Link copied!','success'); });
 document.getElementById('invite-share').addEventListener('click',()=>{ const l=document.getElementById('invite-link').value; tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(l)}&text=${encodeURIComponent('Join Coinly Task! Earn Diamond 💎 by completing tasks 🚀')}`); });
@@ -1545,11 +1572,23 @@ let selectedDepositTon = 0.5;
 
 document.querySelectorAll('.dep-pkg-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
-        document.querySelectorAll('.dep-pkg-btn').forEach(b=>b.classList.remove('active'));
+        // Clear all
+        document.querySelectorAll('.dep-pkg-btn').forEach(b=>{
+            b.classList.remove('active');
+            b.style.border = '2px solid #334155';
+            b.style.background = '';
+            b.style.transform = '';
+        });
+        // Highlight selected
         btn.classList.add('active');
-        selectedDepositTon=parseFloat(btn.dataset.ton);
-        document.getElementById('dep-show-ton').innerText=selectedDepositTon;
-        document.getElementById('dep-modal-sub').innerHTML=`Sending <b>${selectedDepositTon} TON</b> → <b>+${Math.floor(selectedDepositTon*TON_TO_DIAMOND)} 💎</b>`;
+        btn.style.border = '2px solid #6366f1';
+        btn.style.background = '#1e1b4b';
+        btn.style.transform = 'scale(1.01)';
+        selectedDepositTon = parseFloat(btn.dataset.ton);
+        const tasks = btn.dataset.tasks || '';
+        document.getElementById('dep-show-ton').innerText = selectedDepositTon;
+        document.getElementById('dep-modal-sub').innerHTML =
+            `Package: <b>${tasks} Tasks</b> &middot; <b>${selectedDepositTon} TON</b>`;
     });
 });
 
@@ -1614,6 +1653,7 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
         });
         document.getElementById('modal-deposit').classList.remove('show');
         currentUser._pendingDeposit = true;
+        localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
         showAlert('Sent! ✅','TON sent via wallet! Admin will verify and credit your Diamond.','success');
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON Directly';
@@ -1644,6 +1684,7 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
         if(data.success || data.depositId){
             document.getElementById('modal-deposit').classList.remove('show');
             currentUser._pendingDeposit = true;
+        localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
             showAlert('Submitted! ✅', '⚠️ Deposit request received. Admin will verify and approve your TON. Fake/duplicate requests = permanent ban.', 'success');
         } else {
             showAlert('Error', data.error||'Submission failed. Try again.', 'error');
