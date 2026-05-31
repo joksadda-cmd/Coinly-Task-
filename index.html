@@ -276,6 +276,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
             <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
             <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
+            <div class="filter-tab" data-filter="my_tasks"><i class="fas fa-star"></i> My Tasks</div>
         </div>
         <div id="task-list-container"></div>
     </div>
@@ -981,17 +982,21 @@ async function fetchTasks(filter){
     taskFilter = filter;
     const container = document.getElementById('task-list-container');
     container.innerHTML = '<div style="text-align:center;padding:30px 0;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
+
+    // ── My Tasks ──
+    if(filter === 'my_tasks'){
+        await fetchMyTasks(container);
+        return;
+    }
+
     try{
-        // Load via API — no Firestore rules issue
         const res  = await fetch(`${API_BASE}/getTasks`);
         const data = await res.json();
         const allTasks = data.tasks || [];
-
         container.innerHTML = '';
         let count = 0;
         const iconMap  = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
         const colorMap = {telegram_channel:'color:#0088cc;background:#e6f4fb;border-color:#b3dff7',telegram_group:'color:#7c3aed;background:#f3e8ff;border-color:#ddd6fe',telegram_bot:'color:#059669;background:#ecfdf5;border-color:#a7f3d0',social:'color:#dc2626;background:#fef2f2;border-color:#fecaca'};
-
         allTasks.forEach(t=>{
             if((currentUser.completedTasks||[]).includes(t.id)) return;
             if(filter !== 'all' && t.category !== filter) return;
@@ -1012,6 +1017,57 @@ async function fetchTasks(filter){
         container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>`;
         console.error('[fetchTasks]', e.message);
     }
+}
+
+// ── My Tasks: user এর নিজের create করা tasks ──
+async function fetchMyTasks(container){
+    try{
+        const res  = await fetch(`${API_BASE}/getTasks?createdBy=${currentUser.id}`);
+        const data = await res.json();
+        const myTasks = (data.tasks||[]).filter(t=>t.createdBy===currentUser.id);
+
+        if(!myTasks.length){
+            container.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>You haven't created any tasks yet.</p><button onclick="document.getElementById('btn-create-task').click()" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Create First Task</button></div>`;
+            return;
+        }
+        container.innerHTML = myTasks.map(t=>{
+            const pct = t.maxCompletions > 0 ? Math.min(100, Math.round((t.completionCount||0)/t.maxCompletions*100)) : 0;
+            const statusColor = t.isApproved ? '#10b981' : '#f59e0b';
+            const statusText  = t.isApproved ? '✅ Active' : '⏳ Pending Approval';
+            return `<div style="background:var(--bg-section);border:1.5px solid var(--border-mid);border-radius:16px;padding:14px;margin-bottom:10px;">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+                    <div style="font-weight:700;font-size:0.88rem;color:var(--text-main);flex:1;">${t.title}</div>
+                    <span style="font-size:0.7rem;font-weight:700;color:${statusColor};background:${statusColor}18;padding:3px 8px;border-radius:20px;border:1px solid ${statusColor};white-space:nowrap;margin-left:8px;">${statusText}</span>
+                </div>
+                <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;">📂 ${t.category||'social'} · 💰 ${t.tonCost||0} TON · 📋 ${t.packageLabel||''}</div>
+                <div style="margin-bottom:6px;">
+                    <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">
+                        <span>Completions</span>
+                        <span><b>${t.completionCount||0}</b> / ${t.maxCompletions||0}</span>
+                    </div>
+                    <div style="height:6px;background:var(--border);border-radius:10px;overflow:hidden;">
+                        <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:10px;transition:0.3s;"></div>
+                    </div>
+                </div>
+                ${t.isApproved && (t.completionCount||0) >= (t.maxCompletions||0) ?
+                    `<button onclick="boostTask('${t.id}','${t.title}')" style="width:100%;padding:8px;border-radius:10px;background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;border:none;font-weight:700;font-size:0.8rem;cursor:pointer;margin-top:4px;">🚀 Boost Again (Add More)</button>` : ''}
+            </div>`;
+        }).join('');
+    }catch(e){
+        container.innerHTML = '<div class="empty-state"><p>Failed to load your tasks.</p></div>';
+    }
+}
+
+// Boost/top-up an existing task
+function boostTask(taskId, taskTitle){
+    selectedTaskType = 'boost';
+    document.getElementById('ct-step-type').classList.remove('active');
+    document.getElementById('ct-step-package').classList.add('active');
+    document.getElementById('ct-step-details').classList.remove('active');
+    document.getElementById('modal-create-task').classList.add('show');
+    // store boost taskId
+    window._boostTaskId = taskId;
+    window._boostTaskTitle = taskTitle;
 }
 
 // Task click handler
@@ -1137,7 +1193,12 @@ function renderPackages(){
 }
 
 document.getElementById('btn-create-task').addEventListener('click',()=>{
+    if(currentUser?._pendingDeposit){
+        showAlert('⏳ Pending','You have a pending request. Wait for admin approval.','error');
+        return;
+    }
     selectedPackage=null; selectedTaskType=null;
+    window._boostTaskId=null; window._boostTaskTitle=null;
     document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById('ct-to-details-btn').disabled=true;
     document.getElementById('ct-title').value='';
@@ -1635,29 +1696,37 @@ function updateLootbox(){
 // Midnight: lootbox → main balance transfer
 async function checkLootboxTransfer(){
     if(!currentUser) return;
+    const today = getToday();
+    const now   = new Date();
+    const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
+    const hour  = dhaka.getHours();
+
+    // ── Midnight reset (0:00–0:59) ──
+    const isNewDay = currentUser.lastResetDate !== today;
+    if(isNewDay && hour === 0){
+        // Reset ads count locally
+        currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
+        currentUser.adsWatchedAd3 = 0; currentUser.adsWatchedAd4 = 0;
+        currentUser.lastResetDate = today;
+        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
+        updateUI();
+    }
+
+    // ── Lootbox transfer ──
     const lb = parseFloat(currentUser.lootboxBalance||0);
     if(lb <= 0) return;
-
-    const today = getToday();
     if(currentUser.lastLootboxTransfer === today) return;
-
-    const now = new Date();
-    const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
-    const hour = dhaka.getHours();
-    // 0:00–0:05 এর মধ্যে transfer হবে
     if(hour !== 0) return;
 
     try{
-        const lbRes = await fetch(`${API_BASE}/claimAd`,{
+        await fetch(`${API_BASE}/claimAd`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ userId: currentUser.id, batch: { lootboxTransfer: lb } })
         });
         currentUser.diamondBalance = (currentUser.diamondBalance||0) + lb;
         currentUser.lootboxBalance = 0;
         currentUser.lastLootboxTransfer = today;
-        ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
-        updateUI();
-        updateLootbox();
+        updateUI(); updateLootbox();
         showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Transferred to main balance!`, 'success');
     }catch(e){ console.warn('[lootbox transfer]', e); }
 }
