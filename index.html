@@ -504,11 +504,12 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
 <!-- CREATE TASK MODAL -->
 <div class="modal-bg" id="modal-create-task">
-    <div class="modal-box" style="max-width:380px;">
+    <div class="modal-box" style="max-width:390px;padding:20px;">
+
         <!-- Step 1: Choose type -->
         <div id="ct-step-type">
-            <div class="modal-title">Create a Task</div>
-            <div class="modal-sub">What type of task?</div>
+            <div class="modal-title" style="margin-bottom:4px;">Create a Task</div>
+            <div class="modal-sub" style="margin-bottom:14px;">Select the type of promotion</div>
             <div class="task-type-grid" id="task-type-grid">
                 <div class="task-type-btn" data-type="telegram_channel">
                     <i class="fab fa-telegram-plane"></i>
@@ -524,40 +525,69 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 </div>
                 <div class="task-type-btn" data-type="social">
                     <i class="fas fa-play-circle"></i>
-                    <span>YT/TikTok/FB</span>
+                    <span>YT/FB/TikTok</span>
                 </div>
             </div>
-            <button class="btn btn-outline btn-full close-modal">Cancel</button>
+            <!-- Bot admin instruction for channel/group -->
+            <div id="ct-bot-instruction" style="display:none;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:0.78rem;color:#1e40af;line-height:1.6;">
+                <div style="font-weight:800;margin-bottom:4px;">⚙️ Required: Add Bot as Admin</div>
+                For verification to work, add <b>@CoinlyTask_bot</b> as admin to your channel/group with at least <b>Add Members</b> permission.<br>
+                <span style="font-size:0.7rem;color:#3b82f6;">Without this, task verification will fail.</span>
+            </div>
+            <button class="btn btn-outline btn-full close-modal" style="margin-top:4px;">Cancel</button>
         </div>
 
         <!-- Step 2: Choose package -->
         <div id="ct-step-package" style="display:none;">
-            <div class="modal-title">Choose Package</div>
-            <div class="modal-sub">Each user earns <b>1 💎</b> per completion</div>
-            <div style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.8rem;color:var(--text-sub);margin-bottom:14px;">
-                💰 Your TON balance: <b id="ct-balance" style="color:var(--primary);">0</b> TON
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <button id="ct-back-to-type" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--text-muted);">←</button>
+                <div class="modal-title" style="margin:0;">Choose Package</div>
             </div>
+            <div style="background:#f0f9ff;border:1.5px solid #bae6fd;border-radius:11px;padding:10px 13px;font-size:0.8rem;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+                <span>💰 TON Balance</span>
+                <b id="ct-balance" style="color:#0369a1;">0 TON</b>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:8px;">Each user earns 1 💎 per completion</div>
             <div id="ct-package-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;"></div>
-            <div style="display:flex;gap:8px;">
-                <button class="btn btn-outline btn-full" id="ct-back-to-type"><i class="fas fa-arrow-left"></i> Back</button>
-                <button class="btn btn-primary btn-full" id="ct-to-details-btn" disabled style="opacity:0.45;"><i class="fas fa-arrow-right"></i> Continue</button>
-            </div>
+            <button class="btn btn-primary btn-full" id="ct-to-details-btn" disabled style="opacity:0.45;">
+                <i class="fas fa-arrow-right"></i> Continue
+            </button>
             <button class="btn btn-outline btn-full close-modal" style="margin-top:8px;">Cancel</button>
         </div>
 
         <!-- Step 3: Task details -->
         <div id="ct-step-details" style="display:none;">
-            <div class="modal-title">Task Details</div>
-            <div id="ct-selected-pkg-preview" style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.82rem;margin-bottom:12px;"></div>
-            <input type="text" class="input-field" id="ct-title" placeholder="Task title (e.g. Join My Channel)">
-            <input type="url" class="input-field" id="ct-url" placeholder="Link / URL">
-            <input type="text" id="ct-channel-id" class="input-field" placeholder="Channel username (e.g. @mychannel)" style="display:none;">
-            <div style="display:flex;gap:8px;">
-                <button class="btn btn-outline btn-full" id="ct-back-to-pkg"><i class="fas fa-arrow-left"></i> Back</button>
-                <button class="btn btn-primary btn-full" id="ct-submit-btn"><i class="fas fa-paper-plane"></i> Pay & Create</button>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <button id="ct-back-to-pkg" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--text-muted);">←</button>
+                <div class="modal-title" style="margin:0;">Task Details</div>
             </div>
+            <div id="ct-selected-pkg-preview" style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:11px;padding:10px 13px;font-size:0.82rem;margin-bottom:12px;"></div>
+            <input type="text" class="input-field" id="ct-title" placeholder="Task title (e.g. Join My Channel)" style="margin-bottom:8px;">
+            <input type="url" class="input-field" id="ct-url" placeholder="Link / URL (https://...)" style="margin-bottom:8px;">
+            <input type="text" id="ct-channel-id" class="input-field" placeholder="@username (e.g. @mychannel)" style="display:none;margin-bottom:8px;">
+            <button class="btn btn-primary btn-full" id="ct-to-review-btn">
+                <i class="fas fa-eye"></i> Review & Confirm
+            </button>
             <button class="btn btn-outline btn-full close-modal" style="margin-top:8px;">Cancel</button>
         </div>
+
+        <!-- Step 4: Review & Confirm -->
+        <div id="ct-step-review" style="display:none;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                <button id="ct-back-to-details" style="background:none;border:none;cursor:pointer;font-size:1.1rem;color:var(--text-muted);">←</button>
+                <div class="modal-title" style="margin:0;">Review & Confirm</div>
+            </div>
+            <div id="ct-review-summary" style="background:var(--bg-section);border:1.5px solid var(--border-mid);border-radius:14px;padding:14px;margin-bottom:14px;font-size:0.82rem;line-height:1.8;"></div>
+            <label style="display:flex;align-items:flex-start;gap:10px;font-size:0.78rem;color:var(--text-sub);margin-bottom:14px;cursor:pointer;">
+                <input type="checkbox" id="ct-confirm-check" style="margin-top:3px;width:16px;height:16px;flex-shrink:0;">
+                <span>I confirm all details are correct. I understand that <b>TON will be deducted</b> from my balance and the task will go live after admin approval.</span>
+            </label>
+            <button class="btn btn-primary btn-full" id="ct-submit-btn" disabled style="opacity:0.45;">
+                <i class="fas fa-paper-plane"></i> Pay & Create Task
+            </button>
+            <button class="btn btn-outline btn-full close-modal" style="margin-top:8px;">Cancel</button>
+        </div>
+
     </div>
 </div>
 
@@ -796,6 +826,9 @@ async function initApp(){
         // Also check localStorage (survives app restart)
         if(localStorage.getItem(`coinly_pendingDep_${uid}`) === '1') currentUser._pendingDeposit = true;
         // Clear if API says no pending deposit
+        // Check pending task
+        if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
+
         if(!apiData.pendingDeposit && localStorage.getItem(`coinly_pendingDep_${uid}`)){
             localStorage.removeItem(`coinly_pendingDep_${uid}`);
             currentUser._pendingDeposit = false;
@@ -1252,6 +1285,9 @@ document.querySelectorAll('.task-type-btn').forEach(btn=>{
         document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
         btn.classList.add('active');
         selectedTaskType=btn.dataset.type;
+        // Show bot instruction for channel/group
+        const instr=document.getElementById('ct-bot-instruction');
+        if(instr) instr.style.display=(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')?'block':'none';
         renderPackages();
         showStep('ct-step-package');
     });
@@ -1267,19 +1303,60 @@ document.getElementById('ct-back-to-type').addEventListener('click',()=>{
 document.getElementById('ct-to-details-btn').addEventListener('click',()=>{
     if(!selectedPackage) return;
     document.getElementById('ct-selected-pkg-preview').innerHTML=
-        `📦 <b>${selectedPackage.label}</b> — ${selectedPackage.tasks} tasks — <b style="color:var(--primary);">${selectedPackage.ton} TON</b>`;
+        `📦 <b>${selectedPackage.label}</b> — ${selectedPackage.tasks} tasks — <b style="color:#16a34a;">${selectedPackage.ton} TON</b>`;
     const chanField=document.getElementById('ct-channel-id');
     if(selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group'){
         chanField.style.display='block';
-        chanField.placeholder=selectedTaskType==='telegram_channel'?'Channel username (e.g. @mychannel)':'Group username (e.g. @mygroup)';
+        chanField.placeholder=selectedTaskType==='telegram_channel'?'@channel_username':'@group_username';
     } else { chanField.style.display='none'; }
     showStep('ct-step-details');
 });
 
 document.getElementById('ct-back-to-pkg').addEventListener('click',()=>{ showStep('ct-step-package'); });
 
+// Step 3 → Step 4 (Review)
+document.getElementById('ct-to-review-btn').addEventListener('click',()=>{
+    const title=document.getElementById('ct-title').value.trim();
+    const url=document.getElementById('ct-url').value.trim();
+    const channelId=document.getElementById('ct-channel-id').value.trim();
+    if(!title) return showAlert('Error','Enter a task title.','error');
+    if(!url) return showAlert('Error','Enter the promotion link/URL.','error');
+    if((selectedTaskType==='telegram_channel'||selectedTaskType==='telegram_group')&&!channelId){
+        return showAlert('Error','Enter the channel/group @username.','error');
+    }
+    // Show review summary
+    const typeLabel={telegram_channel:'📢 TG Channel',telegram_group:'👥 TG Group',telegram_bot:'🤖 TG Bot',social:'▶️ YT/FB/TikTok'};
+    document.getElementById('ct-review-summary').innerHTML=
+        `<div style="margin-bottom:6px;font-weight:700;font-size:0.88rem;">Review your task:</div>`+
+        `<div>📋 <b>Title:</b> ${title}</div>`+
+        `<div>🔗 <b>URL:</b> <span style="word-break:break-all;font-size:0.75rem;">${url}</span></div>`+
+        (channelId?`<div>📌 <b>Username:</b> ${channelId}</div>`:'')+
+        `<div>📂 <b>Type:</b> ${typeLabel[selectedTaskType]||selectedTaskType}</div>`+
+        `<div>📦 <b>Package:</b> ${selectedPackage.label} (${selectedPackage.tasks} tasks)</div>`+
+        `<div>💰 <b>Cost:</b> <span style="color:#dc2626;font-weight:700;">${selectedPackage.ton} TON</span> (from your balance)</div>`+
+        `<div>💎 <b>Reward per user:</b> 1 Diamond</div>`;
+    document.getElementById('ct-confirm-check').checked=false;
+    document.getElementById('ct-submit-btn').disabled=true;
+    document.getElementById('ct-submit-btn').style.opacity='0.45';
+    showStep('ct-step-review');
+});
+
+document.getElementById('ct-back-to-details').addEventListener('click',()=>{ showStep('ct-step-details'); });
+
+// Confirm checkbox enables submit
+document.getElementById('ct-confirm-check').addEventListener('change', e=>{
+    const btn=document.getElementById('ct-submit-btn');
+    btn.disabled=!e.target.checked;
+    btn.style.opacity=e.target.checked?'1':'0.45';
+});
+
 document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
     if(!selectedTaskType||!selectedPackage) return showAlert('Error','Incomplete selection.','error');
+    // Block if another task is pending
+    if(currentUser._pendingTask){
+        showAlert('⏳ Task Pending','Your previous task is pending admin approval. Wait before creating another.','error');
+        return;
+    }
     const title=document.getElementById('ct-title').value.trim();
     const url=document.getElementById('ct-url').value.trim();
     const channelId=document.getElementById('ct-channel-id').value.trim();
@@ -1313,32 +1390,16 @@ document.getElementById('ct-submit-btn').addEventListener('click', async()=>{
         });
         // Deduct TON from local balance immediately
         currentUser.tonBalance = Math.max(0, (currentUser.tonBalance||0) - selectedPackage.ton);
+        currentUser._pendingTask = true;
+        localStorage.setItem(`coinly_pendingTask_${currentUser.id}`,'1');
         updateUI();
-        const taskMemo=`TASK_${currentUser.id}_${Date.now()}`;
-        const tonkeeperUrl=`https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${Math.floor(selectedPackage.ton*1e9)}&text=${encodeURIComponent(taskMemo)}`;
         document.getElementById('modal-create-task').classList.remove('show');
-        
-        document.getElementById('pay-task-ton-amount').innerText=selectedPackage.ton;
-        document.getElementById('pay-task-pkg').innerText=selectedPackage.label;
-        document.getElementById('pay-task-memo').innerText=taskMemo;
-        document.getElementById('pay-task-tk-btn').onclick=()=>tg.openLink(tonkeeperUrl);
-        
-        const pwEl=document.getElementById('pay-wallet-status');
-        const pcBtn=document.getElementById('pay-task-connect-btn');
-        if(connectedWallet){
-            const addr=connectedWallet.account?.address;
-            const short=addr?addr.slice(0,6)+'...'+addr.slice(-4):'Connected';
-            pwEl.innerHTML=`✅ Wallet: <b>${short}</b> — click below to send directly`;
-            pwEl.style.color='var(--green)';
-            pcBtn.style.display='block';
-        } else {
-            pwEl.innerHTML='⚠️ Connect wallet (button on home screen) or use manual method below';
-            pwEl.style.color='var(--gold)';
-            pcBtn.style.display='none';
-        }
-        document.getElementById('modal-task-payment').classList.add('show');
-    }catch(e){ showAlert('Error','Failed to create task.','error'); }
-    btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Pay & Create';
+        showAlert('Task Submitted! ✅',
+            `Your task is pending admin approval.\n${selectedPackage.ton} TON deducted from your balance.\nTask will go live within 1–6 hours.`,
+            'success');
+        fetchTasks('my_tasks');
+    }catch(e){ showAlert('Error','Failed to create task. Try again.','error'); console.error(e); }
+    btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Pay & Create Task';
 });
 
 // ── WITHDRAW ──
