@@ -511,13 +511,15 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="modal-title" style="margin-bottom:4px;">Create a Task</div>
             <div class="modal-sub" style="margin-bottom:14px;">Select the type of promotion</div>
             <div class="task-type-grid" id="task-type-grid">
-                <div class="task-type-btn" data-type="telegram_channel">
+                <div class="task-type-btn" data-type="telegram_channel" style="position:relative;">
                     <i class="fab fa-telegram-plane"></i>
                     <span>TG Channel</span>
+                    <span onclick="event.stopPropagation();showTaskInfo('channel')" style="position:absolute;top:4px;right:6px;font-size:0.65rem;background:#dbeafe;color:#1d4ed8;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;">ℹ</span>
                 </div>
-                <div class="task-type-btn" data-type="telegram_group">
+                <div class="task-type-btn" data-type="telegram_group" style="position:relative;">
                     <i class="fas fa-users"></i>
                     <span>TG Group</span>
+                    <span onclick="event.stopPropagation();showTaskInfo('group')" style="position:absolute;top:4px;right:6px;font-size:0.65rem;background:#dbeafe;color:#1d4ed8;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer;">ℹ</span>
                 </div>
                 <div class="task-type-btn" data-type="telegram_bot">
                     <i class="fas fa-robot"></i>
@@ -531,7 +533,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <!-- Bot admin instruction for channel/group -->
             <div id="ct-bot-instruction" style="display:none;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:0.78rem;color:#1e40af;line-height:1.6;">
                 <div style="font-weight:800;margin-bottom:4px;">⚙️ Required: Add Bot as Admin</div>
-                For verification to work, add <b>@CoinlyTask_bot</b> as admin to your channel/group with at least <b>Add Members</b> permission.<br>
+                For verification to work, add <b>@Coinlytix_bot</b> as admin to your channel/group with at least <b>Add Members</b> permission.<br>
                 <span style="font-size:0.7rem;color:#3b82f6;">Without this, task verification will fail.</span>
             </div>
             <button class="btn btn-outline btn-full close-modal" style="margin-top:4px;">Cancel</button>
@@ -1210,8 +1212,9 @@ async function checkValidRef(){
 
 // ── CREATE TASK (3-step) ──
 function showStep(step){
-    ['ct-step-type','ct-step-package','ct-step-details'].forEach(id=>{
-        document.getElementById(id).style.display = id===step ? 'block' : 'none';
+    ['ct-step-type','ct-step-package','ct-step-details','ct-step-review'].forEach(id=>{
+        const el = document.getElementById(id);
+        if(el) el.style.display = id===step ? 'block' : 'none';
     });
 }
 
@@ -1841,18 +1844,20 @@ async function checkLootboxTransfer(){
     const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
     const hour  = dhaka.getHours();
 
-    // ── Midnight reset (0:00–0:59) ──
+    // ── Daily reset (any time after midnight, when date changes) ──
     const isNewDay = currentUser.lastResetDate !== today;
-    if(isNewDay && hour === 0){
-        // Reset ads count locally
+    if(isNewDay){
         currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
         currentUser.adsWatchedAd3 = 0; currentUser.adsWatchedAd4 = 0;
         currentUser.lastResetDate = today;
         ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
         updateUI();
+        // Sync reset to server
+        fetch(`${API_BASE}/claimAd`,{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({userId:currentUser.id,batch:{_resetOnly:true}})}).catch(()=>{});
     }
 
-    // ── Lootbox transfer ──
+    // ── Lootbox transfer (midnight only: hour 0) ──
     const lb = parseFloat(currentUser.lootboxBalance||0);
     if(lb <= 0) return;
     if(currentUser.lastLootboxTransfer === today) return;
@@ -1875,6 +1880,32 @@ async function checkLootboxTransfer(){
 setInterval(checkLootboxTransfer, 60000);
 // Lootbox timer update প্রতি মিনিটে
 setInterval(updateLootbox, 60000);
+
+// ── Task Info Modal ──
+function showTaskInfo(type){
+    const isChannel = type === 'channel';
+    const title = isChannel ? '📢 Channel Task Setup' : '👥 Group Task Setup';
+    const html = `
+        <div style="font-size:0.82rem;line-height:1.7;text-align:left;">
+            <div style="font-weight:800;font-size:0.9rem;margin-bottom:10px;">${title}</div>
+            <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:12px;margin-bottom:12px;">
+                <b>⚙️ Step 1: Add Bot as Admin</b><br>
+                Add <b>@Coinlytix_bot</b> to your ${isChannel?'channel':'group'} as <b>Admin</b>.<br>
+                Required permission: <b>Add Members</b> (minimum).<br>
+                <span style="color:#dc2626;font-size:0.75rem;">❌ Without this, task verification will fail.</span>
+            </div>
+            <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:10px;padding:12px;margin-bottom:12px;">
+                <b>📋 Step 2: Enter Details</b><br>
+                • <b>Title:</b> Short description (e.g. "Join My Channel")<br>
+                • <b>Link:</b> Full ${isChannel?'channel':'group'} invite link<br>
+                • <b>@Username:</b> ${isChannel?'Channel':'Group'} username (e.g. @mychannel)
+            </div>
+            <div style="background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:10px;font-size:0.75rem;color:#92400e;">
+                ⚠️ Once task is submitted, admin will review within 1–6 hours. Task will go live after approval.
+            </div>
+        </div>`;
+    showAlert(title, html, 'info');
+}
 
 initTonConnect();
 initApp();
