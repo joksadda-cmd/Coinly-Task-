@@ -1225,10 +1225,16 @@ function renderPackages(){
 }
 
 document.getElementById('btn-create-task').addEventListener('click',()=>{
-    if(currentUser?._pendingDeposit){
-        showAlert('⏳ Pending','You have a pending request. Wait for admin approval.','error');
+    const userTon = parseFloat(currentUser?.tonBalance||0);
+
+    // No TON at all → go to deposit directly
+    if(userTon <= 0){
+        document.getElementById('modal-deposit').classList.add('show');
         return;
     }
+
+    // Has TON but pending deposit request → show create task normally
+    // (pending deposit is separate from task TON balance)
     selectedPackage=null; selectedTaskType=null;
     window._boostTaskId=null; window._boostTaskTitle=null;
     document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
@@ -1236,7 +1242,7 @@ document.getElementById('btn-create-task').addEventListener('click',()=>{
     document.getElementById('ct-title').value='';
     document.getElementById('ct-url').value='';
     document.getElementById('ct-channel-id').value='';
-    document.getElementById('ct-balance').innerText=(currentUser?.tonBalance||0).toFixed(4);
+    document.getElementById('ct-balance').innerText=userTon.toFixed(4);
     showStep('ct-step-type');
     document.getElementById('modal-create-task').classList.add('show');
 });
@@ -1609,9 +1615,9 @@ async function sendTonConnect(toAddress, tonAmount, memo){
 
 document.getElementById('btn-deposit').addEventListener('click',()=>{
     if(!currentUser) return;
-    // Block if pending deposit exists — scam/spam prevention
+    // If pending deposit, show info but still allow viewing
     if(currentUser._pendingDeposit){
-        showAlert('⏳ Pending','You already have a pending deposit request. Wait for admin approval before submitting another.','error');
+        showAlert('⏳ Pending','You have a pending deposit. Wait for admin approval before submitting another request.','error');
         return;
     }
     document.getElementById('dep-show-ton').innerText=selectedDepositTon;
