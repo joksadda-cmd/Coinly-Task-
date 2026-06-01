@@ -49,11 +49,11 @@ export default async function handler(req, res) {
         const diamond = dep.expectedDiamond || 0;
 
         if (action === 'approve') {
-            // Credit diamond to user
+            // Credit TON balance (deposit = TON, not diamond)
             await db.runTransaction(async (t) => {
                 const uRef = db.collection('users').doc(String(uid));
                 t.update(uRef, {
-                    diamondBalance: FieldValue.increment(diamond),
+                    tonBalance: FieldValue.increment(ton),
                 });
                 t.update(depRef, {
                     status: 'approved',
@@ -65,11 +65,12 @@ export default async function handler(req, res) {
             await tgMsg(uid,
                 `🎉 <b>Deposit Approved!</b>\n\n` +
                 `✅ Your deposit of <b>${ton} TON</b> has been verified.\n` +
-                `💎 <b>${diamond} Diamond</b> has been added to your wallet!\n\n` +
-                `You can now create tasks or withdraw your earnings. 🚀`
+                `💰 <b>${ton} TON</b> has been added to your TON balance!\n` +
+                `You can now create tasks. 🚀\n\n` +
+                `💎 Earn Diamond by completing tasks & watching ads.`
             );
 
-            return res.status(200).json({ success: true, action: 'approved', diamond });
+            return res.status(200).json({ success: true, action: 'approved', ton });
 
         } else if (action === 'reject') {
             await depRef.update({
