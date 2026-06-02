@@ -467,15 +467,38 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 </div>
 
 <!-- JOIN MODAL -->
-<div class="modal-bg" id="modal-join" style="z-index:5000;">
-    <div class="modal-box" style="border-color:var(--primary);">
-        <div class="lock-icon"><i class="fas fa-shield-check"></i></div>
-        <div class="modal-title">Verification Required</div>
-        <div class="modal-sub">Join our official networks to unlock the app.</div>
-        <a href="https://t.me/coinly_task" target="_blank" class="btn btn-primary btn-full" style="margin-bottom:10px;text-decoration:none;"><i class="fab fa-telegram-plane"></i> 1. Official Channel</a>
-        <a href="https://t.me/newTon_Gc" target="_blank" class="btn btn-accent btn-full" style="margin-bottom:14px;text-decoration:none;"><i class="fas fa-users"></i> 2. Official Community</a>
-        <button class="btn btn-green btn-full" id="btn-verify-join"><i class="fas fa-check-circle"></i> Verify & Unlock</button>
-        <div id="join-error" style="font-size:0.78rem;color:var(--red);margin-top:10px;"></div>
+<div class="modal-bg" id="modal-join" style="z-index:5000;background:rgba(0,0,0,0.88);">
+    <div class="modal-box" style="text-align:center;padding:26px 20px;border-color:var(--primary);">
+        <div style="font-size:2.8rem;margin-bottom:6px;">⚡</div>
+        <div class="modal-title" style="margin-bottom:6px;">Welcome to Coinly Task!</div>
+        <div class="modal-sub" style="margin-bottom:20px;font-size:0.8rem;line-height:1.6;">
+            Join our official channel & group to unlock the app and start earning 💎
+        </div>
+        <a href="https://t.me/Coinlytix" target="_blank"
+           style="display:flex;align-items:center;gap:12px;background:#0088cc;color:#fff;border-radius:14px;padding:13px 16px;text-decoration:none;margin-bottom:10px;font-weight:700;">
+            <i class="fab fa-telegram-plane" style="font-size:1.3rem;"></i>
+            <div style="text-align:left;flex:1;">
+                <div style="font-size:0.9rem;">Join Official Channel</div>
+                <div style="font-size:0.7rem;opacity:0.8;font-weight:400;">@Coinlytix</div>
+            </div>
+            <i class="fas fa-external-link-alt" style="font-size:0.8rem;opacity:0.7;"></i>
+        </a>
+        <a href="https://t.me/CoinlytixGroup" target="_blank"
+           style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-radius:14px;padding:13px 16px;text-decoration:none;margin-bottom:18px;font-weight:700;">
+            <i class="fas fa-users" style="font-size:1.2rem;"></i>
+            <div style="text-align:left;flex:1;">
+                <div style="font-size:0.9rem;">Join Community Group</div>
+                <div style="font-size:0.7rem;opacity:0.8;font-weight:400;">@CoinlytixGroup</div>
+            </div>
+            <i class="fas fa-external-link-alt" style="font-size:0.8rem;opacity:0.7;"></i>
+        </a>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">
+            After joining both, tap Verify below ↓
+        </div>
+        <button class="btn btn-green btn-full" id="btn-verify-join" style="font-size:0.9rem;padding:13px;">
+            <i class="fas fa-check-circle"></i> I've Joined — Verify & Unlock
+        </button>
+        <div id="join-error" style="font-size:0.75rem;color:var(--red);margin-top:10px;min-height:16px;"></div>
     </div>
 </div>
 
@@ -873,8 +896,8 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
-    // Use hasJoinedCommunity field (separate from gift)
-    if(currentUser.hasJoinedCommunity || currentUser.joinGiftClaimed){
+    // Only hasJoinedCommunity matters — not joinGiftClaimed
+    if(currentUser.hasJoinedCommunity){
         document.getElementById('modal-join').classList.remove('show');
         return;
     }
@@ -917,7 +940,7 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
             const missing=[];
             if(!d.channel) missing.push('📢 Channel');
             if(!d.group)   missing.push('👥 Group');
-            err.innerText=`❌ Not joined: ${missing.join(', ')}. Please join and try again.`;
+            err.innerHTML=`❌ Not joined: <b>${missing.join(', ')}</b>. Please join then verify again.`;
         }
     }catch(e){
         document.getElementById('modal-join').classList.remove('show');
