@@ -479,20 +479,20 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         </div>
 
         <!-- Channel -->
-        <a href="https://t.me/Coinlytix" target="_blank"
-           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;text-decoration:none;margin-bottom:10px;font-weight:700;font-size:0.88rem;">
+        <button onclick="tg.openLink('https://t.me/coinly_task')"
+           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;width:100%;margin-bottom:10px;font-weight:700;font-size:0.88rem;cursor:pointer;">
             <i class="fab fa-telegram-plane" style="font-size:1.1rem;"></i>
             <span>1. OFFICIAL CHANNEL</span>
             <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
-        </a>
+        </button>
 
         <!-- Group -->
-        <a href="https://t.me/CoinlytixGroup" target="_blank"
-           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;text-decoration:none;margin-bottom:18px;font-weight:700;font-size:0.88rem;">
+        <button onclick="tg.openLink('https://t.me/newTon_Gc')"
+           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;width:100%;margin-bottom:18px;font-weight:700;font-size:0.88rem;cursor:pointer;">
             <i class="fas fa-users" style="font-size:1rem;"></i>
             <span>2. COMMUNITY GROUP</span>
             <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
-        </a>
+        </button>
 
         <!-- Verify button -->
         <button id="btn-verify-join"
@@ -968,7 +968,7 @@ function updateUI(){
         document.getElementById('ref-total').innerText = currentUser.totalInvites||0;
         document.getElementById('ref-valid').innerText = currentUser.validReferrals||0;
         document.getElementById('ref-earned').innerText = currentUser.referralDiamondEarned||0;
-        const link = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${currentUser.id}`;
+        const link = `https://t.me/coinly_task_bot/TaskEarn?startapp=${currentUser.id}`;
         document.getElementById('invite-link').value = link;
     }catch(e){}
 
@@ -1625,7 +1625,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
 document.getElementById('btn-promo').addEventListener('click',()=>document.getElementById('modal-promo').classList.add('show'));
 document.getElementById('btn-refer').addEventListener('click',()=>{
     if(currentUser){
-        const link = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${currentUser.id}`;
+        const link = `https://t.me/coinly_task_bot/TaskEarn?startapp=${currentUser.id}`;
         document.getElementById('invite-link').value = link;
         document.getElementById('ref-total').innerText  = currentUser.totalInvites||0;
         document.getElementById('ref-valid').innerText  = currentUser.validReferrals||0;
