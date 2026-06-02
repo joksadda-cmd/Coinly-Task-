@@ -467,38 +467,39 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 </div>
 
 <!-- JOIN MODAL -->
-<div class="modal-bg" id="modal-join" style="z-index:5000;background:rgba(0,0,0,0.88);">
-    <div class="modal-box" style="text-align:center;padding:26px 20px;border-color:var(--primary);">
-        <div style="font-size:2.8rem;margin-bottom:6px;">⚡</div>
-        <div class="modal-title" style="margin-bottom:6px;">Welcome to Coinly Task!</div>
-        <div class="modal-sub" style="margin-bottom:20px;font-size:0.8rem;line-height:1.6;">
-            Join our official channel & group to unlock the app and start earning 💎
+<div class="modal-bg" id="modal-join" style="z-index:5000;background:rgba(0,0,0,0.92);">
+    <div class="modal-box" style="text-align:center;padding:28px 22px;background:#1a1f2e;border:1.5px solid #f59e0b;border-radius:22px;">
+        <!-- Shield icon -->
+        <div style="width:60px;height:60px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 20px rgba(245,158,11,0.4);">
+            <i class="fas fa-shield-alt" style="font-size:1.6rem;color:#fff;"></i>
         </div>
+        <div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:8px;">Join &amp; Activate</div>
+        <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:20px;line-height:1.5;">
+            Join our Official Channel &amp; Group to<br>activate your account.
+        </div>
+
+        <!-- Channel -->
         <a href="https://t.me/Coinlytix" target="_blank"
-           style="display:flex;align-items:center;gap:12px;background:#0088cc;color:#fff;border-radius:14px;padding:13px 16px;text-decoration:none;margin-bottom:10px;font-weight:700;">
-            <i class="fab fa-telegram-plane" style="font-size:1.3rem;"></i>
-            <div style="text-align:left;flex:1;">
-                <div style="font-size:0.9rem;">Join Official Channel</div>
-                <div style="font-size:0.7rem;opacity:0.8;font-weight:400;">@Coinlytix</div>
-            </div>
-            <i class="fas fa-external-link-alt" style="font-size:0.8rem;opacity:0.7;"></i>
+           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;text-decoration:none;margin-bottom:10px;font-weight:700;font-size:0.88rem;">
+            <i class="fab fa-telegram-plane" style="font-size:1.1rem;"></i>
+            <span>1. OFFICIAL CHANNEL</span>
+            <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
         </a>
+
+        <!-- Group -->
         <a href="https://t.me/CoinlytixGroup" target="_blank"
-           style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border-radius:14px;padding:13px 16px;text-decoration:none;margin-bottom:18px;font-weight:700;">
-            <i class="fas fa-users" style="font-size:1.2rem;"></i>
-            <div style="text-align:left;flex:1;">
-                <div style="font-size:0.9rem;">Join Community Group</div>
-                <div style="font-size:0.7rem;opacity:0.8;font-weight:400;">@CoinlytixGroup</div>
-            </div>
-            <i class="fas fa-external-link-alt" style="font-size:0.8rem;opacity:0.7;"></i>
+           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;text-decoration:none;margin-bottom:18px;font-weight:700;font-size:0.88rem;">
+            <i class="fas fa-users" style="font-size:1rem;"></i>
+            <span>2. COMMUNITY GROUP</span>
+            <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
         </a>
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:12px;">
-            After joining both, tap Verify below ↓
-        </div>
-        <button class="btn btn-green btn-full" id="btn-verify-join" style="font-size:0.9rem;padding:13px;">
-            <i class="fas fa-check-circle"></i> I've Joined — Verify & Unlock
+
+        <!-- Verify button -->
+        <button id="btn-verify-join"
+            style="width:100%;padding:14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;border-radius:12px;font-weight:800;font-size:0.92rem;cursor:pointer;letter-spacing:0.3px;">
+            ✅ VERIFY &amp; CONTINUE
         </button>
-        <div id="join-error" style="font-size:0.75rem;color:var(--red);margin-top:10px;min-height:16px;"></div>
+        <div id="join-error" style="font-size:0.73rem;color:#f87171;margin-top:10px;min-height:16px;"></div>
     </div>
 </div>
 
@@ -896,30 +897,26 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
-    // Only hasJoinedCommunity matters — not joinGiftClaimed
-    if(currentUser.hasJoinedCommunity){
-        document.getElementById('modal-join').classList.remove('show');
-        return;
-    }
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
-        if(!res.ok){ document.getElementById('modal-join').classList.add('show'); return; }
-        const data = await res.json();
-
-        if(data.joined || data.ok){
-            clearInterval(_joinCheckInterval); _joinCheckInterval = null;
+        const d   = await res.json();
+        if(d.joined){
             document.getElementById('modal-join').classList.remove('show');
             currentUser.hasJoinedCommunity = true;
-            currentUser.joinGiftClaimed = true;
-            // Save to Firestore via init API on next load — no direct write needed
+            clearInterval(_joinCheckInterval); _joinCheckInterval = null;
         } else {
             document.getElementById('modal-join').classList.add('show');
             if(!_joinCheckInterval){
                 _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
             }
         }
-    }catch(e){
-        document.getElementById('modal-join').classList.remove('show');
+    } catch(e){
+        // API error — fallback to local flag
+        if(currentUser.hasJoinedCommunity){
+            document.getElementById('modal-join').classList.remove('show');
+        } else {
+            document.getElementById('modal-join').classList.add('show');
+        }
     }
 }
 
