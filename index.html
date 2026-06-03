@@ -479,15 +479,15 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         </div>
 
         <!-- Channel -->
-        <button onclick="tg.openLink('https://t.me/coinly_task')"
+        <!-- Channel -->
+        <button onclick="window.Telegram.WebApp.openLink('https://t.me/coinly_task')"
            style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;width:100%;margin-bottom:10px;font-weight:700;font-size:0.88rem;cursor:pointer;">
             <i class="fab fa-telegram-plane" style="font-size:1.1rem;"></i>
             <span>1. OFFICIAL CHANNEL</span>
             <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
         </button>
-
         <!-- Group -->
-        <button onclick="tg.openLink('https://t.me/newTon_Gc')"
+        <button onclick="window.Telegram.WebApp.openLink('https://t.me/newTon_Gc')"
            style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;width:100%;margin-bottom:18px;font-weight:700;font-size:0.88rem;cursor:pointer;">
             <i class="fas fa-users" style="font-size:1rem;"></i>
             <span>2. COMMUNITY GROUP</span>
@@ -900,18 +900,30 @@ async function checkCommunityJoin(){
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         const d   = await res.json();
-        if(d.joined){
+        // API returns { ok: true, joined: true/false }
+        const hasJoined = d.joined === true;
+        if(hasJoined){
             document.getElementById('modal-join').classList.remove('show');
             currentUser.hasJoinedCommunity = true;
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
         } else {
             document.getElementById('modal-join').classList.add('show');
+            // Show which not joined
+            const err = document.getElementById('join-error');
+            if(err){
+                const missing = [];
+                if(d.channel === false) missing.push('Official Channel');
+                if(d.group   === false) missing.push('Community Group');
+                err.innerText = missing.length
+                    ? `❌ Not joined: ${missing.join(', ')}. Join then verify.`
+                    : '❌ Not verified. Please join both and try again.';
+            }
             if(!_joinCheckInterval){
                 _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
             }
         }
     } catch(e){
-        // API error — fallback to local flag
+        console.warn('[checkJoin]', e.message);
         if(currentUser.hasJoinedCommunity){
             document.getElementById('modal-join').classList.remove('show');
         } else {
