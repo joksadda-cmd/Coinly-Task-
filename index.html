@@ -468,14 +468,77 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
 <!-- JOIN MODAL -->
 <div class="modal-bg" id="modal-join" style="z-index:5000;">
-    <div class="modal-box" style="border-color:var(--primary);">
-        <div class="lock-icon"><i class="fas fa-shield-check"></i></div>
-        <div class="modal-title">Verification Required</div>
-        <div class="modal-sub">Join our official networks to unlock the app.</div>
-        <a href="https://t.me/coinly_task" target="_blank" class="btn btn-primary btn-full" style="margin-bottom:10px;text-decoration:none;"><i class="fab fa-telegram-plane"></i> 1. Official Channel</a>
-        <a href="https://t.me/newTon_Gc" target="_blank" class="btn btn-accent btn-full" style="margin-bottom:14px;text-decoration:none;"><i class="fas fa-users"></i> 2. Official Community</a>
-        <button class="btn btn-green btn-full" id="btn-verify-join"><i class="fas fa-check-circle"></i> Verify & Unlock</button>
-        <div id="join-error" style="font-size:0.78rem;color:var(--red);margin-top:10px;"></div>
+    <div class="modal-box" style="border-color:var(--primary);padding:28px 22px;">
+
+        <!-- Icon & Title -->
+        <div style="font-size:3rem;margin-bottom:10px;animation:floatLock 2s infinite alternate;">🔐</div>
+        <div class="modal-title" style="font-size:1.2rem;">Join Required</div>
+        <div class="modal-sub" style="margin-bottom:20px;font-size:0.84rem;line-height:1.6;">
+            Coinly Task ব্যবহার করতে আমাদের<br>
+            Official Channel ও Community তে Join করুন
+        </div>
+
+        <!-- Join Buttons -->
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
+            <a href="https://t.me/coinly_task" target="_blank"
+               style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+                      background:linear-gradient(135deg,#1a6ff5,#0ea5e9);
+                      border-radius:14px;text-decoration:none;color:#fff;font-weight:700;
+                      font-size:0.9rem;box-shadow:0 4px 15px rgba(26,111,245,0.3);transition:0.2s;"
+               onclick="this.style.opacity='0.8'">
+                <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;
+                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+                    <i class="fab fa-telegram-plane"></i>
+                </div>
+                <div style="text-align:left;">
+                    <div>📢 Official Channel</div>
+                    <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">@coinly_task</div>
+                </div>
+                <i class="fas fa-arrow-right" style="margin-left:auto;opacity:0.8;"></i>
+            </a>
+
+            <a href="https://t.me/newTon_Gc" target="_blank"
+               style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+                      background:linear-gradient(135deg,#0ea5e9,#06b6d4);
+                      border-radius:14px;text-decoration:none;color:#fff;font-weight:700;
+                      font-size:0.9rem;box-shadow:0 4px 15px rgba(14,165,233,0.3);transition:0.2s;"
+               onclick="this.style.opacity='0.8'">
+                <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;
+                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div style="text-align:left;">
+                    <div>👥 Official Community</div>
+                    <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">@newTon_Gc</div>
+                </div>
+                <i class="fas fa-arrow-right" style="margin-left:auto;opacity:0.8;"></i>
+            </a>
+        </div>
+
+        <!-- Status row (channel/group) -->
+        <div id="join-status-row" style="display:none;background:var(--bg-section);border:1.5px solid var(--border);
+             border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:0.8rem;
+             display:flex;gap:10px;justify-content:center;">
+            <span id="join-status-channel" style="display:flex;align-items:center;gap:5px;color:var(--text-muted);">
+                <i class="fas fa-circle" style="font-size:0.5rem;"></i> Channel
+            </span>
+            <span style="color:var(--border-mid);">|</span>
+            <span id="join-status-group" style="display:flex;align-items:center;gap:5px;color:var(--text-muted);">
+                <i class="fas fa-circle" style="font-size:0.5rem;"></i> Community
+            </span>
+        </div>
+
+        <!-- Verify Button -->
+        <button class="btn btn-green btn-full" id="btn-verify-join" style="font-size:0.95rem;padding:14px;">
+            <i class="fas fa-check-circle"></i> Join করেছি — Verify করো
+        </button>
+
+        <!-- Error msg -->
+        <div id="join-error" style="font-size:0.78rem;color:var(--red);margin-top:10px;min-height:20px;text-align:center;"></div>
+
+        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:12px;text-align:center;line-height:1.6;">
+            ⚠️ Channel বা Group থেকে Leave করলে<br>পরের বার app খুললে আবার এই notice দেখাবে।
+        </div>
     </div>
 </div>
 
@@ -873,29 +936,34 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
-    // Use hasJoinedCommunity field (separate from gift)
-    if(currentUser.hasJoinedCommunity || currentUser.joinGiftClaimed){
-        document.getElementById('modal-join').classList.remove('show');
-        return;
-    }
+    // ✅ ALWAYS check via API — no local cache skip
+    // এতে user leave করলে পরের বার আবার popup আসবে
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
-        if(!res.ok){ document.getElementById('modal-join').classList.add('show'); return; }
+        if(!res.ok){
+            // API error হলে block করব না, app চলবে
+            document.getElementById('modal-join').classList.remove('show');
+            return;
+        }
         const data = await res.json();
 
-        if(data.joined || data.ok){
+        if(data.joined){
+            // ✅ Channel + Group উভয়তে আছে
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
             currentUser.hasJoinedCommunity = true;
-            currentUser.joinGiftClaimed = true;
-            // Save to Firestore via init API on next load — no direct write needed
         } else {
+            // ❌ যেকোনো একটা বা দুটোতেই নেই — popup দেখাও
+            currentUser.hasJoinedCommunity = false;
             document.getElementById('modal-join').classList.add('show');
+            // প্রতি ৩০ সেকেন্ডে auto re-check
             if(!_joinCheckInterval){
                 _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
             }
         }
     }catch(e){
+        // Network error — block করব না
+        console.warn('[checkCommunityJoin]', e.message);
         document.getElementById('modal-join').classList.remove('show');
     }
 }
@@ -903,26 +971,57 @@ async function checkCommunityJoin(){
 document.getElementById('btn-verify-join').addEventListener('click', async()=>{
     const btn=document.getElementById('btn-verify-join');
     const err=document.getElementById('join-error');
-    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>';
+    const statusRow=document.getElementById('join-status-row');
+    const chStatus=document.getElementById('join-status-channel');
+    const grStatus=document.getElementById('join-status-group');
+
+    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div> Checking...';
     btn.disabled=true;
     err.innerText='';
+    statusRow.style.display='flex';
+
     try{
         const res=await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         const d=await res.json();
-        if(d.joined||d.ok){
-            currentUser.hasJoinedCommunity = true;
-            currentUser.joinGiftClaimed = true;
-            document.getElementById('modal-join').classList.remove('show');
+
+        // Channel status
+        if(d.channel){
+            chStatus.innerHTML='<i class="fas fa-check-circle" style="color:var(--green);"></i> <span style="color:var(--green);font-weight:700;">Channel ✅</span>';
         } else {
+            chStatus.innerHTML='<i class="fas fa-times-circle" style="color:var(--red);"></i> <span style="color:var(--red);">Channel ❌</span>';
+        }
+        // Group status
+        if(d.group){
+            grStatus.innerHTML='<i class="fas fa-check-circle" style="color:var(--green);"></i> <span style="color:var(--green);font-weight:700;">Community ✅</span>';
+        } else {
+            grStatus.innerHTML='<i class="fas fa-times-circle" style="color:var(--red);"></i> <span style="color:var(--red);">Community ❌</span>';
+        }
+
+        if(d.joined){
+            // উভয় join করা আছে
+            currentUser.hasJoinedCommunity = true;
+            clearInterval(_joinCheckInterval); _joinCheckInterval = null;
+            err.style.color='var(--green)';
+            err.innerText='✅ Verified! App unlocked.';
+            setTimeout(()=>{
+                document.getElementById('modal-join').classList.remove('show');
+                err.innerText='';
+                statusRow.style.display='none';
+            }, 1000);
+        } else {
+            // কোনটা বা দুটো miss
             const missing=[];
-            if(!d.channel) missing.push('📢 Channel');
-            if(!d.group)   missing.push('👥 Group');
-            err.innerText=`❌ Not joined: ${missing.join(', ')}. Please join and try again.`;
+            if(!d.channel) missing.push('📢 Official Channel (@coinly_task)');
+            if(!d.group)   missing.push('👥 Official Community (@newTon_Gc)');
+            err.style.color='var(--red)';
+            err.innerText=`❌ এখনো join করেননি:\n${missing.join('\n')}`;
         }
     }catch(e){
-        document.getElementById('modal-join').classList.remove('show');
+        err.style.color='var(--text-muted)';
+        err.innerText='⚠️ Connection error. Try again.';
+        statusRow.style.display='none';
     }
-    btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
+    btn.innerHTML='<i class="fas fa-check-circle"></i> Join করেছি — Verify করো';
     btn.disabled=false;
 });
 
