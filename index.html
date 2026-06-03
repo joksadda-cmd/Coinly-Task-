@@ -386,18 +386,18 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px;">
             <div class="wd-method-tab active" data-method="tonkeeper" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--primary);background:var(--primary-light);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-gem" style="font-size:1.1rem;color:var(--primary);display:block;margin-bottom:3px;"></i>
-                <div style="font-weight:800;font-size:0.76rem;color:var(--text-main);">Tonkeeper</div>
-                <div style="font-size:0.63rem;color:var(--text-muted);">Min 50 💎</div>
+                <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">Tonkeeper</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Min 50 💎</div>
             </div>
             <div class="wd-method-tab" data-method="binance" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-university" style="font-size:1.1rem;color:var(--text-muted);display:block;margin-bottom:3px;" id="wd-binance-icon"></i>
-                <div style="font-weight:800;font-size:0.76rem;color:var(--text-main);">Binance UID</div>
-                <div style="font-size:0.63rem;color:var(--text-muted);">Min 100 💎</div>
+                <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">Binance UID</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Min 100 💎</div>
             </div>
             <div class="wd-method-tab" data-method="bkash" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-mobile-alt" style="font-size:1.1rem;color:#e2136e;display:block;margin-bottom:3px;"></i>
-                <div style="font-weight:800;font-size:0.76rem;color:var(--text-main);">bKash</div>
-                <div style="font-size:0.63rem;color:var(--text-muted);">Min 150 💎</div>
+                <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">bKash</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Min 150 💎</div>
             </div>
         </div>
 
@@ -415,14 +415,11 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         </div>
         <div id="wd-bkash-fields" style="display:none;">
             <div style="background:#fdf2f8;border:1.5px solid #f9a8d4;border-radius:11px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-                <i class="fas fa-mobile-alt" style="color:#e2136e;font-size:1.2rem;"></i>
-                <div>
-                    <div style="font-weight:800;font-size:0.82rem;color:#9d174d;">bKash Withdrawal</div>
-                    <div style="font-size:0.7rem;color:#be185d;">Processing time: 1–24 hours</div>
-                </div>
+                <i class="fas fa-mobile-alt" style="color:#e2136e;font-size:1.3rem;"></i>
+                <div><div style="font-weight:800;font-size:0.82rem;color:#9d174d;">bKash Withdrawal</div><div style="font-size:0.7rem;color:#be185d;">Processing time: 1&#x2013;24 hours</div></div>
             </div>
             <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">bKash Number</label>
-            <input type="text" class="input-field" id="wd-address-bkash" placeholder="01XXXXXXXXX (bKash number)">
+            <input type="text" class="input-field" id="wd-address-bkash" placeholder="01XXXXXXXXX">
             <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 150)</span></label>
             <input type="number" class="input-field" id="wd-amount-bkash" placeholder="e.g. 150" min="150">
         </div>
@@ -487,35 +484,27 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <!-- JOIN MODAL -->
 <div class="modal-bg" id="modal-join" style="z-index:5000;">
     <div class="modal-box" style="border-color:var(--primary);padding:26px 20px;">
-        <div style="font-size:2.8rem;margin-bottom:10px;">&#x1F510;</div>
+        <div style="font-size:2.6rem;margin-bottom:10px;">&#x1F510;</div>
         <div class="modal-title">Membership Required</div>
         <div class="modal-sub" style="margin-bottom:18px;font-size:0.82rem;line-height:1.6;">
-            You must join our official Channel &amp; Community to use Coinly Task.
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;">
-            <div id="step-ch-indicator" style="flex:1;padding:8px;border-radius:10px;background:var(--bg-section);border:1.5px solid var(--border);text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);transition:0.3s;">
-                <i class="fab fa-telegram-plane"></i> Channel
-            </div>
-            <div id="step-gr-indicator" style="flex:1;padding:8px;border-radius:10px;background:var(--bg-section);border:1.5px solid var(--border);text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);transition:0.3s;">
-                <i class="fas fa-users"></i> Community
-            </div>
+            Join our official Channel &amp; Community to use Coinly Task.
         </div>
         <a href="https://t.me/coinly_task" target="_blank" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:linear-gradient(135deg,#1a6ff5,#0ea5e9);border-radius:13px;text-decoration:none;color:#fff;font-weight:700;font-size:0.88rem;box-shadow:0 4px 14px rgba(26,111,245,0.3);margin-bottom:9px;">
             <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;"><i class="fab fa-telegram-plane"></i></div>
-            <div style="text-align:left;flex:1;"><div>Step 1 &mdash; Official Channel</div><div style="font-size:0.7rem;opacity:0.85;font-weight:400;">t.me/coinly_task</div></div>
+            <div style="text-align:left;flex:1;"><div>Step 1 &#x2014; Official Channel</div><div style="font-size:0.7rem;opacity:0.85;font-weight:400;">t.me/coinly_task</div></div>
             <i class="fas fa-arrow-right" style="opacity:0.8;"></i>
         </a>
         <a href="https://t.me/newTon_Gc" target="_blank" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border-radius:13px;text-decoration:none;color:#fff;font-weight:700;font-size:0.88rem;box-shadow:0 4px 14px rgba(14,165,233,0.3);margin-bottom:16px;">
             <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;"><i class="fas fa-users"></i></div>
-            <div style="text-align:left;flex:1;"><div>Step 2 &mdash; Official Community</div><div style="font-size:0.7rem;opacity:0.85;font-weight:400;">t.me/newTon_Gc</div></div>
+            <div style="text-align:left;flex:1;"><div>Step 2 &#x2014; Official Community</div><div style="font-size:0.7rem;opacity:0.85;font-weight:400;">t.me/newTon_Gc</div></div>
             <i class="fas fa-arrow-right" style="opacity:0.8;"></i>
         </a>
         <button class="btn btn-green btn-full" id="btn-verify-join" style="padding:13px;font-size:0.92rem;">
-            <i class="fas fa-check-circle"></i> I've Joined &mdash; Verify Now
+            <i class="fas fa-check-circle"></i> I've Joined &#x2014; Verify Now
         </button>
-        <div id="join-status-area" style="margin-top:12px;min-height:22px;text-align:center;"></div>
-        <div style="font-size:0.67rem;color:var(--text-muted);margin-top:10px;text-align:center;line-height:1.6;">
-            &#x26A0;&#xFE0F; If you leave the channel or group, this notice will appear again next time you open the app.
+        <div id="join-error" style="font-size:0.78rem;margin-top:10px;min-height:20px;text-align:center;"></div>
+        <div style="font-size:0.67rem;color:var(--text-muted);margin-top:8px;text-align:center;line-height:1.5;">
+            &#x26A0;&#xFE0F; If you leave the channel or group, this notice will reappear next time.
         </div>
     </div>
 </div>
@@ -914,31 +903,9 @@ async function initApp(){
 // ── JOIN CHECK ──
 let _joinCheckInterval = null;
 
-// Updates the step indicator pills inside the join modal
-function _updateJoinIndicators(chOk, grOk){
-    const ch = document.getElementById('step-ch-indicator');
-    const gr = document.getElementById('step-gr-indicator');
-    if(ch){
-        ch.style.background = chOk ? '#d1fae5' : 'var(--bg-section)';
-        ch.style.borderColor = chOk ? '#6ee7b7' : 'var(--border)';
-        ch.style.color       = chOk ? '#065f46' : 'var(--text-muted)';
-        ch.innerHTML = chOk
-            ? '<i class="fas fa-check-circle" style="color:#10b981;"></i> Channel'
-            : '<i class="fab fa-telegram-plane"></i> Channel';
-    }
-    if(gr){
-        gr.style.background = grOk ? '#d1fae5' : 'var(--bg-section)';
-        gr.style.borderColor = grOk ? '#6ee7b7' : 'var(--border)';
-        gr.style.color       = grOk ? '#065f46' : 'var(--text-muted)';
-        gr.innerHTML = grOk
-            ? '<i class="fas fa-check-circle" style="color:#10b981;"></i> Community'
-            : '<i class="fas fa-users"></i> Community';
-    }
-}
-
 async function checkCommunityJoin(){
-    // ALWAYS call API — never skip based on local flag.
-    // This ensures users who left channel/group see the popup again.
+    // Always call API — no local cache bypass.
+    // Ensures users who leave channel/group see the popup again on next open.
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         if(!res.ok){
@@ -947,12 +914,9 @@ async function checkCommunityJoin(){
             return;
         }
         const data = await res.json();
-        const chOk = !!data.channel;
-        const grOk = data.group !== false; // group is optional if GROUP_ID not set
 
-        _updateJoinIndicators(chOk, grOk);
-
-        if(data.joined){
+        // IMPORTANT: check data.joined only (not data.ok — ok is always true from API)
+        if(data.joined === true){
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
             currentUser.hasJoinedCommunity = true;
@@ -964,46 +928,42 @@ async function checkCommunityJoin(){
             }
         }
     }catch(e){
-        // Network error — do not block the user
+        // Network error — do not block
         console.warn('[checkCommunityJoin]', e.message);
         document.getElementById('modal-join').classList.remove('show');
     }
 }
 
 document.getElementById('btn-verify-join').addEventListener('click', async()=>{
-    const btn    = document.getElementById('btn-verify-join');
-    const status = document.getElementById('join-status-area');
-    btn.innerHTML = '<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;display:inline-block;"></div> Checking...';
-    btn.disabled  = true;
-    if(status) status.innerHTML = '';
-
+    const btn=document.getElementById('btn-verify-join');
+    const err=document.getElementById('join-error');
+    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>';
+    btn.disabled=true;
+    err.innerText='';
     try{
-        const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
-        const d   = await res.json();
-        const chOk = !!d.channel;
-        const grOk = d.group !== false;
-
-        _updateJoinIndicators(chOk, grOk);
-
-        if(d.joined){
+        const res=await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
+        const d=await res.json();
+        if(d.joined === true){
             currentUser.hasJoinedCommunity = true;
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
-            if(status) status.innerHTML = '<span style="color:var(--green);font-weight:700;font-size:0.82rem;"><i class="fas fa-check-circle"></i> Verified! Access granted.</span>';
+            err.style.color = 'var(--green)';
+            err.innerText = '✅ Verified! Access granted.';
             setTimeout(()=>{
                 document.getElementById('modal-join').classList.remove('show');
-                if(status) status.innerHTML = '';
-            }, 900);
+                err.innerText = '';
+            }, 800);
         } else {
             const missing = [];
-            if(!chOk) missing.push('Official Channel (@coinly_task)');
-            if(!grOk) missing.push('Official Community (@newTon_Gc)');
-            if(status) status.innerHTML = `<span style="color:var(--red);font-size:0.78rem;font-weight:600;"><i class="fas fa-times-circle"></i> Not joined yet: ${missing.join(' &amp; ')}</span>`;
+            if(!d.channel) missing.push('Channel (@coinly_task)');
+            if(!d.group)   missing.push('Community (@newTon_Gc)');
+            err.style.color = 'var(--red)';
+            err.innerText = '❌ Not joined: ' + missing.join(' & ') + '. Please join and try again.';
         }
     }catch(e){
-        if(status) status.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem;">Connection error. Please try again.</span>';
+        document.getElementById('modal-join').classList.remove('show');
     }
-    btn.innerHTML = '<i class="fas fa-check-circle"></i> I've Joined &mdash; Verify Now';
-    btn.disabled  = false;
+    btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
+    btn.disabled=false;
 });
 
 // ── UPDATE UI ──
@@ -1493,13 +1453,8 @@ document.querySelectorAll('.wd-method-tab').forEach(tab=>{
         wdMethod=tab.dataset.method;
         document.querySelectorAll('.wd-method-tab').forEach(t=>{
             const active=t.dataset.method===wdMethod;
-            t.style.background=active?'var(--primary-light)':'var(--bg-section)';
-            t.style.borderColor=active?'var(--primary)':'var(--border)';
-            // bkash gets pink highlight
-            if(active && wdMethod==='bkash'){
-                t.style.background='#fdf2f8';
-                t.style.borderColor='#f9a8d4';
-            }
+            t.style.background=active?(wdMethod==='bkash'?'#fdf2f8':'var(--primary-light)'):'var(--bg-section)';
+            t.style.borderColor=active?(wdMethod==='bkash'?'#f9a8d4':'var(--primary)'):'var(--border)';
         });
         document.getElementById('wd-tonkeeper-fields').style.display=wdMethod==='tonkeeper'?'block':'none';
         document.getElementById('wd-binance-fields').style.display=wdMethod==='binance'?'block':'none';
@@ -1510,15 +1465,15 @@ document.querySelectorAll('.wd-method-tab').forEach(tab=>{
 
 function calcWdPreview(){
     let amtEl, minAmt;
-    if(wdMethod==='tonkeeper'){ amtEl=document.getElementById('wd-amount-ton'); minAmt=MIN_WITHDRAW_TONKEEPER; }
-    else if(wdMethod==='bkash'){ amtEl=document.getElementById('wd-amount-bkash'); minAmt=MIN_WITHDRAW_BKASH; }
-    else { amtEl=document.getElementById('wd-amount-bnb'); minAmt=MIN_WITHDRAW_BINANCE; }
+    if(wdMethod==='bkash'){ amtEl=document.getElementById('wd-amount-bkash'); minAmt=MIN_WITHDRAW_BKASH; }
+    else if(wdMethod==='binance'){ amtEl=document.getElementById('wd-amount-bnb'); minAmt=MIN_WITHDRAW_BINANCE; }
+    else { amtEl=document.getElementById('wd-amount-ton'); minAmt=MIN_WITHDRAW_TONKEEPER; }
     const a=parseFloat(amtEl?.value||0);
     const preview=document.getElementById('wd-preview');
     if(a&&a>=minAmt){
         preview.style.display='block';
         if(wdMethod==='bkash'){
-            preview.innerHTML=`You receive: <b style="color:#e2136e;">${(a*DIAMOND_TO_TON*1000).toFixed(0)} BDT</b> (approx)`;
+            preview.innerHTML=`Approx: <b style="color:#e2136e;">${Math.round(a*DIAMOND_TO_TON*1000)} BDT</b>`;
         } else {
             preview.innerHTML=`You receive: <b style="color:var(--primary);">${(a*DIAMOND_TO_TON).toFixed(4)} TON</b> ≈ $${(a*DIAMOND_TO_TON*1.33).toFixed(2)}`;
         }
@@ -1531,9 +1486,9 @@ document.getElementById('wd-amount-bkash')?.addEventListener('input',calcWdPrevi
 document.getElementById('wd-submit').addEventListener('click', async()=>{
     if(isSubmitting) return;
     let amtElId, addrElId, minAmt, addrLabel;
-    if(wdMethod==='tonkeeper'){ amtElId='wd-amount-ton'; addrElId='wd-address-ton'; minAmt=MIN_WITHDRAW_TONKEEPER; addrLabel='TON wallet address'; }
-    else if(wdMethod==='bkash'){ amtElId='wd-amount-bkash'; addrElId='wd-address-bkash'; minAmt=MIN_WITHDRAW_BKASH; addrLabel='bKash number'; }
-    else { amtElId='wd-amount-bnb'; addrElId='wd-address-bnb'; minAmt=MIN_WITHDRAW_BINANCE; addrLabel='Binance UID'; }
+    if(wdMethod==='bkash'){ amtElId='wd-amount-bkash'; addrElId='wd-address-bkash'; minAmt=MIN_WITHDRAW_BKASH; addrLabel='bKash number'; }
+    else if(wdMethod==='binance'){ amtElId='wd-amount-bnb'; addrElId='wd-address-bnb'; minAmt=MIN_WITHDRAW_BINANCE; addrLabel='Binance UID'; }
+    else { amtElId='wd-amount-ton'; addrElId='wd-address-ton'; minAmt=MIN_WITHDRAW_TONKEEPER; addrLabel='TON wallet address'; }
     const amt=parseFloat(document.getElementById(amtElId).value);
     const addr=document.getElementById(addrElId).value.trim();
     if(!addr) return showAlert('Error',`Enter your ${addrLabel}.`,'error');
