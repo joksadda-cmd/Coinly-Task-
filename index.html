@@ -822,12 +822,36 @@ async function adWrapper(btnId, sdkCall, successCb){
 }
 
 // ── INIT APP ──
+const INIT_CACHE_TTL = 5 * 60 * 1000; // 5 minutes — skip re-init if app reopened quickly
+
 async function initApp(){
     if(!tg.initDataUnsafe?.user) return document.body.innerHTML='<h3 style="text-align:center;margin-top:50px;color:#333;font-family:Outfit,sans-serif;">Open in Telegram.</h3>';
     tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff');
     const u = tg.initDataUnsafe.user, uid = String(u.id);
     const today = getToday();
     const sp = tg.initDataUnsafe.start_param;
+
+    // ── Session cache: skip API call if user data is fresh ──
+    const cacheKey = `coinly_init_cache_${uid}`;
+    const cacheTime = `coinly_init_time_${uid}`;
+    const cachedTime = parseInt(localStorage.getItem(cacheTime)||'0');
+    const now = Date.now();
+    if(now - cachedTime < INIT_CACHE_TTL){
+        try{
+            const cached = JSON.parse(localStorage.getItem(cacheKey)||'{}');
+            if(cached && cached.id){
+                currentUser = cached;
+                if(localStorage.getItem(`coinly_pendingDep_${uid}`) === '1') currentUser._pendingDeposit = true;
+                if(localStorage.getItem(`coinly_pendingTask_${uid}`) === '1') currentUser._pendingTask = true;
+                if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;"><i class="fas fa-ban" style="font-size:4rem;color:red;margin-bottom:20px;"></i><h3>Account Banned.</h3></div>';
+                updateUI();
+                checkLootboxTransfer();
+                checkCommunityJoin();
+                fetchTasks('all');
+                return; // Skip API call entirely
+            }
+        }catch(e){}
+    }
 
     // ── Load user via API (no direct Firestore read — works regardless of rules) ──
     let apiData = null;
@@ -852,20 +876,21 @@ async function initApp(){
     }
 
     if(apiData?.user){
-        // API returned user data — use it directly
         currentUser = { id: uid, ...apiData.user };
-        // Check pending deposit from Firestore via API response
         if(apiData.pendingDeposit) currentUser._pendingDeposit = true;
-        // Also check localStorage (survives app restart)
         if(localStorage.getItem(`coinly_pendingDep_${uid}`) === '1') currentUser._pendingDeposit = true;
-        // Clear if API says no pending deposit
-        // Check pending task
         if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
-
         if(!apiData.pendingDeposit && localStorage.getItem(`coinly_pendingDep_${uid}`)){
             localStorage.removeItem(`coinly_pendingDep_${uid}`);
             currentUser._pendingDeposit = false;
         }
+        // Save to session cache (strip private fields before saving)
+        try{
+            const toCache = {...currentUser};
+            delete toCache._pendingDeposit; delete toCache._pendingTask;
+            localStorage.setItem(cacheKey, JSON.stringify(toCache));
+            localStorage.setItem(cacheTime, String(Date.now()));
+        }catch(e){}
     } else {
         // API failed — build minimal currentUser from Telegram data
         currentUser = {
@@ -1006,6 +1031,57 @@ function updateUI(){
     updLim('ad2', currentUser.adsWatchedAd2||0, AD_LIMITS.ad2);
     updLim('ad3', currentUser.adsWatchedAd3||0, AD_LIMITS.ad3);
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
+
+    // ── Deposit ban / warning notice ──
+    try{
+        const depBtn = document.getElementById('btn-deposit');
+        let noticeEl = document.getElementById('deposit-ban-notice');
+
+        if(currentUser.depositBanned){
+            // Permanently banned — hide button, show notice
+            if(depBtn){ depBtn.style.display='none'; }
+            if(!noticeEl){
+                noticeEl = document.createElement('div');
+                noticeEl.id = 'deposit-ban-notice';
+                depBtn?.parentNode?.insertBefore(noticeEl, depBtn);
+            }
+            noticeEl.innerHTML = `
+                <div style="background:#1f0707;border:1.5px solid #ef4444;border-radius:12px;padding:12px 14px;text-align:center;">
+                    <div style="font-size:1.4rem;margin-bottom:4px;">🚫</div>
+                    <div style="color:#ef4444;font-weight:800;font-size:0.88rem;">Deposit Permanently Disabled</div>
+                    <div style="color:#fca5a5;font-size:0.72rem;margin-top:4px;line-height:1.5;">
+                        Your deposit access has been permanently disabled due to repeated policy violations.
+                        You can still earn Diamond by completing tasks &amp; watching ads.
+                    </div>
+                </div>`;
+        } else if((currentUser.depositWarnings||0) >= 1){
+            // Has warnings — show warning banner above button
+            const w = currentUser.depositWarnings;
+            if(!noticeEl){
+                noticeEl = document.createElement('div');
+                noticeEl.id = 'deposit-ban-notice';
+                depBtn?.parentNode?.insertBefore(noticeEl, depBtn);
+            }
+            const color = w >= 2 ? '#ef4444' : '#f59e0b';
+            const bg    = w >= 2 ? '#1f0707' : '#1c1400';
+            noticeEl.innerHTML = `
+                <div style="background:${bg};border:1.5px solid ${color};border-radius:10px;padding:9px 12px;margin-bottom:8px;text-align:center;">
+                    <div style="color:${color};font-weight:800;font-size:0.8rem;">
+                        ⚠️ Warning ${w}/3 — Fake Deposit Detected
+                    </div>
+                    <div style="color:#d1d5db;font-size:0.7rem;margin-top:3px;">
+                        ${w >= 2
+                            ? '🚨 Final warning! Next violation = permanent deposit ban.'
+                            : '2 more violations will permanently disable your deposit access.'}
+                    </div>
+                </div>`;
+            if(depBtn){ depBtn.style.display=''; }
+        } else {
+            // Clean — remove notice if exists
+            if(noticeEl) noticeEl.remove();
+            if(depBtn){ depBtn.style.display=''; }
+        }
+    }catch(e){}
 }
 
 // ── ADS → Batch write (local first, sync every 5 ads) ──
@@ -1082,8 +1158,35 @@ document.getElementById('btn-ad4').addEventListener('click', ()=>runAdMission('a
 
 // ── TASKS ──
 let taskFilter = 'all';
+let _tasksCache = null;        // all tasks cached for session
+let _myTasksCache = null;      // my tasks cached for session
+let _tasksCacheTime = 0;       // timestamp of last fetch
+const TASKS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-async function fetchTasks(filter){
+function _renderTasks(allTasks, filter, container){
+    container.innerHTML = '';
+    let count = 0;
+    const iconMap  = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
+    const colorMap = {telegram_channel:'color:#0088cc;background:#e6f4fb;border-color:#b3dff7',telegram_group:'color:#7c3aed;background:#f3e8ff;border-color:#ddd6fe',telegram_bot:'color:#059669;background:#ecfdf5;border-color:#a7f3d0',social:'color:#dc2626;background:#fef2f2;border-color:#fecaca'};
+    allTasks.forEach(t=>{
+        if((currentUser.completedTasks||[]).includes(t.id)) return;
+        if(filter !== 'all' && t.category !== filter) return;
+        count++;
+        const cat = t.category||'social';
+        container.innerHTML += `
+            <div class="task-card">
+                <div class="t-icon" style="${colorMap[cat]||colorMap.social}"><i class="${iconMap[cat]||'fas fa-tasks'}"></i></div>
+                <div class="t-info">
+                    <div class="t-name">${t.title}</div>
+                    <div class="t-reward">+${TASK_REWARD_DIAMOND} 💎 Diamond</div>
+                </div>
+                <button class="btn btn-outline t-task-btn" data-id="${t.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button>
+            </div>`;
+    });
+    if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
+}
+
+async function fetchTasks(filter, forceRefresh){
     taskFilter = filter;
     const container = document.getElementById('task-list-container');
     container.innerHTML = '<div style="text-align:center;padding:30px 0;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
@@ -1095,29 +1198,18 @@ async function fetchTasks(filter){
     }
 
     try{
+        // Use cache if available and not expired — saves API reads
+        const now = Date.now();
+        if(!forceRefresh && _tasksCache && (now - _tasksCacheTime) < TASKS_CACHE_TTL){
+            _renderTasks(_tasksCache, filter, container);
+            return;
+        }
         const res  = await fetch(`${API_BASE}/getTasks`);
         const data = await res.json();
-        const allTasks = data.tasks || [];
-        container.innerHTML = '';
-        let count = 0;
-        const iconMap  = {telegram_channel:'fab fa-telegram-plane',telegram_group:'fas fa-users',telegram_bot:'fas fa-robot',social:'fas fa-play-circle'};
-        const colorMap = {telegram_channel:'color:#0088cc;background:#e6f4fb;border-color:#b3dff7',telegram_group:'color:#7c3aed;background:#f3e8ff;border-color:#ddd6fe',telegram_bot:'color:#059669;background:#ecfdf5;border-color:#a7f3d0',social:'color:#dc2626;background:#fef2f2;border-color:#fecaca'};
-        allTasks.forEach(t=>{
-            if((currentUser.completedTasks||[]).includes(t.id)) return;
-            if(filter !== 'all' && t.category !== filter) return;
-            count++;
-            const cat = t.category||'social';
-            container.innerHTML += `
-                <div class="task-card">
-                    <div class="t-icon" style="${colorMap[cat]||colorMap.social}"><i class="${iconMap[cat]||'fas fa-tasks'}"></i></div>
-                    <div class="t-info">
-                        <div class="t-name">${t.title}</div>
-                        <div class="t-reward">+${TASK_REWARD_DIAMOND} 💎 Diamond</div>
-                    </div>
-                    <button class="btn btn-outline t-task-btn" data-id="${t.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button>
-                </div>`;
-        });
-        if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
+        _tasksCache = data.tasks || [];
+        _tasksCacheTime = now;
+        const allTasks = _tasksCache;
+        _renderTasks(allTasks, filter, container);
     }catch(e){
         container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>`;
         console.error('[fetchTasks]', e.message);
@@ -1125,11 +1217,19 @@ async function fetchTasks(filter){
 }
 
 // ── My Tasks: user এর নিজের create করা tasks ──
-async function fetchMyTasks(container){
+async function fetchMyTasks(container, forceRefresh){
     try{
-        const res  = await fetch(`${API_BASE}/getTasks?createdBy=${currentUser.id}`);
-        const data = await res.json();
-        const myTasks = (data.tasks||[]).filter(t=>t.createdBy===currentUser.id);
+        const now = Date.now();
+        if(!forceRefresh && _myTasksCache && (now - _tasksCacheTime) < TASKS_CACHE_TTL){
+            const myTasks = _myTasksCache;
+
+            _renderMyTasksHTML(myTasks, container);
+            return;
+        }
+        const res2  = await fetch(`${API_BASE}/getTasks?createdBy=${currentUser.id}`);
+        const data2 = await res2.json();
+        const myTasks = (data2.tasks||[]).filter(t=>t.createdBy===currentUser.id);
+        _myTasksCache = myTasks;
 
         if(!myTasks.length){
             container.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>You haven't created any tasks yet.</p><button onclick="document.getElementById('btn-create-task').click()" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Create First Task</button></div>`;
@@ -1224,11 +1324,18 @@ document.getElementById('task-list-container').addEventListener('click', async e
     }
 });
 
-// Platform filter pills
+// Platform filter pills — filter from cache, no new API call
 document.querySelectorAll('.platform-pill').forEach(p=>p.addEventListener('click',()=>{
     document.querySelectorAll('.platform-pill').forEach(x=>x.classList.remove('active'));
     p.classList.add('active');
-    fetchTasks(p.dataset.filter);
+    const filter = p.dataset.filter;
+    taskFilter = filter;
+    if(_tasksCache && filter !== 'my_tasks'){
+        // Filter locally from cache — 0 reads
+        _renderTasks(_tasksCache, filter, document.getElementById('task-list-container'));
+    } else {
+        fetchTasks(filter);
+    }
 }));
 
 // ── VALID REFER CHECK (API-secured) ──
@@ -1537,6 +1644,12 @@ You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
         const wData = await wRes.json();
         if(wData.success){
             currentUser.diamondBalance = wData.newBalance ?? (currentUser.diamondBalance - amt);
+            // Invalidate session cache so next open gets fresh balance
+            try{
+                localStorage.removeItem(`coinly_init_cache_${currentUser.id}`);
+                localStorage.removeItem(`coinly_init_time_${currentUser.id}`);
+            }catch(e){}
+            _historyCache = null; // force history refresh
             updateUI();
             ['wd-amount-ton','wd-amount-bnb','wd-amount-bkash','wd-address-ton','wd-address-bnb','wd-address-bkash'].forEach(id=>{
                 const el=document.getElementById(id); if(el) el.value='';
@@ -1590,19 +1703,31 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
 });
 
 // ── HISTORY — withdraw only (pending + success) via API ──
+let _historyCache = null;
+
 document.getElementById('btn-history').addEventListener('click', async()=>{
     document.getElementById('modal-history').classList.add('show');
     const c=document.getElementById('history-list');
+    // Use cache if available — avoid repeat reads
+    if(_historyCache){
+        _renderHistory(_historyCache, c);
+        return;
+    }
     c.innerHTML='<div style="text-align:center;padding:20px;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
     try{
         const res  = await fetch(`${API_BASE}/getHistory?userId=${currentUser.id}`);
         const data = await res.json();
         const list = data.history || [];
-        if(!list.length){
-            c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No withdraw history yet.</p></div>';
-            return;
-        }
-        c.innerHTML = list.map(d=>{
+        _historyCache = list;
+        _renderHistory(list, c);
+}
+
+function _renderHistory(list, c){
+    if(!list.length){
+        c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No withdraw history yet.</p></div>';
+        return;
+    }
+    c.innerHTML = list.map(d=>{
             const statusColor = d.status==='success'||d.status==='completed' ? '#10b981' : '#f59e0b';
             const statusBg   = d.status==='success'||d.status==='completed' ? '#ecfdf5' : '#fffbeb';
             const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${d.status||'pending'}</span>`;
@@ -1727,6 +1852,11 @@ async function sendTonConnect(toAddress, tonAmount, memo){
 }
 
 document.getElementById('btn-deposit').addEventListener('click',()=>{
+    // Server-side ban check — extra safety on frontend too
+    if(currentUser.depositBanned){
+        showAlert('Access Denied','Your deposit access has been permanently disabled due to policy violations.','error');
+        return;
+    }
     if(!currentUser) return;
     // If pending deposit, show info but still allow viewing
     if(currentUser._pendingDeposit){
