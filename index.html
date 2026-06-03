@@ -467,39 +467,15 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 </div>
 
 <!-- JOIN MODAL -->
-<div class="modal-bg" id="modal-join" style="z-index:5000;background:rgba(0,0,0,0.92);">
-    <div class="modal-box" style="text-align:center;padding:28px 22px;background:#1a1f2e;border:1.5px solid #f59e0b;border-radius:22px;">
-        <!-- Shield icon -->
-        <div style="width:60px;height:60px;background:linear-gradient(135deg,#f59e0b,#d97706);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 4px 20px rgba(245,158,11,0.4);">
-            <i class="fas fa-shield-alt" style="font-size:1.6rem;color:#fff;"></i>
-        </div>
-        <div style="font-size:1.15rem;font-weight:800;color:#fff;margin-bottom:8px;">Join &amp; Activate</div>
-        <div style="font-size:0.78rem;color:#94a3b8;margin-bottom:20px;line-height:1.5;">
-            Join our Official Channel &amp; Group to<br>activate your account.
-        </div>
-
-        <!-- Channel -->
-        <!-- Channel -->
-        <button onclick="window.Telegram.WebApp.openLink('https://t.me/coinly_task')"
-           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;width:100%;margin-bottom:10px;font-weight:700;font-size:0.88rem;cursor:pointer;">
-            <i class="fab fa-telegram-plane" style="font-size:1.1rem;"></i>
-            <span>1. OFFICIAL CHANNEL</span>
-            <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
-        </button>
-        <!-- Group -->
-        <button onclick="window.Telegram.WebApp.openLink('https://t.me/newTon_Gc')"
-           style="display:flex;align-items:center;gap:12px;background:transparent;color:#06b6d4;border:1.5px solid #06b6d4;border-radius:12px;padding:13px 16px;width:100%;margin-bottom:18px;font-weight:700;font-size:0.88rem;cursor:pointer;">
-            <i class="fas fa-users" style="font-size:1rem;"></i>
-            <span>2. COMMUNITY GROUP</span>
-            <i class="fas fa-external-link-alt" style="margin-left:auto;font-size:0.7rem;opacity:0.6;"></i>
-        </button>
-
-        <!-- Verify button -->
-        <button id="btn-verify-join"
-            style="width:100%;padding:14px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;border:none;border-radius:12px;font-weight:800;font-size:0.92rem;cursor:pointer;letter-spacing:0.3px;">
-            ✅ VERIFY &amp; CONTINUE
-        </button>
-        <div id="join-error" style="font-size:0.73rem;color:#f87171;margin-top:10px;min-height:16px;"></div>
+<div class="modal-bg" id="modal-join" style="z-index:5000;">
+    <div class="modal-box" style="border-color:var(--primary);">
+        <div class="lock-icon"><i class="fas fa-shield-check"></i></div>
+        <div class="modal-title">Verification Required</div>
+        <div class="modal-sub">Join our official networks to unlock the app.</div>
+        <a href="https://t.me/coinly_task" target="_blank" class="btn btn-primary btn-full" style="margin-bottom:10px;text-decoration:none;"><i class="fab fa-telegram-plane"></i> 1. Official Channel</a>
+        <a href="https://t.me/newTon_Gc" target="_blank" class="btn btn-accent btn-full" style="margin-bottom:14px;text-decoration:none;"><i class="fas fa-users"></i> 2. Official Community</a>
+        <button class="btn btn-green btn-full" id="btn-verify-join"><i class="fas fa-check-circle"></i> Verify & Unlock</button>
+        <div id="join-error" style="font-size:0.78rem;color:var(--red);margin-top:10px;"></div>
     </div>
 </div>
 
@@ -897,38 +873,30 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
+    // Use hasJoinedCommunity field (separate from gift)
+    if(currentUser.hasJoinedCommunity || currentUser.joinGiftClaimed){
+        document.getElementById('modal-join').classList.remove('show');
+        return;
+    }
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
-        const d   = await res.json();
-        // API returns { ok: true, joined: true/false }
-        const hasJoined = d.joined === true;
-        if(hasJoined){
+        if(!res.ok){ document.getElementById('modal-join').classList.add('show'); return; }
+        const data = await res.json();
+
+        if(data.joined || data.ok){
+            clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
             currentUser.hasJoinedCommunity = true;
-            clearInterval(_joinCheckInterval); _joinCheckInterval = null;
+            currentUser.joinGiftClaimed = true;
+            // Save to Firestore via init API on next load — no direct write needed
         } else {
             document.getElementById('modal-join').classList.add('show');
-            // Show which not joined
-            const err = document.getElementById('join-error');
-            if(err){
-                const missing = [];
-                if(d.channel === false) missing.push('Official Channel');
-                if(d.group   === false) missing.push('Community Group');
-                err.innerText = missing.length
-                    ? `❌ Not joined: ${missing.join(', ')}. Join then verify.`
-                    : '❌ Not verified. Please join both and try again.';
-            }
             if(!_joinCheckInterval){
                 _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
             }
         }
-    } catch(e){
-        console.warn('[checkJoin]', e.message);
-        if(currentUser.hasJoinedCommunity){
-            document.getElementById('modal-join').classList.remove('show');
-        } else {
-            document.getElementById('modal-join').classList.add('show');
-        }
+    }catch(e){
+        document.getElementById('modal-join').classList.remove('show');
     }
 }
 
@@ -949,7 +917,7 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
             const missing=[];
             if(!d.channel) missing.push('📢 Channel');
             if(!d.group)   missing.push('👥 Group');
-            err.innerHTML=`❌ Not joined: <b>${missing.join(', ')}</b>. Please join then verify again.`;
+            err.innerText=`❌ Not joined: ${missing.join(', ')}. Please join and try again.`;
         }
     }catch(e){
         document.getElementById('modal-join').classList.remove('show');
@@ -980,7 +948,7 @@ function updateUI(){
         document.getElementById('ref-total').innerText = currentUser.totalInvites||0;
         document.getElementById('ref-valid').innerText = currentUser.validReferrals||0;
         document.getElementById('ref-earned').innerText = currentUser.referralDiamondEarned||0;
-        const link = `https://t.me/coinly_task_bot/TaskEarn?startapp=${currentUser.id}`;
+        const link = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${currentUser.id}`;
         document.getElementById('invite-link').value = link;
     }catch(e){}
 
@@ -1637,7 +1605,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
 document.getElementById('btn-promo').addEventListener('click',()=>document.getElementById('modal-promo').classList.add('show'));
 document.getElementById('btn-refer').addEventListener('click',()=>{
     if(currentUser){
-        const link = `https://t.me/coinly_task_bot/TaskEarn?startapp=${currentUser.id}`;
+        const link = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${currentUser.id}`;
         document.getElementById('invite-link').value = link;
         document.getElementById('ref-total').innerText  = currentUser.totalInvites||0;
         document.getElementById('ref-valid').innerText  = currentUser.validReferrals||0;
