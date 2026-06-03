@@ -378,21 +378,26 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <b>Requirements:</b><br>
             ✅ Min 10 tasks completed<br>
             ✅ Watch 20 ads per withdrawal<br>
-            💎 Min: Tonkeeper 50, Binance 100
+            💎 Min: Tonkeeper 50 | Binance 100 | bKash 150
         </div>
         <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:var(--primary);margin-bottom:14px;" id="wd-balance">0 💎</div>
 
         <!-- Method tabs -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
-            <div class="wd-method-tab active" data-method="tonkeeper" style="padding:12px;border-radius:13px;border:1.5px solid var(--primary);background:var(--primary-light);text-align:center;cursor:pointer;transition:0.2s;">
-                <i class="fas fa-gem" style="font-size:1.2rem;color:var(--primary);display:block;margin-bottom:4px;"></i>
-                <div style="font-weight:800;font-size:0.82rem;color:var(--text-main);">Tonkeeper</div>
-                <div style="font-size:0.68rem;color:var(--text-muted);">Min 50 💎</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px;">
+            <div class="wd-method-tab active" data-method="tonkeeper" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--primary);background:var(--primary-light);text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-gem" style="font-size:1.1rem;color:var(--primary);display:block;margin-bottom:3px;"></i>
+                <div style="font-weight:800;font-size:0.76rem;color:var(--text-main);">Tonkeeper</div>
+                <div style="font-size:0.63rem;color:var(--text-muted);">Min 50 💎</div>
             </div>
-            <div class="wd-method-tab" data-method="binance" style="padding:12px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
-                <i class="fas fa-university" style="font-size:1.2rem;color:var(--text-muted);display:block;margin-bottom:4px;" id="wd-binance-icon"></i>
-                <div style="font-weight:800;font-size:0.82rem;color:var(--text-main);">Binance UID</div>
-                <div style="font-size:0.68rem;color:var(--text-muted);">Min 100 💎</div>
+            <div class="wd-method-tab" data-method="binance" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-university" style="font-size:1.1rem;color:var(--text-muted);display:block;margin-bottom:3px;" id="wd-binance-icon"></i>
+                <div style="font-weight:800;font-size:0.76rem;color:var(--text-main);">Binance UID</div>
+                <div style="font-size:0.63rem;color:var(--text-muted);">Min 100 💎</div>
+            </div>
+            <div class="wd-method-tab" data-method="bkash" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-mobile-alt" style="font-size:1.1rem;color:#e2136e;display:block;margin-bottom:3px;"></i>
+                <div style="font-weight:800;font-size:0.76rem;color:var(--text-main);">bKash</div>
+                <div style="font-size:0.63rem;color:var(--text-muted);">Min 150 💎</div>
             </div>
         </div>
 
@@ -408,6 +413,19 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 100)</span></label>
             <input type="number" class="input-field" id="wd-amount-bnb" placeholder="e.g. 200" min="100">
         </div>
+        <div id="wd-bkash-fields" style="display:none;">
+            <div style="background:#fdf2f8;border:1.5px solid #f9a8d4;border-radius:11px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-mobile-alt" style="color:#e2136e;font-size:1.2rem;"></i>
+                <div>
+                    <div style="font-weight:800;font-size:0.82rem;color:#9d174d;">bKash Withdrawal</div>
+                    <div style="font-size:0.7rem;color:#be185d;">Processing time: 1–24 hours</div>
+                </div>
+            </div>
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">bKash Number</label>
+            <input type="text" class="input-field" id="wd-address-bkash" placeholder="01XXXXXXXXX (bKash number)">
+            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 150)</span></label>
+            <input type="number" class="input-field" id="wd-amount-bkash" placeholder="e.g. 150" min="150">
+        </div>
 
         <div id="wd-preview" style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.82rem;color:var(--text-sub);margin-bottom:14px;display:none;"></div>
 
@@ -415,7 +433,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <button class="btn btn-outline btn-full close-modal">Cancel</button>
             <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
         </div>
-        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing time: 1–24 hours • 1000 💎 = 0.60 TON</p>
+        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing time: 1–24 hours &bull; 1000 💎 = 0.60 TON &bull; bKash in BDT</p>
     </div>
 </div>
 
@@ -468,76 +486,36 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
 <!-- JOIN MODAL -->
 <div class="modal-bg" id="modal-join" style="z-index:5000;">
-    <div class="modal-box" style="border-color:var(--primary);padding:28px 22px;">
-
-        <!-- Icon & Title -->
-        <div style="font-size:3rem;margin-bottom:10px;animation:floatLock 2s infinite alternate;">🔐</div>
-        <div class="modal-title" style="font-size:1.2rem;">Join Required</div>
-        <div class="modal-sub" style="margin-bottom:20px;font-size:0.84rem;line-height:1.6;">
-            Coinly Task ব্যবহার করতে আমাদের<br>
-            Official Channel ও Community তে Join করুন
+    <div class="modal-box" style="border-color:var(--primary);padding:26px 20px;">
+        <div style="font-size:2.8rem;margin-bottom:10px;">&#x1F510;</div>
+        <div class="modal-title">Membership Required</div>
+        <div class="modal-sub" style="margin-bottom:18px;font-size:0.82rem;line-height:1.6;">
+            You must join our official Channel &amp; Community to use Coinly Task.
         </div>
-
-        <!-- Join Buttons -->
-        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px;">
-            <a href="https://t.me/coinly_task" target="_blank"
-               style="display:flex;align-items:center;gap:12px;padding:14px 16px;
-                      background:linear-gradient(135deg,#1a6ff5,#0ea5e9);
-                      border-radius:14px;text-decoration:none;color:#fff;font-weight:700;
-                      font-size:0.9rem;box-shadow:0 4px 15px rgba(26,111,245,0.3);transition:0.2s;"
-               onclick="this.style.opacity='0.8'">
-                <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;
-                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
-                    <i class="fab fa-telegram-plane"></i>
-                </div>
-                <div style="text-align:left;">
-                    <div>📢 Official Channel</div>
-                    <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">@coinly_task</div>
-                </div>
-                <i class="fas fa-arrow-right" style="margin-left:auto;opacity:0.8;"></i>
-            </a>
-
-            <a href="https://t.me/newTon_Gc" target="_blank"
-               style="display:flex;align-items:center;gap:12px;padding:14px 16px;
-                      background:linear-gradient(135deg,#0ea5e9,#06b6d4);
-                      border-radius:14px;text-decoration:none;color:#fff;font-weight:700;
-                      font-size:0.9rem;box-shadow:0 4px 15px rgba(14,165,233,0.3);transition:0.2s;"
-               onclick="this.style.opacity='0.8'">
-                <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;
-                            display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
-                    <i class="fas fa-users"></i>
-                </div>
-                <div style="text-align:left;">
-                    <div>👥 Official Community</div>
-                    <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">@newTon_Gc</div>
-                </div>
-                <i class="fas fa-arrow-right" style="margin-left:auto;opacity:0.8;"></i>
-            </a>
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <div id="step-ch-indicator" style="flex:1;padding:8px;border-radius:10px;background:var(--bg-section);border:1.5px solid var(--border);text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);transition:0.3s;">
+                <i class="fab fa-telegram-plane"></i> Channel
+            </div>
+            <div id="step-gr-indicator" style="flex:1;padding:8px;border-radius:10px;background:var(--bg-section);border:1.5px solid var(--border);text-align:center;font-size:0.72rem;font-weight:700;color:var(--text-muted);transition:0.3s;">
+                <i class="fas fa-users"></i> Community
+            </div>
         </div>
-
-        <!-- Status row (channel/group) -->
-        <div id="join-status-row" style="display:none;background:var(--bg-section);border:1.5px solid var(--border);
-             border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:0.8rem;
-             display:flex;gap:10px;justify-content:center;">
-            <span id="join-status-channel" style="display:flex;align-items:center;gap:5px;color:var(--text-muted);">
-                <i class="fas fa-circle" style="font-size:0.5rem;"></i> Channel
-            </span>
-            <span style="color:var(--border-mid);">|</span>
-            <span id="join-status-group" style="display:flex;align-items:center;gap:5px;color:var(--text-muted);">
-                <i class="fas fa-circle" style="font-size:0.5rem;"></i> Community
-            </span>
-        </div>
-
-        <!-- Verify Button -->
-        <button class="btn btn-green btn-full" id="btn-verify-join" style="font-size:0.95rem;padding:14px;">
-            <i class="fas fa-check-circle"></i> Join করেছি — Verify করো
+        <a href="https://t.me/coinly_task" target="_blank" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:linear-gradient(135deg,#1a6ff5,#0ea5e9);border-radius:13px;text-decoration:none;color:#fff;font-weight:700;font-size:0.88rem;box-shadow:0 4px 14px rgba(26,111,245,0.3);margin-bottom:9px;">
+            <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;"><i class="fab fa-telegram-plane"></i></div>
+            <div style="text-align:left;flex:1;"><div>Step 1 &mdash; Official Channel</div><div style="font-size:0.7rem;opacity:0.85;font-weight:400;">t.me/coinly_task</div></div>
+            <i class="fas fa-arrow-right" style="opacity:0.8;"></i>
+        </a>
+        <a href="https://t.me/newTon_Gc" target="_blank" style="display:flex;align-items:center;gap:12px;padding:13px 16px;background:linear-gradient(135deg,#0ea5e9,#06b6d4);border-radius:13px;text-decoration:none;color:#fff;font-weight:700;font-size:0.88rem;box-shadow:0 4px 14px rgba(14,165,233,0.3);margin-bottom:16px;">
+            <div style="width:36px;height:36px;background:rgba(255,255,255,0.2);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;"><i class="fas fa-users"></i></div>
+            <div style="text-align:left;flex:1;"><div>Step 2 &mdash; Official Community</div><div style="font-size:0.7rem;opacity:0.85;font-weight:400;">t.me/newTon_Gc</div></div>
+            <i class="fas fa-arrow-right" style="opacity:0.8;"></i>
+        </a>
+        <button class="btn btn-green btn-full" id="btn-verify-join" style="padding:13px;font-size:0.92rem;">
+            <i class="fas fa-check-circle"></i> I've Joined &mdash; Verify Now
         </button>
-
-        <!-- Error msg -->
-        <div id="join-error" style="font-size:0.78rem;color:var(--red);margin-top:10px;min-height:20px;text-align:center;"></div>
-
-        <div style="font-size:0.68rem;color:var(--text-muted);margin-top:12px;text-align:center;line-height:1.6;">
-            ⚠️ Channel বা Group থেকে Leave করলে<br>পরের বার app খুললে আবার এই notice দেখাবে।
+        <div id="join-status-area" style="margin-top:12px;min-height:22px;text-align:center;"></div>
+        <div style="font-size:0.67rem;color:var(--text-muted);margin-top:10px;text-align:center;line-height:1.6;">
+            &#x26A0;&#xFE0F; If you leave the channel or group, this notice will appear again next time you open the app.
         </div>
     </div>
 </div>
@@ -783,6 +761,7 @@ const DEPOSIT_WALLET = "UQBPuFaTHpooYMbMS2oQ1UMLFGemDZvxs8Zmenl4FR3AF4y8";
 const DIAMOND_TO_TON = 0.0005;       // 1000 Diamond = 0.5 TON
 const MIN_WITHDRAW_TONKEEPER = 50;  // 50 Diamond minimum
 const MIN_WITHDRAW_BINANCE   = 100; // 100 Diamond minimum
+const MIN_WITHDRAW_BKASH     = 150; // 150 Diamond minimum
 const WITHDRAW_MIN_TASKS     = 10;  // must complete 10 tasks
 const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
 
@@ -935,94 +914,96 @@ async function initApp(){
 // ── JOIN CHECK ──
 let _joinCheckInterval = null;
 
+// Updates the step indicator pills inside the join modal
+function _updateJoinIndicators(chOk, grOk){
+    const ch = document.getElementById('step-ch-indicator');
+    const gr = document.getElementById('step-gr-indicator');
+    if(ch){
+        ch.style.background = chOk ? '#d1fae5' : 'var(--bg-section)';
+        ch.style.borderColor = chOk ? '#6ee7b7' : 'var(--border)';
+        ch.style.color       = chOk ? '#065f46' : 'var(--text-muted)';
+        ch.innerHTML = chOk
+            ? '<i class="fas fa-check-circle" style="color:#10b981;"></i> Channel'
+            : '<i class="fab fa-telegram-plane"></i> Channel';
+    }
+    if(gr){
+        gr.style.background = grOk ? '#d1fae5' : 'var(--bg-section)';
+        gr.style.borderColor = grOk ? '#6ee7b7' : 'var(--border)';
+        gr.style.color       = grOk ? '#065f46' : 'var(--text-muted)';
+        gr.innerHTML = grOk
+            ? '<i class="fas fa-check-circle" style="color:#10b981;"></i> Community'
+            : '<i class="fas fa-users"></i> Community';
+    }
+}
+
 async function checkCommunityJoin(){
-    // ✅ ALWAYS check via API — no local cache skip
-    // এতে user leave করলে পরের বার আবার popup আসবে
+    // ALWAYS call API — never skip based on local flag.
+    // This ensures users who left channel/group see the popup again.
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         if(!res.ok){
-            // API error হলে block করব না, app চলবে
+            // API error — do not block the user
             document.getElementById('modal-join').classList.remove('show');
             return;
         }
         const data = await res.json();
+        const chOk = !!data.channel;
+        const grOk = data.group !== false; // group is optional if GROUP_ID not set
+
+        _updateJoinIndicators(chOk, grOk);
 
         if(data.joined){
-            // ✅ Channel + Group উভয়তে আছে
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
             currentUser.hasJoinedCommunity = true;
         } else {
-            // ❌ যেকোনো একটা বা দুটোতেই নেই — popup দেখাও
             currentUser.hasJoinedCommunity = false;
             document.getElementById('modal-join').classList.add('show');
-            // প্রতি ৩০ সেকেন্ডে auto re-check
             if(!_joinCheckInterval){
                 _joinCheckInterval = setInterval(()=>checkCommunityJoin(), 30000);
             }
         }
     }catch(e){
-        // Network error — block করব না
+        // Network error — do not block the user
         console.warn('[checkCommunityJoin]', e.message);
         document.getElementById('modal-join').classList.remove('show');
     }
 }
 
 document.getElementById('btn-verify-join').addEventListener('click', async()=>{
-    const btn=document.getElementById('btn-verify-join');
-    const err=document.getElementById('join-error');
-    const statusRow=document.getElementById('join-status-row');
-    const chStatus=document.getElementById('join-status-channel');
-    const grStatus=document.getElementById('join-status-group');
-
-    btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div> Checking...';
-    btn.disabled=true;
-    err.innerText='';
-    statusRow.style.display='flex';
+    const btn    = document.getElementById('btn-verify-join');
+    const status = document.getElementById('join-status-area');
+    btn.innerHTML = '<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;display:inline-block;"></div> Checking...';
+    btn.disabled  = true;
+    if(status) status.innerHTML = '';
 
     try{
-        const res=await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
-        const d=await res.json();
+        const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
+        const d   = await res.json();
+        const chOk = !!d.channel;
+        const grOk = d.group !== false;
 
-        // Channel status
-        if(d.channel){
-            chStatus.innerHTML='<i class="fas fa-check-circle" style="color:var(--green);"></i> <span style="color:var(--green);font-weight:700;">Channel ✅</span>';
-        } else {
-            chStatus.innerHTML='<i class="fas fa-times-circle" style="color:var(--red);"></i> <span style="color:var(--red);">Channel ❌</span>';
-        }
-        // Group status
-        if(d.group){
-            grStatus.innerHTML='<i class="fas fa-check-circle" style="color:var(--green);"></i> <span style="color:var(--green);font-weight:700;">Community ✅</span>';
-        } else {
-            grStatus.innerHTML='<i class="fas fa-times-circle" style="color:var(--red);"></i> <span style="color:var(--red);">Community ❌</span>';
-        }
+        _updateJoinIndicators(chOk, grOk);
 
         if(d.joined){
-            // উভয় join করা আছে
             currentUser.hasJoinedCommunity = true;
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
-            err.style.color='var(--green)';
-            err.innerText='✅ Verified! App unlocked.';
+            if(status) status.innerHTML = '<span style="color:var(--green);font-weight:700;font-size:0.82rem;"><i class="fas fa-check-circle"></i> Verified! Access granted.</span>';
             setTimeout(()=>{
                 document.getElementById('modal-join').classList.remove('show');
-                err.innerText='';
-                statusRow.style.display='none';
-            }, 1000);
+                if(status) status.innerHTML = '';
+            }, 900);
         } else {
-            // কোনটা বা দুটো miss
-            const missing=[];
-            if(!d.channel) missing.push('📢 Official Channel (@coinly_task)');
-            if(!d.group)   missing.push('👥 Official Community (@newTon_Gc)');
-            err.style.color='var(--red)';
-            err.innerText=`❌ এখনো join করেননি:\n${missing.join('\n')}`;
+            const missing = [];
+            if(!chOk) missing.push('Official Channel (@coinly_task)');
+            if(!grOk) missing.push('Official Community (@newTon_Gc)');
+            if(status) status.innerHTML = `<span style="color:var(--red);font-size:0.78rem;font-weight:600;"><i class="fas fa-times-circle"></i> Not joined yet: ${missing.join(' &amp; ')}</span>`;
         }
     }catch(e){
-        err.style.color='var(--text-muted)';
-        err.innerText='⚠️ Connection error. Try again.';
-        statusRow.style.display='none';
+        if(status) status.innerHTML = '<span style="color:var(--text-muted);font-size:0.78rem;">Connection error. Please try again.</span>';
     }
-    btn.innerHTML='<i class="fas fa-check-circle"></i> Join করেছি — Verify করো';
-    btn.disabled=false;
+    btn.innerHTML = '<i class="fas fa-check-circle"></i> I've Joined &mdash; Verify Now';
+    btn.disabled  = false;
 });
 
 // ── UPDATE UI ──
@@ -1514,34 +1495,48 @@ document.querySelectorAll('.wd-method-tab').forEach(tab=>{
             const active=t.dataset.method===wdMethod;
             t.style.background=active?'var(--primary-light)':'var(--bg-section)';
             t.style.borderColor=active?'var(--primary)':'var(--border)';
+            // bkash gets pink highlight
+            if(active && wdMethod==='bkash'){
+                t.style.background='#fdf2f8';
+                t.style.borderColor='#f9a8d4';
+            }
         });
         document.getElementById('wd-tonkeeper-fields').style.display=wdMethod==='tonkeeper'?'block':'none';
         document.getElementById('wd-binance-fields').style.display=wdMethod==='binance'?'block':'none';
+        document.getElementById('wd-bkash-fields').style.display=wdMethod==='bkash'?'block':'none';
         document.getElementById('wd-preview').style.display='none';
     });
 });
 
 function calcWdPreview(){
-    const isT=wdMethod==='tonkeeper';
-    const amtEl=document.getElementById(isT?'wd-amount-ton':'wd-amount-bnb');
+    let amtEl, minAmt;
+    if(wdMethod==='tonkeeper'){ amtEl=document.getElementById('wd-amount-ton'); minAmt=MIN_WITHDRAW_TONKEEPER; }
+    else if(wdMethod==='bkash'){ amtEl=document.getElementById('wd-amount-bkash'); minAmt=MIN_WITHDRAW_BKASH; }
+    else { amtEl=document.getElementById('wd-amount-bnb'); minAmt=MIN_WITHDRAW_BINANCE; }
     const a=parseFloat(amtEl?.value||0);
-    const minAmt=isT?MIN_WITHDRAW_TONKEEPER:MIN_WITHDRAW_BINANCE;
     const preview=document.getElementById('wd-preview');
     if(a&&a>=minAmt){
         preview.style.display='block';
-        preview.innerHTML=`You receive: <b style="color:var(--primary);">${(a*DIAMOND_TO_TON).toFixed(4)} TON</b> ≈ $${(a*DIAMOND_TO_TON*1.33).toFixed(2)}`;
+        if(wdMethod==='bkash'){
+            preview.innerHTML=`You receive: <b style="color:#e2136e;">${(a*DIAMOND_TO_TON*1000).toFixed(0)} BDT</b> (approx)`;
+        } else {
+            preview.innerHTML=`You receive: <b style="color:var(--primary);">${(a*DIAMOND_TO_TON).toFixed(4)} TON</b> ≈ $${(a*DIAMOND_TO_TON*1.33).toFixed(2)}`;
+        }
     } else { preview.style.display='none'; }
 }
 document.getElementById('wd-amount-ton').addEventListener('input',calcWdPreview);
 document.getElementById('wd-amount-bnb').addEventListener('input',calcWdPreview);
+document.getElementById('wd-amount-bkash')?.addEventListener('input',calcWdPreview);
 
 document.getElementById('wd-submit').addEventListener('click', async()=>{
     if(isSubmitting) return;
-    const isT=wdMethod==='tonkeeper';
-    const amt=parseFloat(document.getElementById(isT?'wd-amount-ton':'wd-amount-bnb').value);
-    const addr=document.getElementById(isT?'wd-address-ton':'wd-address-bnb').value.trim();
-    const minAmt=isT?MIN_WITHDRAW_TONKEEPER:MIN_WITHDRAW_BINANCE;
-    if(!addr) return showAlert('Error','Enter your '+(isT?'wallet address':'Binance UID')+'.','error');
+    let amtElId, addrElId, minAmt, addrLabel;
+    if(wdMethod==='tonkeeper'){ amtElId='wd-amount-ton'; addrElId='wd-address-ton'; minAmt=MIN_WITHDRAW_TONKEEPER; addrLabel='TON wallet address'; }
+    else if(wdMethod==='bkash'){ amtElId='wd-amount-bkash'; addrElId='wd-address-bkash'; minAmt=MIN_WITHDRAW_BKASH; addrLabel='bKash number'; }
+    else { amtElId='wd-amount-bnb'; addrElId='wd-address-bnb'; minAmt=MIN_WITHDRAW_BINANCE; addrLabel='Binance UID'; }
+    const amt=parseFloat(document.getElementById(amtElId).value);
+    const addr=document.getElementById(addrElId).value.trim();
+    if(!addr) return showAlert('Error',`Enter your ${addrLabel}.`,'error');
     if(isNaN(amt)||amt<minAmt) return showAlert('Notice',`Minimum ${minAmt} 💎 required.`,'error');
     if((currentUser.diamondBalance||0)<amt) return showAlert('Error','Insufficient Diamond balance.','error');
 
@@ -1588,7 +1583,7 @@ You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
         if(wData.success){
             currentUser.diamondBalance = wData.newBalance ?? (currentUser.diamondBalance - amt);
             updateUI();
-            ['wd-amount-ton','wd-amount-bnb','wd-address-ton','wd-address-bnb'].forEach(id=>{
+            ['wd-amount-ton','wd-amount-bnb','wd-amount-bkash','wd-address-ton','wd-address-bnb','wd-address-bkash'].forEach(id=>{
                 const el=document.getElementById(id); if(el) el.value='';
             });
             document.getElementById('wd-preview').style.display='none';
@@ -1689,7 +1684,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
             `<b>Your Status:</b><br>` +
             `${t_ok ?'✅':'❌'} Tasks: ${tasksDone}/${WITHDRAW_MIN_TASKS}<br>` +
             `${ad_ok?'✅':'❌'} Ads watched: ${adsForWd}/${WITHDRAW_ADS_REQUIRED}<br>` +
-            `💎 Min: Tonkeeper 50 | Binance 100`;
+            `💎 Min: Tonkeeper 50 | Binance 100 | bKash 150`;
         info.style.background = (t_ok && ad_ok) ? '#f0fdf4' : '#fff7ed';
         info.style.borderColor = (t_ok && ad_ok) ? '#86efac' : '#fed7aa';
         info.style.color = (t_ok && ad_ok) ? '#166534' : '#9a3412';
