@@ -1,5 +1,5 @@
 // api/approveDeposit.js
-// Admin approves or rejects a deposit — notifies user via Telegram
+// Admin approves or rejects a deposit — handles warning system & deposit ban
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -34,8 +34,7 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { depositId, action, adminNote } = req.body || {};
-    // action: 'approve' | 'reject'
+    const { depositId, action, adminNote, warningCount, permBan } = req.body || {};
     if (!depositId || !action) return res.status(400).json({ error: 'depositId and action required' });
 
     try {
@@ -44,52 +43,67 @@ export default async function handler(req, res) {
         if (!depSnap.exists) return res.status(404).json({ error: 'Deposit not found' });
 
         const dep = depSnap.data();
-        const uid = dep.userId;
+        const uid = String(dep.userId);
         const ton = dep.tonAmount || 0;
-        const diamond = dep.expectedDiamond || 0;
 
+        // ── APPROVE ──
         if (action === 'approve') {
-            // Credit TON balance (deposit = TON, not diamond)
             await db.runTransaction(async (t) => {
-                const uRef = db.collection('users').doc(String(uid));
-                t.update(uRef, {
-                    tonBalance: FieldValue.increment(ton),
-                });
+                const uRef = db.collection('users').doc(uid);
+                t.update(uRef, { tonBalance: FieldValue.increment(ton) });
                 t.update(depRef, {
                     status: 'approved',
                     approvedAt: FieldValue.serverTimestamp(),
                 });
             });
 
-            // Notify user
             await tgMsg(uid,
                 `🎉 <b>Deposit Approved!</b>\n\n` +
                 `✅ Your deposit of <b>${ton} TON</b> has been verified.\n` +
-                `💰 <b>${ton} TON</b> has been added to your TON balance!\n` +
+                `💰 <b>${ton} TON</b> added to your TON balance!\n` +
                 `You can now create tasks. 🚀\n\n` +
                 `💎 Earn Diamond by completing tasks & watching ads.`
             );
 
             return res.status(200).json({ success: true, action: 'approved', ton });
+        }
 
-        } else if (action === 'reject') {
-            await depRef.update({
-                status: 'rejected',
-                rejectedAt: FieldValue.serverTimestamp(),
-                adminNote: adminNote || '',
-            });
+        // ── REJECT with warning system ──
+        if (action === 'reject') {
+            const warns = parseInt(warningCount) || 1;
+            const isBanned = permBan === true;
 
-            // Warn user
-            await tgMsg(uid,
-                `⚠️ <b>Deposit Request Rejected</b>\n\n` +
-                `Your deposit request of <b>${ton} TON</b> could not be verified.\n\n` +
-                `<b>Reason:</b> ${adminNote || 'Payment not received or invalid.'}\n\n` +
-                `⚠️ <b>Warning:</b> Submitting fake deposit requests is a violation of our terms.\n` +
-                `🚫 Repeated violations will result in a <b>permanent account ban</b>.\n\n` +
-                `If you believe this is an error, contact support.`
-            );
+            // Build Telegram message based on warning level
+            let userMsg = '';
+            if (isBanned) {
+                userMsg =
+                    `🚫 <b>Deposit Section Permanently Disabled</b>\n\n` +
+                    `Your deposit request of <b>${ton} TON</b> has been rejected.\n\n` +
+                    `⛔ <b>This was your 3rd fake deposit violation.</b>\n` +
+                    `Your deposit section has been <b>permanently disabled</b>.\n\n` +
+                    `You can still use the app and earn Diamond by completing tasks & watching ads, ` +
+                    `but you will <b>never be able to deposit again</b>.\n\n` +
+                    `If you believe this is a mistake, contact support.`;
+            } else if (warns === 2) {
+                userMsg =
+                    `🚨 <b>Deposit Request Rejected — FINAL WARNING</b>\n\n` +
+                    `Your deposit request of <b>${ton} TON</b> has been rejected.\n\n` +
+                    `⚠️ <b>Warning 2 of 3</b>\n` +
+                    `This is your <b>FINAL WARNING</b>.\n\n` +
+                    `If you submit another fake deposit request, your deposit section will be <b>permanently disabled</b> with no appeal.\n\n` +
+                    `<b>Reason:</b> ${adminNote || 'Payment not received or invalid.'}`;
+            } else {
+                userMsg =
+                    `⚠️ <b>Deposit Request Rejected — Warning 1/3</b>\n\n` +
+                    `Your deposit request of <b>${ton} TON</b> has been rejected.\n\n` +
+                    `⚠️ <b>Warning 1 of 3</b>\n` +
+                    `Submitting fake deposit requests violates our terms.\n\n` +
+                    `🔴 <b>2 more violations</b> will result in a permanent deposit ban.\n\n` +
+                    `<b>Reason:</b> ${adminNote || 'Payment not received or invalid.'}`;
+            }
 
-            return res.status(200).json({ success: true, action: 'rejected' });
+            await tgMsg(uid, userMsg);
+            return res.status(200).json({ success: true, action: 'rejected', warns, isBanned });
         }
 
         return res.status(400).json({ error: 'Invalid action' });
