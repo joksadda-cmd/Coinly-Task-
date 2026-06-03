@@ -1,5 +1,6 @@
 // api/notifyDeposit.js
 // Handles: deposit request, withdrawal request, task payment — saves + notifies
+// Added: depositBanned check blocks fake requests server-side
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -13,8 +14,8 @@ if (!getApps().length) {
         }),
     });
 }
-const db      = getFirestore();
-const BOT     = process.env.BOT_TOKEN;
+const db       = getFirestore();
+const BOT      = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
 
 async function tgMsg(chatId, text) {
@@ -36,17 +37,16 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const body = req.body || {};
-    const type = body.type || 'deposit'; // deposit | withdrawal | task_payment
+    const type = body.type || 'deposit';
 
     // ── WITHDRAWAL ──
     if (type === 'withdrawal') {
-        const { userId, username, firstName, method, address, diamondAmount, tonAmount, tasksDone } = body;
+        const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
         if (!userId || !diamondAmount || !address) {
             return res.status(400).json({ error: 'Missing fields' });
         }
         const amt = parseFloat(diamondAmount);
         const uid = String(userId);
-        const MIN_TASKS = 10;
         try {
             let newBalance = 0, withdrawId = '';
             await db.runTransaction(async (t) => {
@@ -72,14 +72,12 @@ export default async function handler(req, res) {
                 });
             });
 
-            // User notification
             await tgMsg(uid,
                 `✅ <b>Withdrawal Received!</b>\n\n` +
                 `💎 <b>${amt} Diamond</b> → <b>${tonAmount} TON</b>\n` +
                 `📬 Method: ${method}\n📍 Address: <code>${address}</code>\n\n` +
                 `⏳ Pending admin review. You'll be notified once processed.`
             );
-            // Admin notification
             await tgMsg(ADMIN_ID,
                 `🔴 <b>Withdrawal Request</b>\n` +
                 `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
@@ -93,7 +91,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // ── BROADCAST (admin sends message to all users) ──
+    // ── BROADCAST ──
     if (type === 'broadcast') {
         const { message, adminKey } = body;
         if (adminKey !== process.env.FIREBASE_PROJECT_ID) {
@@ -101,7 +99,6 @@ export default async function handler(req, res) {
         }
         if (!message) return res.status(400).json({ error: 'message required' });
         try {
-            // Get all user IDs
             const usersSnap = await db.collection('users').select('id').limit(500).get();
             let sent = 0, failed = 0;
             const promises = [];
@@ -124,11 +121,54 @@ export default async function handler(req, res) {
     if (!userId) return res.status(400).json({ error: 'userId required' });
     const uid = String(userId);
 
+    // ── SERVER-SIDE DEPOSIT BAN CHECK ──
+    // Even if frontend is bypassed, block banned users here
+    if (type === 'deposit' || type === 'task_payment') {
+        try {
+            const uSnap = await db.collection('users').doc(uid).get();
+            if (uSnap.exists) {
+                const userData = uSnap.data();
+
+                // Hard ban — account banned
+                if (userData.isBanned === true) {
+                    return res.status(403).json({
+                        success: false,
+                        banned: true,
+                        error: 'Account is banned.'
+                    });
+                }
+
+                // Deposit ban — only deposit/task_payment blocked
+                if (type === 'deposit' && userData.depositBanned === true) {
+                    // Alert admin about bypass attempt
+                    await tgMsg(ADMIN_ID,
+                        `🚨 <b>Deposit Ban Bypass Attempt!</b>\n` +
+                        `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
+                        `💰 Tried to deposit: ${tonAmount} TON\n` +
+                        `⚠️ This user is deposit-banned. Request blocked.`
+                    );
+                    return res.status(403).json({
+                        success: false,
+                        depositBanned: true,
+                        error: 'Your deposit access has been permanently disabled due to policy violations.'
+                    });
+                }
+
+                // Warning — allow deposit but flag in admin notification
+                const warns = userData.depositWarnings || 0;
+                if (warns > 0) {
+                    // Will be noted in admin notification below
+                    body._warnCount = warns;
+                }
+            }
+        } catch(e) { console.warn('[ban-check]', e.message); }
+    }
+
     try {
-        // Save deposit record
-        const collection_name = type === 'task_payment' ? 'task_payments' : 
-                               type === 'task_create' ? 'tasks' : 'deposits';
-        
+        const collection_name = type === 'task_payment' ? 'task_payments'
+                              : type === 'task_create'  ? 'tasks'
+                              : 'deposits';
+
         const docData = {
             userId: uid, username: username||'', firstName: firstName||'',
             status: type === 'task_create' ? 'pending_approval' : 'pending',
@@ -137,7 +177,6 @@ export default async function handler(req, res) {
         };
 
         if (type === 'task_create') {
-            // Save task + deduct TON from user balance
             const { title, url, category, channelId, rewardDiamond, maxCompletions, tonCost, packageLabel, createdBy } = body;
             Object.assign(docData, {
                 title: title||'', url: url||'', category: category||'social',
@@ -146,7 +185,6 @@ export default async function handler(req, res) {
                 isApproved: false, tonCost: parseFloat(tonCost)||0,
                 packageLabel: packageLabel||'', createdBy: createdBy||uid,
             });
-            // Deduct TON from user balance server-side
             const tonCostVal = parseFloat(tonCost)||0;
             if (tonCostVal > 0) {
                 try {
@@ -172,24 +210,26 @@ export default async function handler(req, res) {
 
         const docRef = await db.collection(collection_name).add(docData);
 
-        // Admin notification
+        // Admin notification — include warning count if any
+        const warnNote = body._warnCount > 0
+            ? `\n⚠️ <b>This user has ${body._warnCount} previous warning(s)!</b>` : '';
         const isTask = type === 'task_payment';
+
         await tgMsg(ADMIN_ID,
             `${isTask ? '🟡 <b>Task Payment' : '🟢 <b>Deposit Request'}</b>\n` +
             `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
             `💰 ${tonAmount} TON${isTask ? ` (${taskTitle||''})` : ''}\n` +
             `💎 Expected: ${expectedDiamond} Diamond\n` +
             `📝 Memo: <code>${memo||uid}</code>\n` +
-            `🆔 ID: <code>${docRef.id}</code>`
+            `🆔 ID: <code>${docRef.id}</code>${warnNote}`
         );
 
-        // User confirmation
         await tgMsg(uid,
             `${isTask ? '🟡 <b>Task Payment Received!' : '🟢 <b>Deposit Request Submitted!'}</b>\n\n` +
             `💰 ${tonAmount} TON\n` +
             (isTask ? `📋 Task: ${taskTitle||''}\n` : `💎 Expected: ${expectedDiamond} Diamond\n`) +
             `\n⏳ Admin will review and approve shortly.\n` +
-            `⚠️ Fake requests = permanent account ban.`
+            `⚠️ Fake requests = permanent deposit ban.`
         );
 
         return res.status(200).json({ success: true, depositId: docRef.id });
@@ -197,4 +237,4 @@ export default async function handler(req, res) {
         console.error('[notifyDeposit]', e.message);
         return res.status(500).json({ error: e.message });
     }
-                    }
+                                }
