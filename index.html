@@ -534,75 +534,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     </div>
 </div>
 
-<!-- TUTORIAL MODAL -->
-<div class="modal-bg" id="modal-tutorial" style="z-index:7000;">
-    <div class="modal-box" style="border-color:var(--primary);padding:24px 20px;max-width:340px;">
-
-        <!-- Progress dots -->
-        <div style="display:flex;justify-content:center;gap:7px;margin-bottom:18px;">
-            <div class="tut-dot active" id="tut-dot-0" style="width:28px;height:6px;border-radius:3px;background:var(--primary);transition:0.3s;"></div>
-            <div class="tut-dot" id="tut-dot-1" style="width:8px;height:6px;border-radius:3px;background:var(--border-mid);transition:0.3s;"></div>
-            <div class="tut-dot" id="tut-dot-2" style="width:8px;height:6px;border-radius:3px;background:var(--border-mid);transition:0.3s;"></div>
-        </div>
-
-        <!-- Step 0: Welcome + Refer -->
-        <div id="tut-step-0">
-            <div style="font-size:2.8rem;margin-bottom:10px;">👋</div>
-            <div class="modal-title" style="font-size:1.15rem;">Welcome to Coinly Task!</div>
-            <div class="modal-sub" style="font-size:0.8rem;margin-bottom:16px;">Earn Diamond 💎 by completing simple tasks, watching ads & inviting friends.</div>
-            <div style="background:var(--bg-section);border:1.5px solid var(--border);border-radius:13px;padding:14px;margin-bottom:16px;text-align:left;">
-                <div style="font-weight:800;font-size:0.85rem;color:var(--primary);margin-bottom:8px;">👥 Refer & Earn</div>
-                <div style="font-size:0.78rem;color:var(--text-sub);line-height:1.7;">
-                    • Share your referral link with friends<br>
-                    • When they join &amp; complete <b>10 tasks</b>, you earn <b>+5 💎</b><br>
-                    • Tap the <b>👤+ button</b> at the top to get your link
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 1: Task + Earn -->
-        <div id="tut-step-1" style="display:none;">
-            <div style="font-size:2.8rem;margin-bottom:10px;">✅</div>
-            <div class="modal-title" style="font-size:1.15rem;">Complete Tasks & Watch Ads</div>
-            <div class="modal-sub" style="font-size:0.8rem;margin-bottom:16px;">Two ways to earn Diamond every day.</div>
-            <div style="background:var(--bg-section);border:1.5px solid var(--border);border-radius:13px;padding:14px;margin-bottom:16px;text-align:left;">
-                <div style="font-weight:800;font-size:0.85rem;color:var(--primary);margin-bottom:8px;">💎 How to Earn</div>
-                <div style="font-size:0.78rem;color:var(--text-sub);line-height:1.8;">
-                    <b>Tasks tab →</b> Join channels/groups/bots<br>
-                    &nbsp;&nbsp;&nbsp;Complete = <b>+1 💎</b> per task<br><br>
-                    <b>Earn tab →</b> Watch short ads<br>
-                    &nbsp;&nbsp;&nbsp;Up to <b>4 ad slots</b> per day, resets daily<br><br>
-                    🎯 Complete <b>10 tasks + 20 ads</b> to unlock withdraw
-                </div>
-            </div>
-        </div>
-
-        <!-- Step 2: Withdraw -->
-        <div id="tut-step-2" style="display:none;">
-            <div style="font-size:2.8rem;margin-bottom:10px;">💸</div>
-            <div class="modal-title" style="font-size:1.15rem;">Withdraw Your Diamond</div>
-            <div class="modal-sub" style="font-size:0.8rem;margin-bottom:16px;">Convert Diamond to real money 3 ways.</div>
-            <div style="background:var(--bg-section);border:1.5px solid var(--border);border-radius:13px;padding:14px;margin-bottom:16px;text-align:left;">
-                <div style="font-weight:800;font-size:0.85rem;color:var(--primary);margin-bottom:8px;">💰 Withdraw Rates</div>
-                <div style="font-size:0.78rem;color:var(--text-sub);line-height:1.9;">
-                    <i class="fas fa-gem" style="color:var(--primary);"></i> <b>Tonkeeper</b> — 1,000💎 = 0.5 TON<br>
-                    <i class="fas fa-university" style="color:#f0b90b;"></i> <b>Binance UID</b> — 1,000💎 = $1 USD<br>
-                    <i class="fas fa-mobile-alt" style="color:#e2136e;"></i> <b>bKash</b> — 1,000💎 = 120 BDT<br><br>
-                    🔒 Tap the <b>wallet icon</b> at the top to withdraw<br>
-                    📋 Min: 50💎 TON | 100💎 Binance | 150💎 bKash
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation -->
-        <div style="display:flex;gap:8px;">
-            <button id="tut-prev" onclick="tutNav(-1)" style="flex:1;padding:11px;background:var(--bg-section);border:1.5px solid var(--border);color:var(--text-sub);border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;display:none;">← Back</button>
-            <button id="tut-next" onclick="tutNav(1)" style="flex:1;padding:11px;background:var(--primary);border:none;color:#fff;border-radius:12px;font-weight:800;font-size:0.88rem;cursor:pointer;">Next →</button>
-        </div>
-        <div style="font-size:0.65rem;color:var(--text-muted);text-align:center;margin-top:8px;cursor:pointer;" onclick="closeTutorial()">Skip tutorial</div>
-    </div>
-</div>
-
 <!-- ALERT MODAL -->
 <div class="modal-bg" id="modal-alert">
     <div class="modal-box" style="max-width:290px;">
@@ -904,56 +835,6 @@ async function adWrapper(btnId, sdkCall, successCb){
     finally{ isAdRunning = false; btn.innerHTML = orig; btn.disabled = false; }
 }
 
-// ── TUTORIAL ──
-let _tutStep = 0;
-
-function tutNav(dir){
-    const steps = [
-        document.getElementById('tut-step-0'),
-        document.getElementById('tut-step-1'),
-        document.getElementById('tut-step-2'),
-    ];
-    const dots = [
-        document.getElementById('tut-dot-0'),
-        document.getElementById('tut-dot-1'),
-        document.getElementById('tut-dot-2'),
-    ];
-    steps[_tutStep].style.display = 'none';
-    dots[_tutStep].style.width = '8px';
-    dots[_tutStep].style.background = 'var(--border-mid)';
-
-    _tutStep += dir;
-
-    if(_tutStep >= steps.length){
-        closeTutorial();
-        return;
-    }
-
-    steps[_tutStep].style.display = 'block';
-    dots[_tutStep].style.width = '28px';
-    dots[_tutStep].style.background = 'var(--primary)';
-
-    document.getElementById('tut-prev').style.display = _tutStep > 0 ? 'block' : 'none';
-    document.getElementById('tut-next').innerHTML = _tutStep === steps.length - 1 ? "Let's Go! 🚀" : 'Next →';
-}
-
-function closeTutorial(){
-    document.getElementById('modal-tutorial').classList.remove('show');
-    try{ localStorage.setItem('coinly_tut_done', '1'); }catch(e){}
-}
-
-function maybeShowTutorial(){
-    try{
-        if(localStorage.getItem('coinly_tut_done') === '1') return;
-    }catch(e){}
-    // Small delay so join modal shows first if needed
-    setTimeout(()=>{
-        if(!document.getElementById('modal-join').classList.contains('show')){
-            document.getElementById('modal-tutorial').classList.add('show');
-        }
-    }, 1200);
-}
-
 // ── INIT APP ──
 const INIT_CACHE_TTL = 5 * 60 * 1000;
 async function initApp(){
@@ -973,7 +854,7 @@ async function initApp(){
                 if(localStorage.getItem(`coinly_pendingDep_${uid}`)==='1') currentUser._pendingDeposit=true;
                 if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
                 if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;padding:20px;"><div style="font-size:3rem;">🚫</div><h3>Account banned.</h3></div>';
-                updateUI(); checkLootboxTransfer(); checkCommunityJoin(); fetchTasks('all'); maybeShowTutorial();
+                updateUI(); checkLootboxTransfer(); checkCommunityJoin(); fetchTasks('all');
                 return;
             }
         }
@@ -1047,7 +928,6 @@ async function initApp(){
     checkLootboxTransfer();
     checkCommunityJoin();
     fetchTasks('all');
-    maybeShowTutorial();
 }
 
 // ── JOIN CHECK ──
