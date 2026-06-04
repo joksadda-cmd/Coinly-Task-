@@ -15,6 +15,19 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
+// ── Helper: add user ID to meta/userIds (for broadcast — 1 read instead of N reads) ──
+async function registerUserIdForBroadcast(uid) {
+    try {
+        const metaRef = db.collection('meta').doc('userIds');
+        await metaRef.set(
+            { ids: FieldValue.arrayUnion(uid) },
+            { merge: true }
+        );
+    } catch(e) {
+        console.warn('[registerUserIdForBroadcast]', e.message);
+    }
+}
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -34,7 +47,7 @@ export default async function handler(req, res) {
 
         // ── New user ──
         if (!userSnap.exists) {
-            // Device multi-account check (server-side)
+            // Device multi-account check
             let blocked = false;
             const devId = req.body.deviceId;
             if (devId) {
@@ -65,7 +78,10 @@ export default async function handler(req, res) {
 
             await userRef.set(newUser);
 
-            // Increment referrer's totalInvites
+            // ── Register in meta/userIds for broadcast (1 read instead of N reads) ──
+            await registerUserIdForBroadcast(uid);
+
+            // Increment referrer totalInvites
             if (newUser.referredBy) {
                 try {
                     await db.collection('users').doc(newUser.referredBy).update({
@@ -79,6 +95,13 @@ export default async function handler(req, res) {
 
         // ── Existing user ──
         const userData = userSnap.data();
+
+        // Ensure existing users are also in meta/userIds (backfill on next login)
+        // Only do this once — check a lightweight flag
+        if (!userData._broadcastRegistered) {
+            registerUserIdForBroadcast(uid); // fire and forget — no await
+            userRef.update({ _broadcastRegistered: true }).catch(()=>{});
+        }
 
         // Update name if changed
         const updates = {};
