@@ -1235,8 +1235,8 @@ document.getElementById('task-list-container').addEventListener('click', async e
             if((cat==='telegram_channel'||cat==='telegram_group') && channel && channel.trim()){
                 const res=await fetch(`${API_BASE}/checkMember?userId=${currentUser.id}&channel=${encodeURIComponent(channel)}`);
                 const d=await res.json();
-                if(d.joined||d.ok||d.isMember) ok=true;
-                else{ showAlert('Notice','Join first, then verify!','error'); b.innerText='VERIFY'; b.disabled=false; b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)'; return; }
+                if(d.isMember === true || d.joined === true) ok=true;
+                else{ showAlert('Not Joined!','Please join first, then tap VERIFY.','error'); b.innerText='VERIFY'; b.disabled=false; b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)'; return; }
             } else {
                 await new Promise(r=>setTimeout(r,2000)); ok=true;
             }
