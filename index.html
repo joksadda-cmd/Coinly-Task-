@@ -1232,12 +1232,39 @@ document.getElementById('task-list-container').addEventListener('click', async e
         b.disabled=true; b.innerHTML='<div class="loader-spin" style="margin:0;width:14px;height:14px;border-width:2px;"></div>';
         try{
             let ok=false;
-            if((cat==='telegram_channel'||cat==='telegram_group') && channel && channel.trim()){
-                const res=await fetch(`${API_BASE}/checkMember?userId=${currentUser.id}&channel=${encodeURIComponent(channel)}`);
-                const d=await res.json();
-                if(d.joined||d.ok||d.isMember) ok=true;
-                else{ showAlert('Notice','Join first, then verify!','error'); b.innerText='VERIFY'; b.disabled=false; b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)'; return; }
+            if(cat==='telegram_channel'||cat==='telegram_group'){
+                // Channel/Group task — MUST verify membership
+                if(!channel || !channel.trim()){
+                    // channelId missing — cannot verify, still require 2s wait
+                    // but do NOT auto-complete; warn admin this task has no channelId
+                    showAlert('Error','This task has no channel ID set. Contact admin.','error');
+                    b.innerText='VERIFY'; b.disabled=false;
+                    b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)';
+                    return;
+                }
+                // Ensure @ prefix
+                const channelToCheck = channel.trim().startsWith('@') ? channel.trim() : '@' + channel.trim();
+                b.innerHTML='<div class="loader-spin" style="margin:0;width:14px;height:14px;border-width:2px;"></div>';
+                let memberRes, memberData;
+                try{
+                    memberRes = await fetch(`${API_BASE}/checkMember?userId=${currentUser.id}&channel=${encodeURIComponent(channelToCheck)}`);
+                    memberData = await memberRes.json();
+                } catch(fetchErr){
+                    showAlert('Error','Verification failed. Check connection.','error');
+                    b.innerText='VERIFY'; b.disabled=false;
+                    b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)';
+                    return;
+                }
+                if(memberData.isMember === true || memberData.joined === true){
+                    ok = true;
+                } else {
+                    showAlert('Not Joined!','Please join the channel/group first, then tap VERIFY.','error');
+                    b.innerText='VERIFY'; b.disabled=false;
+                    b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)';
+                    return;
+                }
             } else {
+                // Non-channel task (bot, social) — 2s delay, no membership check
                 await new Promise(r=>setTimeout(r,2000)); ok=true;
             }
             if(ok){
