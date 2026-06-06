@@ -21,14 +21,19 @@
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <!-- ADS SDKs -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <!-- Adexium — auto interstitial (background, no button) -->
     <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
-            // AdexiumWidget autoMode disabled to prevent unwanted pop-ups
+            try {
+                const adexiumWidget = new AdexiumWidget({wid: 'a1a296e8-82a8-4686-8740-2ecd055c403d', adFormat: 'interstitial'});
+                adexiumWidget.autoMode();
+            } catch(e) { console.warn('[Adexium]', e); }
         });
     </script>
-    <!-- GigaPub auto-play disabled -->
+    <!-- Monetag SDK -->
     <script src='//libtl.com/sdk.js' data-zone='10135525' data-sdk='show_10135525'></script>
+    <!-- GigaPub loaded on demand -->
 
 <style>
 :root {
@@ -251,6 +256,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="bal-box">
                 <div class="bal-lbl">💎 Diamond</div>
                 <div class="bal-num" id="bal-diamond">0</div>
+                <div id="bal-usdt" style="font-size:0.68rem;color:#34d399;font-weight:600;margin-top:2px;">≈ $0.00 USDT</div>
             </div>
             <div class="bal-box">
                 <div class="bal-lbl">⭐ Tasks Done</div>
@@ -310,48 +316,48 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
     <h2 class="sec-title"><i class="fas fa-play-circle"></i> Watch Ads & Earn Diamond</h2>
 
-    <!-- AdsGram Special: 0.5 diamond -->
+    <!-- ad1: Adsgram Special — HIGH CPM, 1💎/view, 5/day -->
     <div class="task-card">
-        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-star"></i></div>
+        <div class="t-icon" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-color:#fcd34d;color:#d97706;"><i class="fas fa-star"></i></div>
         <div class="t-info">
-            <div class="t-name">AdsGram Special</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad2">0/5 today</div>
+            <div class="t-name">⭐ AdsGram Special</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +1 💎 per view</span> <span style="font-size:0.65rem;color:#d97706;font-weight:700;margin-left:4px;">HIGH CPM</span></div>
+            <div class="t-limit" id="limit-ad1">0/5 today</div>
         </div>
-        <button class="btn btn-gold" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad2">Watch</button>
+        <button class="btn btn-gold" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad1">Watch</button>
     </div>
 
-    <!-- AdsGram Daily: 0.25 diamond -->
+    <!-- ad4: GigaPub — MEDIUM CPM, 0.5💎/view, 10/day -->
+    <div class="task-card">
+        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-play-circle"></i></div>
+        <div class="t-info">
+            <div class="t-name">🎬 GigaPub Ad</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span> <span style="font-size:0.65rem;color:#be185d;font-weight:700;margin-left:4px;">MED CPM</span></div>
+            <div class="t-limit" id="limit-ad4">0/10 today</div>
+        </div>
+        <button class="btn btn-primary" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;background:linear-gradient(135deg,#be185d,#9d174d);border:none;" id="btn-ad4">Watch</button>
+    </div>
+
+    <!-- ad2: AdsGram Daily — LOW CPM, 0.5💎/view, 10/day -->
     <div class="task-card">
         <div class="t-icon"><i class="fas fa-film"></i></div>
         <div class="t-info">
-            <div class="t-name">AdsGram Daily</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad1">0/10 today</div>
+            <div class="t-name">🎞 AdsGram Daily</div>
+            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad2">0/10 today</div>
         </div>
-        <button class="btn btn-primary" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad1">Watch</button>
+        <button class="btn btn-primary" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad2">Watch</button>
     </div>
 
-    <!-- Monetag: 0.25 diamond -->
+    <!-- ad3: Monetag — LOW CPM, 0.25💎/view, 20/day -->
     <div class="task-card">
         <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
-            <div class="t-name">Monetag Ad</div>
+            <div class="t-name">📢 Monetag Ad</div>
             <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
             <div class="t-limit" id="limit-ad3">0/20 today</div>
         </div>
         <button class="btn btn-accent" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad3">Watch</button>
-    </div>
-
-    <!-- Giga Pub: 0.25 diamond -->
-    <div class="task-card">
-        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-ad"></i></div>
-        <div class="t-info">
-            <div class="t-name">Giga Pub Ad</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.25 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad4">0/20 today</div>
-        </div>
-        <button class="btn btn-outline" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad4">Watch</button>
     </div>
 
     <!-- Lootbox Section -->
@@ -399,12 +405,12 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="wd-method-tab active" data-method="tonkeeper" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--primary);background:var(--primary-light);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-gem" style="font-size:1.1rem;color:var(--primary);display:block;margin-bottom:3px;"></i>
                 <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">Tonkeeper</div>
-                <div style="font-size:0.62rem;color:var(--text-muted);">Min 50 💎</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Min 100 💎</div>
             </div>
             <div class="wd-method-tab" data-method="binance" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-university" style="font-size:1.1rem;color:var(--text-muted);display:block;margin-bottom:3px;" id="wd-binance-icon"></i>
                 <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">Binance UID</div>
-                <div style="font-size:0.62rem;color:var(--text-muted);">Min 100 💎</div>
+                <div style="font-size:0.62rem;color:var(--text-muted);">Min 200 💎</div>
             </div>
             <div class="wd-method-tab" data-method="bkash" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-mobile-alt" style="font-size:1.1rem;color:#e2136e;display:block;margin-bottom:3px;"></i>
@@ -442,7 +448,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <button class="btn btn-outline btn-full close-modal">Cancel</button>
             <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
         </div>
-        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing: 1–24h &bull; Tonkeeper: 1K💎=0.5TON &bull; Binance: 1K💎=$1 &bull; bKash: 1K💎=120৳</p>
+        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing: 1–24h &bull; TON: 1K💎=0.5TON (min 100💎) &bull; Binance: 1K💎=$1 (min 200💎) &bull; bKash: 1K💎=120৳ (min 150💎)</p>
     </div>
 </div>
 
@@ -760,20 +766,20 @@ const DEPOSIT_WALLET = "UQBPuFaTHpooYMbMS2oQ1UMLFGemDZvxs8Zmenl4FR3AF4y8";
 
 // ── CONSTANTS ──
 const DIAMOND_TO_TON      = 0.0005;   // 1000 Diamond = 0.5 TON
-const DIAMOND_TO_USD      = 0.001;    // 1000 Diamond = 1 USD  (Binance)
-const DIAMOND_TO_BDT      = 0.12;     // 1000 Diamond = 120 BDT (bKash)
-const MIN_WITHDRAW_TONKEEPER = 50;
-const MIN_WITHDRAW_BINANCE   = 100;
-const MIN_WITHDRAW_BKASH     = 150;
+const DIAMOND_TO_USD      = 0.001;    // 1000 Diamond = $1 USD → 100💎 = $0.10
+const DIAMOND_TO_BDT      = 0.12;     // 1000 Diamond = 120 BDT
+const MIN_WITHDRAW_TONKEEPER = 100;   // was 50
+const MIN_WITHDRAW_BINANCE   = 200;   // was 100
+const MIN_WITHDRAW_BKASH     = 150;   // unchanged
 const WITHDRAW_MIN_TASKS     = 10;  // must complete 10 tasks
 const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
 
 
-const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
-const REFER_REWARD_DIAMOND = 5;
-const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:10, ad2:5, ad3:20, ad4:20};
-const AD_DIAMOND_REWARDS = {ad1:0.25, ad2:0.5, ad3:0.25, ad4:0.25};
+const TASK_REWARD_DIAMOND  = 1;      // 1 Diamond per task
+const REFER_REWARD_DIAMOND = 10;     // 10 Diamond per valid refer (was 5)
+const REFER_VALID_TASKS    = 10;
+const AD_LIMITS = {ad1:5, ad2:10, ad3:20, ad4:10}; // special:5, daily:10, monetag:20, giga:10
+const AD_DIAMOND_REWARDS = {ad1:1, ad2:0.5, ad3:0.25, ad4:0.5}; // special:1, daily:0.5, monetag:0.25, giga:0.5
 
 // ── TASK PACKAGES ──
 const TASK_PACKAGES = [
@@ -1006,6 +1012,10 @@ function updateUI(){
     const diamond = parseFloat(currentUser.diamondBalance||0);
     const tonBal  = parseFloat(currentUser.tonBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
+    try{
+        const usdt = (diamond * DIAMOND_TO_USD).toFixed(2);
+        document.getElementById('bal-usdt').innerText = `≈ $${usdt} USDT`;
+    }catch(e){}
     document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
@@ -1118,9 +1128,25 @@ const showGigaAd = async()=>{
     }
 };
 
-document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', window.Adsgram?.init({blockId:"int-22897"})?.show));
-document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', window.Adsgram?.init({blockId:"22900"})?.show));
-document.getElementById('btn-ad3').addEventListener('click', ()=>runAdMission('ad3','btn-ad3', null));
+// Monetag show function
+const showMonetagAd = () => {
+    if(typeof window.show_10135525 === 'function'){
+        return window.show_10135525();
+    }
+    return Promise.reject(new Error('Monetag SDK not loaded'));
+};
+
+// ad1 = Adsgram Special (HIGH CPM)
+document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1',
+    ()=>{ const ag=window.Adsgram?.init({blockId:"int-22897"}); return ag ? ag.show() : Promise.reject(new Error('Adsgram unavailable')); }
+));
+// ad2 = Adsgram Daily (LOW CPM)
+document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2',
+    ()=>{ const ag=window.Adsgram?.init({blockId:"22900"}); return ag ? ag.show() : Promise.reject(new Error('Adsgram unavailable')); }
+));
+// ad3 = Monetag (LOW CPM)
+document.getElementById('btn-ad3').addEventListener('click', ()=>runAdMission('ad3','btn-ad3', showMonetagAd));
+// ad4 = GigaPub (MEDIUM CPM)
 document.getElementById('btn-ad4').addEventListener('click', ()=>runAdMission('ad4','btn-ad4', showGigaAd));
 
 // ── TASKS ──
@@ -1726,7 +1752,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
             `<b>Your Status:</b><br>` +
             `${t_ok ?'✅':'❌'} Tasks: ${tasksDone}/${WITHDRAW_MIN_TASKS}<br>` +
             `${ad_ok?'✅':'❌'} Ads watched: ${adsForWd}/${WITHDRAW_ADS_REQUIRED}<br>` +
-            `💎 Min: Tonkeeper 50 | Binance 100 | bKash 150`;
+            `💎 Min: Tonkeeper 100 | Binance 200 | bKash 150`;
         info.style.background = (t_ok && ad_ok) ? '#f0fdf4' : '#fff7ed';
         info.style.borderColor = (t_ok && ad_ok) ? '#86efac' : '#fed7aa';
         info.style.color = (t_ok && ad_ok) ? '#166534' : '#9a3412';
