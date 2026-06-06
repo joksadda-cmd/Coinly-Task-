@@ -15,14 +15,14 @@ if (!getApps().length) {
 const db = getFirestore();
 
 // ── Reward rates (server is source of truth — frontend values are display only) ──
-const AD_REWARDS = { ad1:0.5, ad2:1, ad3:0.5, ad4:0.5, joinGift:5 };
-const AD_LIMITS  = { ad1:10, ad2:5, ad3:20, ad4:20 };
+const AD_REWARDS = { ad1:1, ad2:0.5, ad3:0.25, ad4:0.5, joinGift:5 }; // special:1, daily:0.5, monetag:0.25, giga:0.5
+const AD_LIMITS  = { ad1:5, ad2:10, ad3:20, ad4:10 };  // special:5, daily:10, monetag:20, giga:10
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
 // ── Max possible reward per day (anti-cheat ceiling) ──
 // ad1: 10×0.5=5, ad2: 5×1=5, ad3: 20×0.5=10, ad4: 20×0.5=10 → max 30
-const MAX_DAILY_LOOTBOX = 30;
+const MAX_DAILY_LOOTBOX = 22; // ad1:5 + ad2:5 + ad3:5 + ad4:5 = 20, +2 buffer
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
