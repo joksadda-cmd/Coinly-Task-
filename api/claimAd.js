@@ -14,10 +14,15 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-const AD_REWARDS = { ad1:0.25, ad2:0.5, ad3:0.25, ad4:0.25, joinGift:5 };
+// ── Reward rates (server is source of truth — frontend values are display only) ──
+const AD_REWARDS = { ad1:0.5, ad2:1, ad3:0.5, ad4:0.5, joinGift:5 };
 const AD_LIMITS  = { ad1:10, ad2:5, ad3:20, ad4:20 };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
+
+// ── Max possible reward per day (anti-cheat ceiling) ──
+// ad1: 10×0.5=5, ad2: 5×1=5, ad3: 20×0.5=10, ad4: 20×0.5=10 → max 30
+const MAX_DAILY_LOOTBOX = 30;
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -29,29 +34,36 @@ export default async function handler(req, res) {
     const { userId, adType, batch } = req.body || {};
     if (!userId) return res.status(400).json({ error: 'userId required' });
 
-    const uid   = String(userId);
-    const today = TODAY();
+    const uid     = String(userId);
+    const today   = TODAY();
     const userRef = db.collection('users').doc(uid);
 
-    // ── BATCH MODE (multiple ad types at once) ──
+    // ── BATCH MODE ──
     if (batch && typeof batch === 'object') {
         try {
             const userSnap = await userRef.get();
             if (!userSnap.exists) return res.status(404).json({ error: 'User not found' });
-            const user = userSnap.data();
+            const user    = userSnap.data();
             const updates = {};
             let totalReward = 0;
 
-            // Lootbox midnight transfer
+            // Lootbox midnight transfer → move lootbox to diamondBalance
             if (batch.lootboxTransfer && parseFloat(batch.lootboxTransfer) > 0) {
                 const lb = parseFloat(batch.lootboxTransfer);
-                updates.diamondBalance    = FieldValue.increment(lb);
-                updates.lootboxBalance    = 0;
-                updates.lastLootboxTransfer = today;
-                updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
-                updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
-                updates.lastResetDate = today;
-                totalReward = lb;
+
+                // Anti-cheat: cap at server-side lootbox balance
+                const serverLb = parseFloat(user.lootboxBalance || 0);
+                const safeAmount = Math.min(lb, serverLb, MAX_DAILY_LOOTBOX);
+
+                if (safeAmount > 0) {
+                    updates.diamondBalance      = FieldValue.increment(safeAmount);
+                    updates.lootboxBalance      = 0;
+                    updates.lastLootboxTransfer = today;
+                    updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
+                    updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
+                    updates.lastResetDate = today;
+                    totalReward = safeAmount;
+                }
             }
 
             // joinGift
@@ -68,17 +80,23 @@ export default async function handler(req, res) {
                 const field   = AD_FIELDS[type];
                 const watched = isNewDay ? 0 : (user[field] || 0);
                 const limit   = AD_LIMITS[type] || 10;
-                const allowed = Math.min(count, limit - watched);
-                if (allowed <= 0) continue;
-                const reward  = AD_REWARDS[type] * allowed;
-                updates[field]         = FieldValue.increment(allowed);
+
+                // Anti-cheat: clamp count to what's actually allowed
+                const safeCnt = Math.min(Math.max(0, parseInt(count)||0), limit - watched);
+                if (safeCnt <= 0) continue;
+
+                const reward = AD_REWARDS[type] * safeCnt;
+                updates[field]         = FieldValue.increment(safeCnt);
                 updates.lootboxBalance = FieldValue.increment(reward);
                 totalReward += reward;
             }
 
             if (isNewDay && !batch.lootboxTransfer) {
                 updates.lastResetDate = today;
-                if (!updates.adsWatchedAd1) { updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0; updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0; }
+                if (!updates.adsWatchedAd1) {
+                    updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
+                    updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
+                }
             }
 
             if (Object.keys(updates).length > 0) await userRef.update(updates);
