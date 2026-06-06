@@ -80,12 +80,8 @@ export default async function handler(req, res) {
                             : method === 'binance' ? '$'
                             : '';
 
-            await tgMsg(uid,
-                `✅ <b>Withdrawal Received!</b>\n\n` +
-                `💎 <b>${amt} Diamond</b> → <b>${currIcon}${tonAmount} ${currLabel}</b>\n` +
-                `📬 Method: ${method}\n📍 Address: <code>${address}</code>\n\n` +
-                `⏳ Pending admin review. You'll be notified once processed.`
-            );
+            // User notification sent only when admin approves — not on submission
+            // (moved to approveDeposit.js withdrawal section)
             await tgMsg(ADMIN_ID,
                 `🔴 <b>Withdrawal Request</b>\n` +
                 `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
@@ -245,4 +241,4 @@ export default async function handler(req, res) {
         console.error('[notifyDeposit]', e.message);
         return res.status(500).json({ error: e.message });
     }
-    }
+                             }
