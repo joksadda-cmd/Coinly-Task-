@@ -15,7 +15,7 @@ if (!getApps().length) {
 const db  = getFirestore();
 const BOT = process.env.BOT_TOKEN;
 
-const REFER_REWARD    = 5;
+const REFER_REWARD    = 10;      // ✅ 5 → 10
 const REFER_MIN_TASKS = 10;
 const DIAMOND_TO_TON  = 0.0005;
 
@@ -69,15 +69,15 @@ export default async function handler(req, res) {
                 referralDiamondEarned: FieldValue.increment(REFER_REWARD),
             });
             t.set(db.collection('transactions').doc(), {
-                userId:    referrerId,
-                type:      'Refer Reward',
-                details:   `Friend UID: ${uid}`,
+                userId:        referrerId,
+                type:          'Refer Reward',
+                details:       `Friend UID: ${uid}`,
                 diamondAmount: REFER_REWARD,
-                createdAt: FieldValue.serverTimestamp(),
+                createdAt:     FieldValue.serverTimestamp(),
             });
         });
 
-        // Referrer কে Telegram notification
+        // Referrer কে Telegram notification — 10 Diamond
         const tonValue = (REFER_REWARD * DIAMOND_TO_TON).toFixed(4);
         await tgMsg(referrerId,
             `🎉 <b>Refer Successful!</b>\n\n` +
