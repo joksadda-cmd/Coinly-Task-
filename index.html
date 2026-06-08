@@ -859,8 +859,8 @@ const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
 const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
 const REFER_REWARD_DIAMOND = 10;
 const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:10, ad2:10, ad3:25, ad4:25}; // Daily:10, Special:10, Monetag:25, GigaPub:25
-const AD_DIAMOND_REWARDS = {ad1:0.5, ad2:1, ad3:0.5, ad4:0.5}; // ad2=AdsGram Special=1, rest=0.5
+const AD_LIMITS = {ad1:10, ad2:10, ad3:25, ad4:25}; // synced with claimAd.js
+const AD_DIAMOND_REWARDS = {ad1:0.5, ad2:1.0, ad3:0.5, ad4:0.5}; // synced with claimAd.js
 
 // ── TASK PACKAGES ──
 const TASK_PACKAGES = [
@@ -1327,6 +1327,8 @@ document.getElementById('task-list-container').addEventListener('click', async e
                     currentUser.diamondBalance = (currentUser.diamondBalance||0) + earned;
                     if(!currentUser.completedTasks) currentUser.completedTasks=[];
                     currentUser.completedTasks.push(id);
+                    _tasksCache = null; // invalidate so next fetch gets fresh list
+                    try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                     updateUI();
                     showAlert('Task Completed!',`+${earned} 💎 Diamond earned!`,'success');
                     b.parentElement.remove();
