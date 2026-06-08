@@ -261,6 +261,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="bal-box">
                 <div class="bal-lbl">💎 Diamond</div>
                 <div class="bal-num" id="bal-diamond">0</div>
+                <div id="bal-usdt" style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:2px;font-weight:600;">≈ $0.00 USDT</div>
             </div>
             <div class="bal-box">
                 <div class="bal-lbl">⭐ Tasks Done</div>
@@ -496,7 +497,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="refer-stat-box"><div class="refer-stat-val" id="ref-earned">0</div><div class="refer-stat-label">💎 Earned</div></div>
         </div>
         <div class="info-box" style="margin-bottom:14px;">
-            🎁 Refer reward: <b>+10 💎 Diamond</b><br>
+            🎁 Refer reward: <b>+10 💎 Diamond</b> <span style="color:var(--text-muted);font-size:0.75em;">≈ $0.01 USDT</span><br>
             ✅ Valid when: friend completes <b>10 tasks</b><br>
             <span style="font-size:0.75rem;color:var(--text-muted);">Referral only valid after friend completes 10 tasks</span>
         </div>
@@ -1093,6 +1094,8 @@ function updateUI(){
     const diamond = parseFloat(currentUser.diamondBalance||0);
     const tonBal  = parseFloat(currentUser.tonBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
+    const usdtEl = document.getElementById('bal-usdt');
+    if(usdtEl) usdtEl.innerText = `≈ $${(diamond * DIAMOND_TO_USD).toFixed(2)} USDT`;
     document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
@@ -1366,8 +1369,13 @@ async function checkValidRef(){
                 body: JSON.stringify({ userId: currentUser.id })
             });
             const data = await res.json();
-            if(data.success){
+            if(data.success && !data.alreadyClaimed){
                 currentUser.isValidatedRef = true;
+                // Update local balance with actual reward from server
+                const reward = data.reward || 10;
+                currentUser.diamondBalance = (currentUser.diamondBalance||0) + reward;
+                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+                updateUI();
             }
         }catch(e){ console.warn('[checkValidRef]', e); }
     }
@@ -1594,15 +1602,16 @@ function calcWdPreview(){
     const preview=document.getElementById('wd-preview');
     if(a&&a>=minAmt){
         preview.style.display='block';
+        const usdt = (a * DIAMOND_TO_USD).toFixed(2);
         if(wdMethod==='bkash'){
             const bdt = Math.round(a * DIAMOND_TO_BDT);
-            preview.innerHTML=`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">1,000 💎 = 120 BDT</div>You receive: <b style="color:#e2136e;">${bdt.toLocaleString()} BDT</b>`;
+            preview.innerHTML=`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">1,000 💎 = 120 BDT &nbsp;|&nbsp; ≈ $${usdt} USDT</div>You receive: <b style="color:#e2136e;">${bdt.toLocaleString()} BDT</b>`;
         } else if(wdMethod==='binance'){
             const usd = (a * DIAMOND_TO_USD).toFixed(2);
-            preview.innerHTML=`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">1,000 💎 = $1.00 USD</div>You receive: <b style="color:#f0b90b;">$${usd} USD</b>`;
+            preview.innerHTML=`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">1,000 💎 = $1.00 USDT</div>You receive: <b style="color:#f0b90b;">$${usd} USDT</b>`;
         } else {
             const ton = (a * DIAMOND_TO_TON).toFixed(4);
-            preview.innerHTML=`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">1,000 💎 = 0.5 TON</div>You receive: <b style="color:var(--primary);">${ton} TON</b>`;
+            preview.innerHTML=`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">1,000 💎 = 0.5 TON &nbsp;|&nbsp; ≈ $${usdt} USDT</div>You receive: <b style="color:var(--primary);">${ton} TON</b> <span style="color:var(--text-muted);font-size:0.78rem;">(≈ $${usdt})</span>`;
         }
     } else { preview.style.display='none'; }
 }
