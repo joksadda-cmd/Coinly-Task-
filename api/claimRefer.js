@@ -15,9 +15,9 @@ if (!getApps().length) {
 const db  = getFirestore();
 const BOT = process.env.BOT_TOKEN;
 
-const REFER_REWARD    = 10;      // ✅ 5 → 10
+const REFER_REWARD    = 10;
 const REFER_MIN_TASKS = 10;
-const DIAMOND_TO_TON  = 0.0005;
+const DIAMOND_TO_USD  = 0.001;   // 1000 💎 = $1 USDT
 
 async function tgMsg(chatId, text) {
     if (!BOT || !chatId) return;
@@ -77,13 +77,13 @@ export default async function handler(req, res) {
             });
         });
 
-        // Referrer কে Telegram notification — 10 Diamond
-        const tonValue = (REFER_REWARD * DIAMOND_TO_TON).toFixed(4);
+        // USDT value দেখাবে TON এর বদলে
+        const usdtValue = (REFER_REWARD * DIAMOND_TO_USD).toFixed(2);
         await tgMsg(referrerId,
             `🎉 <b>Refer Successful!</b>\n\n` +
             `Your referral (UID: <code>${uid}</code>) has completed ${REFER_MIN_TASKS} tasks!\n\n` +
             `💎 You earned: <b>${REFER_REWARD} Diamond</b>\n` +
-            `💰 Value: <b>${tonValue} TON</b>\n\n` +
+            `💵 Value: <b>$${usdtValue} USDT</b>\n\n` +
             `Keep referring to earn more! 🚀`
         );
 
