@@ -24,7 +24,16 @@
     <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
-            // AdexiumWidget autoMode disabled to prevent unwanted pop-ups
+            // Adexium — banner mode, auto-show on earn tab
+            if(typeof AdexiumWidget !== 'undefined'){
+                try{
+                    window._adexiumWidget = new AdexiumWidget({
+                        containerId: 'adexium-banner-container',
+                        zoneId: '10135525', // update with your actual zone id if different
+                        autoShow: false,
+                    });
+                }catch(e){ console.warn('[Adexium init]', e); }
+            }
         });
     </script>
     <!-- GigaPub auto-play disabled -->
@@ -38,7 +47,7 @@
     --primary-mid:#4d8ef7;
     --accent:#0ea5e9;
     --white:#ffffff;
-    --bg-page:#f0f4ff;
+    --bg-page:#eef2ff;
     --bg-card:#ffffff;
     --bg-section:#f7f9ff;
     --text-main:#0f172a;
@@ -60,32 +69,32 @@
 body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);padding:65px 0 85px;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
 
 /* HEADER */
-.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:var(--white);border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:var(--shadow);}
-.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:var(--primary);letter-spacing:0.5px;}
-.brand i{color:var(--primary);}
-.brand .t{color:var(--accent);}
+.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(135deg,#1a6ff5,#0ea5e9);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 2px 20px rgba(26,111,245,0.35);}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.5px;}
+.brand i{color:#fff;}
+.brand .t{color:rgba(255,255,255,0.75);}
 .head-actions{display:flex;gap:8px;}
-.icon-btn{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.22s;font-size:0.95rem;position:relative;}
+.icon-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.22s;font-size:0.95rem;position:relative;}
 .icon-btn:active{transform:scale(0.92);}
 /* Promo — amber */
-#btn-promo{background:rgba(245,158,11,0.12);border:2px solid #f59e0b;color:#f59e0b;box-shadow:0 2px 8px rgba(245,158,11,0.18);}
-#btn-promo:hover{background:#f59e0b;color:#fff;box-shadow:0 4px 14px rgba(245,158,11,0.35);}
+#btn-promo{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
+#btn-promo:hover{background:rgba(255,255,255,0.3);}
 /* Refer — violet */
-#btn-refer{background:rgba(124,58,237,0.12);border:2px solid #7c3aed;color:#7c3aed;box-shadow:0 2px 8px rgba(124,58,237,0.18);}
-#btn-refer:hover{background:#7c3aed;color:#fff;box-shadow:0 4px 14px rgba(124,58,237,0.35);}
+#btn-refer{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
+#btn-refer:hover{background:rgba(255,255,255,0.3);}
 /* History — teal */
-#btn-history{background:rgba(20,184,166,0.12);border:2px solid #14b8a6;color:#14b8a6;box-shadow:0 2px 8px rgba(20,184,166,0.18);}
-#btn-history:hover{background:#14b8a6;color:#fff;box-shadow:0 4px 14px rgba(20,184,166,0.35);}
+#btn-history{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
+#btn-history:hover{background:rgba(255,255,255,0.3);}
 /* Withdraw/Wallet — primary blue */
-#btn-withdraw{background:rgba(59,130,246,0.12);border:2px solid var(--primary);color:var(--primary);box-shadow:0 2px 8px rgba(59,130,246,0.18);}
-#btn-withdraw:hover{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(59,130,246,0.35);}
+#btn-withdraw{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
+#btn-withdraw:hover{background:rgba(255,255,255,0.3);}
 
 /* CONTAINER */
 .container{max-width:600px;margin:0 auto;padding:0 14px;}
 
 /* CARDS */
 .card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
-.card-blue{background:linear-gradient(135deg,var(--primary) 0%,var(--accent) 100%);border:none;color:#fff;}
+.card-blue{background:linear-gradient(145deg,#1a6ff5 0%,#0ea5e9 60%,#06b6d4 100%);border:none;color:#fff;box-shadow:0 8px 32px rgba(26,111,245,0.3);}
 .card-blue .lbl{color:rgba(255,255,255,0.8);}
 .card-blue .val{color:#fff;}
 
@@ -227,9 +236,10 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
     <div class="head-actions">
         <div class="icon-btn" id="btn-promo" title="Promo Code"><i class="fas fa-ticket-alt"></i></div>
-        <div class="icon-btn" id="btn-refer" title="Refer & Earn"><i class="fas fa-user-plus"></i></div>
         <div class="icon-btn" id="btn-history" title="History"><i class="fas fa-clock-rotate-left"></i></div>
-        <div class="icon-btn" id="btn-withdraw" title="Withdraw"><i class="fas fa-wallet"></i></div>
+        <!-- Hidden triggers for modal compatibility -->
+        <div id="btn-refer" style="display:none;"></div>
+        <div id="btn-withdraw" style="display:none;"></div>
     </div>
 </header>
 
@@ -251,6 +261,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="bal-box">
                 <div class="bal-lbl">💎 Diamond</div>
                 <div class="bal-num" id="bal-diamond">0</div>
+                <div id="bal-usdt" style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:2px;font-weight:600;">≈ $0.00 USDT</div>
             </div>
             <div class="bal-box">
                 <div class="bal-lbl">⭐ Tasks Done</div>
@@ -261,10 +272,13 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span>My TON Balance</span>
             <span><span id="bal-ton">0.0000</span> TON</span>
         </div>
-        <div style="margin-top:10px; display: flex; gap: 8px;">
-            <div id="ton-connect-btn" style="flex: 1;"></div>
-            <button class="btn btn-gold" id="btn-deposit" style="flex: 1; border-radius: 10px; padding: 10px;"><i class="fas fa-coins"></i> Deposit TON</button>
+        <!-- Withdraw + Refer in card -->
+        <div style="margin-top:10px;display:flex;gap:8px;">
+            <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fas fa-arrow-up-from-bracket"></i> Withdraw</button>
+            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fas fa-user-plus"></i> Refer & Earn</button>
         </div>
+        <!-- TON Connect hidden (still functional for deposit send) -->
+        <div id="ton-connect-btn" style="display:none;"></div>
     </div>
 
     <!-- Action Buttons Row -->
@@ -297,77 +311,91 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <!-- ══ ADS SECTION ══ -->
 <section id="sec-ads" class="content-section">
 
-    <!-- Balance mini -->
+    <!-- Balance + daily summary mini card -->
     <div class="card card-blue" style="padding:16px 18px;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div>
-                <div style="font-size:0.72rem;opacity:0.8;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Diamond Balance</div>
-                <div style="font-family:var(--mono);font-size:1.6rem;font-weight:800;" id="ads-bal-diamond">0</div>
+                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Diamond Balance</div>
+                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;" id="ads-bal-diamond">0</div>
             </div>
-            <i class="fas fa-gem" style="font-size:2rem;opacity:0.4;"></i>
+            <div style="text-align:right;">
+                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Today's Max</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;opacity:0.9;">+22.5 💎</div>
+            </div>
         </div>
+        <div style="height:1px;background:rgba(255,255,255,0.15);margin-bottom:10px;"></div>
+        <div style="font-size:0.72rem;opacity:0.7;text-align:center;">Watch all ads daily to maximize earnings 🎯</div>
     </div>
 
     <h2 class="sec-title"><i class="fas fa-play-circle"></i> Watch Ads & Earn Diamond</h2>
 
-    <!-- AdsGram Special: 0.5 diamond -->
-    <div class="task-card">
-        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-star"></i></div>
+    <!-- AdsGram Special: 1 diamond / 10 limit -->
+    <div class="task-card" style="border-color:#fcd34d;background:linear-gradient(135deg,#fffbeb 0%,#fff 100%);">
+        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-star"></i></div>
         <div class="t-info">
-            <div class="t-name">AdsGram Special</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad2">0/5 today</div>
+            <div class="t-name" style="display:flex;align-items:center;gap:6px;">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:20px;">2× REWARD</span></div>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +1 💎 per view</span>
+            </div>
+            <div class="t-limit" id="limit-ad2" style="margin-top:4px;">0/10 today</div>
         </div>
-        <button class="btn btn-gold" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad2">Watch</button>
+        <button class="btn btn-gold" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad2">Watch</button>
     </div>
 
-    <!-- AdsGram Daily: 0.5 diamond -->
+    <!-- AdsGram Daily: 0.5 diamond / 10 limit -->
     <div class="task-card">
-        <div class="t-icon"><i class="fas fa-film"></i></div>
+        <div class="t-icon" style="width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-film"></i></div>
         <div class="t-info">
             <div class="t-name">AdsGram Daily</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad1">0/5 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad1" style="margin-top:4px;">0/10 today</div>
         </div>
-        <button class="btn btn-primary" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad1">Watch</button>
+        <button class="btn btn-primary" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad1">Watch</button>
     </div>
 
-    <!-- Monetag: 0.5 diamond -->
+    <!-- Monetag: 0.5 diamond / 25 limit -->
     <div class="task-card">
-        <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;"><i class="fas fa-ad"></i></div>
+        <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
             <div class="t-name">Monetag Ad</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad3">0/20 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/25 today</div>
         </div>
-        <button class="btn btn-accent" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad3">Watch</button>
+        <button class="btn btn-accent" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad3">Watch</button>
     </div>
 
-    <!-- Giga Pub: 0.5 diamond -->
+    <!-- Giga Pub: 0.5 diamond / 25 limit -->
     <div class="task-card">
-        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-ad"></i></div>
+        <div class="t-icon" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-photo-video"></i></div>
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad4">0/10 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/25 today</div>
         </div>
-        <button class="btn btn-outline" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad4">Watch</button>
+        <button class="btn" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.3);" id="btn-ad4">Watch</button>
     </div>
 
     <!-- Lootbox Section -->
-    <div class="card" style="margin-top:16px;border:2px solid var(--border-mid);border-radius:18px;padding:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:-20px;right:-20px;font-size:5rem;opacity:0.07;">🎁</div>
-        <div style="font-weight:800;font-size:1rem;margin-bottom:4px;">🎁 Lootbox</div>
-        <div style="font-size:0.75rem;opacity:0.7;margin-bottom:12px;">Ads earned diamond stored here. Transfers to main balance at midnight.</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;margin-bottom:10px;">
-            <div>
-                <div style="font-size:0.7rem;opacity:0.6;text-transform:uppercase;letter-spacing:1px;">Lootbox Balance</div>
-                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;color:#fbbf24;" id="lootbox-balance">0.00</div>
-            </div>
-            <div style="font-size:2.5rem;">🎁</div>
+    <div class="card" style="margin-top:16px;border:2px solid #312e81;border-radius:18px;padding:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-20px;right:-20px;font-size:5rem;opacity:0.06;">🎁</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:1.3rem;">🎁</span>
+            <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;opacity:0.55;text-align:center;" id="lootbox-timer">Transfers at midnight</div>
+        <div style="font-size:0.72rem;opacity:0.6;margin-bottom:14px;line-height:1.5;">Ad earnings stored here. Automatically transfers to main balance at midnight (Dhaka time).</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div>
+                <div style="font-size:0.65rem;opacity:0.5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Lootbox Balance</div>
+                <div style="font-family:var(--mono);font-size:2rem;font-weight:800;color:#fbbf24;" id="lootbox-balance">0.00</div>
+                <div style="font-size:0.68rem;opacity:0.5;margin-top:2px;">💎 Diamond</div>
+            </div>
+            <div style="font-size:2.8rem;">🎁</div>
+        </div>
+        <div style="font-size:0.7rem;opacity:0.45;text-align:center;" id="lootbox-timer">Watch ads to earn here</div>
     </div>
+
+    <!-- Adexium Banner -->
+    <div id="adexium-banner-container" style="margin-top:14px;min-height:60px;border-radius:14px;overflow:hidden;"></div>
 
 </section>
 
@@ -469,7 +497,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="refer-stat-box"><div class="refer-stat-val" id="ref-earned">0</div><div class="refer-stat-label">💎 Earned</div></div>
         </div>
         <div class="info-box" style="margin-bottom:14px;">
-            🎁 Refer reward: <b>+10 💎 Diamond</b><br>
+            🎁 Refer reward: <b>+10 💎 Diamond</b> <span style="color:var(--text-muted);font-size:0.75em;">≈ $0.01 USDT</span><br>
             ✅ Valid when: friend completes <b>10 tasks</b><br>
             <span style="font-size:0.75rem;color:var(--text-muted);">Referral only valid after friend completes 10 tasks</span>
         </div>
@@ -534,6 +562,57 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     </div>
 </div>
 
+<!-- CONTACT ADMIN FOR TASK CREATION -->
+<div class="modal-bg" id="modal-contact-admin" style="z-index:5000;">
+    <div class="modal-box" style="border-color:var(--primary);padding:26px 22px;">
+
+        <div style="font-size:2.8rem;margin-bottom:10px;">📋</div>
+        <div class="modal-title">Create a Task</div>
+        <div class="modal-sub" style="font-size:0.82rem;margin-bottom:20px;line-height:1.7;">
+            To create a task, you need to deposit TON first.<br>
+            Contact our admin to get started.
+        </div>
+
+        <!-- Steps -->
+        <div style="background:var(--bg-section);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px;margin-bottom:18px;text-align:left;">
+            <div style="font-weight:800;font-size:0.85rem;color:var(--primary);margin-bottom:10px;">📌 How it works</div>
+            <div style="font-size:0.78rem;color:var(--text-sub);line-height:2;">
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">1</span>
+                Message our admin on Telegram<br>
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">2</span>
+                Tell them your task details &amp; budget<br>
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">3</span>
+                Admin will deposit TON to your account<br>
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">4</span>
+                Use your TON balance to create tasks ✅
+            </div>
+        </div>
+
+        <!-- Admin Contact Button -->
+        <a href="https://t.me/Your_Admin11" target="_blank"
+           style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+                  background:linear-gradient(135deg,#1a6ff5,#0ea5e9);border-radius:13px;
+                  text-decoration:none;color:#fff;font-weight:700;font-size:0.9rem;
+                  box-shadow:0 4px 14px rgba(26,111,245,0.3);margin-bottom:12px;">
+            <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;
+                        display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+                <i class="fab fa-telegram-plane"></i>
+            </div>
+            <div style="text-align:left;flex:1;">
+                <div>Contact Admin</div>
+                <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">@Your_Admin11</div>
+            </div>
+            <i class="fas fa-arrow-right" style="opacity:0.8;"></i>
+        </a>
+
+        <button onclick="document.getElementById('modal-contact-admin').classList.remove('show')"
+                style="width:100%;padding:12px;background:var(--bg-section);border:1.5px solid var(--border);
+                       color:var(--text-sub);border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;">
+            Close
+        </button>
+    </div>
+</div>
+
 <!-- ALERT MODAL -->
 <div class="modal-bg" id="modal-alert">
     <div class="modal-box" style="max-width:290px;">
@@ -551,7 +630,9 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <!-- Step 1: Choose type -->
         <div id="ct-step-type">
             <div class="modal-title" style="margin-bottom:4px;">Create a Task</div>
-            <div class="modal-sub" style="margin-bottom:14px;">Select the type of promotion</div>
+            <div class="modal-sub" style="margin-bottom:10px;">Select the type of promotion</div>
+            <!-- Deposit warning shown here if user has violations -->
+            <div id="ct-deposit-warning" style="display:none;"></div>
             <div class="task-type-grid" id="task-type-grid">
                 <div class="task-type-btn" data-type="telegram_channel" style="position:relative;">
                     <i class="fab fa-telegram-plane"></i>
@@ -640,8 +721,15 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="modal-box">
         <i class="fas fa-coins" style="font-size:2.2rem;color:var(--gold);margin-bottom:10px;display:block;"></i>
         <div class="modal-title">Deposit TON</div>
-        <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:8px 12px;font-size:0.72rem;color:#856404;margin:8px 0;text-align:left;">⚠️ <b>Warning:</b> Fake/duplicate requests = permanent ban. Submit only after actual TON transfer.</div>
         <div class="modal-sub" id="dep-modal-sub">Sending <b id="dep-show-ton">0.5</b> TON</div>
+        
+        <!-- ⚠️ Warning banner — shown conditionally by JS for warned users, always shown as info for all -->
+        <div id="dep-warning-banner" style="display:none;border-radius:12px;padding:10px 14px;font-size:0.75rem;font-weight:700;margin-bottom:10px;text-align:center;line-height:1.5;"></div>
+        
+        <!-- Static info warning for everyone -->
+        <div style="background:#fff8e1;border:1.5px solid #ffd54f;border-radius:10px;padding:8px 12px;font-size:0.72rem;color:#856404;margin-bottom:12px;text-align:left;">
+            ⚠️ <b>Important:</b> Fake or duplicate deposit requests = <b>permanent ban</b>. Submit only after actual TON transfer.
+        </div>
         
         <!-- Deposit packages with 40% discount -->
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
@@ -772,8 +860,8 @@ const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
 const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
 const REFER_REWARD_DIAMOND = 10;
 const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:5, ad2:10, ad3:20, ad4:10}; // matches claimAd.js server
-const AD_DIAMOND_REWARDS = {ad1:0.5, ad2:1, ad3:0.5, ad4:0.5}; // ad2=monetag special, rest=0.5
+const AD_LIMITS = {ad1:10, ad2:10, ad3:25, ad4:25}; // synced with claimAd.js
+const AD_DIAMOND_REWARDS = {ad1:0.5, ad2:1.0, ad3:0.5, ad4:0.5}; // synced with claimAd.js
 
 // ── TASK PACKAGES ──
 const TASK_PACKAGES = [
@@ -1006,6 +1094,8 @@ function updateUI(){
     const diamond = parseFloat(currentUser.diamondBalance||0);
     const tonBal  = parseFloat(currentUser.tonBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
+    const usdtEl = document.getElementById('bal-usdt');
+    if(usdtEl) usdtEl.innerText = `≈ $${(diamond * DIAMOND_TO_USD).toFixed(2)} USDT`;
     document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
@@ -1036,19 +1126,6 @@ function updateUI(){
     updLim('ad2', currentUser.adsWatchedAd2||0, AD_LIMITS.ad2);
     updLim('ad3', currentUser.adsWatchedAd3||0, AD_LIMITS.ad3);
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
-    try{
-        const db2=document.getElementById('btn-deposit'); let nb=document.getElementById('deposit-ban-notice');
-        if(currentUser.depositBanned){
-            if(db2) db2.style.display='none';
-            if(!nb){nb=document.createElement('div');nb.id='deposit-ban-notice';db2?.parentNode?.insertBefore(nb,db2);}
-            nb.innerHTML='<div style="background:#1f0707;border:1.5px solid #ef4444;border-radius:12px;padding:12px 14px;text-align:center;"><div style="font-size:1.3rem;">🚫</div><div style="color:#ef4444;font-weight:800;font-size:0.85rem;">Deposit Permanently Disabled</div><div style="color:#fca5a5;font-size:0.7rem;margin-top:4px;line-height:1.5;">Your deposit access has been permanently disabled due to repeated policy violations.</div></div>';
-        } else if((currentUser.depositWarnings||0)>=1){
-            const w=currentUser.depositWarnings,col=w>=2?'#ef4444':'#f59e0b',bg=w>=2?'#1f0707':'#1c1400';
-            if(!nb){nb=document.createElement('div');nb.id='deposit-ban-notice';db2?.parentNode?.insertBefore(nb,db2);}
-            nb.innerHTML=`<div style="background:${bg};border:1.5px solid ${col};border-radius:10px;padding:9px 12px;margin-bottom:8px;text-align:center;"><div style="color:${col};font-weight:800;font-size:0.78rem;">⚠️ Warning ${w}/3</div><div style="color:#d1d5db;font-size:0.68rem;margin-top:3px;">${w>=2?'🚨 Final warning! Next = permanent ban.':'2 more violations = permanent deposit ban.'}</div></div>`;
-            if(db2) db2.style.display='';
-        } else { if(nb) nb.remove(); if(db2) db2.style.display=''; }
-    }catch(e){}
 }
 
 // ── ADS → Batch write (local first, sync every 5 ads) ──
@@ -1175,7 +1252,7 @@ async function fetchMyTasks(container){
         const myTasks = (data.tasks||[]).filter(t=>t.createdBy===currentUser.id);
 
         if(!myTasks.length){
-            container.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>You haven't created any tasks yet.</p><button onclick="document.getElementById('btn-create-task').click()" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Create First Task</button></div>`;
+            container.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>You haven't created any tasks yet.</p><button onclick="document.getElementById('btn-create-task').click()" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Create a Task</button></div>`;
             return;
         }
         container.innerHTML = myTasks.map(t=>{
@@ -1253,6 +1330,8 @@ document.getElementById('task-list-container').addEventListener('click', async e
                     currentUser.diamondBalance = (currentUser.diamondBalance||0) + earned;
                     if(!currentUser.completedTasks) currentUser.completedTasks=[];
                     currentUser.completedTasks.push(id);
+                    _tasksCache = null; // invalidate so next fetch gets fresh list
+                    try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                     updateUI();
                     showAlert('Task Completed!',`+${earned} 💎 Diamond earned!`,'success');
                     b.parentElement.remove();
@@ -1290,8 +1369,13 @@ async function checkValidRef(){
                 body: JSON.stringify({ userId: currentUser.id })
             });
             const data = await res.json();
-            if(data.success){
+            if(data.success && !data.alreadyClaimed){
                 currentUser.isValidatedRef = true;
+                // Update local balance with actual reward from server
+                const reward = data.reward || 10;
+                currentUser.diamondBalance = (currentUser.diamondBalance||0) + reward;
+                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+                updateUI();
             }
         }catch(e){ console.warn('[checkValidRef]', e); }
     }
@@ -1348,26 +1432,25 @@ function renderPackages(){
 }
 
 document.getElementById('btn-create-task').addEventListener('click',()=>{
+    // Check if user has TON balance — if yes, open create task modal directly
     const userTon = parseFloat(currentUser?.tonBalance||0);
-
-    // No TON at all → go to deposit directly
-    if(userTon <= 0){
-        document.getElementById('modal-deposit').classList.add('show');
-        return;
+    if(userTon > 0){
+        selectedPackage=null; selectedTaskType=null;
+        window._boostTaskId=null; window._boostTaskTitle=null;
+        document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById('ct-to-details-btn').disabled=true;
+        document.getElementById('ct-title').value='';
+        document.getElementById('ct-url').value='';
+        document.getElementById('ct-channel-id').value='';
+        document.getElementById('ct-balance').innerText=userTon.toFixed(4);
+        const ctWarningEl = document.getElementById('ct-deposit-warning');
+        if(ctWarningEl) ctWarningEl.style.display='none';
+        showStep('ct-step-type');
+        document.getElementById('modal-create-task').classList.add('show');
+    } else {
+        // No TON balance — show contact admin modal
+        document.getElementById('modal-contact-admin').classList.add('show');
     }
-
-    // Has TON but pending deposit request → show create task normally
-    // (pending deposit is separate from task TON balance)
-    selectedPackage=null; selectedTaskType=null;
-    window._boostTaskId=null; window._boostTaskTitle=null;
-    document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('ct-to-details-btn').disabled=true;
-    document.getElementById('ct-title').value='';
-    document.getElementById('ct-url').value='';
-    document.getElementById('ct-channel-id').value='';
-    document.getElementById('ct-balance').innerText=userTon.toFixed(4);
-    showStep('ct-step-type');
-    document.getElementById('modal-create-task').classList.add('show');
 });
 
 document.querySelectorAll('.task-type-btn').forEach(btn=>{
@@ -1519,15 +1602,16 @@ function calcWdPreview(){
     const preview=document.getElementById('wd-preview');
     if(a&&a>=minAmt){
         preview.style.display='block';
+        const usdt = (a * DIAMOND_TO_USD).toFixed(2);
         if(wdMethod==='bkash'){
             const bdt = Math.round(a * DIAMOND_TO_BDT);
-            preview.innerHTML=`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">1,000 💎 = 120 BDT</div>You receive: <b style="color:#e2136e;">${bdt.toLocaleString()} BDT</b>`;
+            preview.innerHTML=`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">1,000 💎 = 120 BDT &nbsp;|&nbsp; ≈ $${usdt} USDT</div>You receive: <b style="color:#e2136e;">${bdt.toLocaleString()} BDT</b>`;
         } else if(wdMethod==='binance'){
             const usd = (a * DIAMOND_TO_USD).toFixed(2);
-            preview.innerHTML=`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">1,000 💎 = $1.00 USD</div>You receive: <b style="color:#f0b90b;">$${usd} USD</b>`;
+            preview.innerHTML=`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">1,000 💎 = $1.00 USDT</div>You receive: <b style="color:#f0b90b;">$${usd} USDT</b>`;
         } else {
             const ton = (a * DIAMOND_TO_TON).toFixed(4);
-            preview.innerHTML=`<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:2px;">1,000 💎 = 0.5 TON</div>You receive: <b style="color:var(--primary);">${ton} TON</b>`;
+            preview.innerHTML=`<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:3px;">1,000 💎 = 0.5 TON &nbsp;|&nbsp; ≈ $${usdt} USDT</div>You receive: <b style="color:var(--primary);">${ton} TON</b> <span style="color:var(--text-muted);font-size:0.78rem;">(≈ $${usdt})</span>`;
         }
     } else { preview.style.display='none'; }
 }
@@ -1630,16 +1714,40 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
             document.getElementById('promo-input').value='';
             document.getElementById('modal-promo').classList.remove('show');
             showAlert('Claimed!', `+${data.reward} 💎 Diamond added!`, 'success');
-            // Play a random ad after promo claim
-            setTimeout(()=>{
+            // Play a random ad after promo claim (GigaPub or AdsGram Special randomly)
+            setTimeout(async ()=>{
                 try{
-                    const adFns = [
-                        ()=>{ if(window.Adsgram?.init) window.Adsgram.init({blockId:'22900'}).show().catch(()=>{}); },
-                        ()=>{ if(window.show_10135525) window.show_10135525().catch(()=>{}); },
-                    ];
-                    adFns[Math.floor(Math.random()*adFns.length)]();
-                }catch(e){}
-            }, 1500);
+                    const roll = Math.random();
+                    if(roll < 0.5){
+                        // GigaPub
+                        await showGigaAd();
+                        // Reward for ad view
+                        const reward = AD_DIAMOND_REWARDS.ad4;
+                        const limit  = AD_LIMITS.ad4;
+                        if((currentUser.adsWatchedAd4||0) < limit){
+                            currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
+                            currentUser.adsWatchedAd4  = (currentUser.adsWatchedAd4||0) + 1;
+                            _adPendingSync.ad4 = (_adPendingSync.ad4||0) + 1;
+                            updateUI(); updateLootbox();
+                        }
+                    } else {
+                        // AdsGram Special (ad2)
+                        const adObj = window.Adsgram?.init({blockId:'22900'});
+                        if(adObj?.show) await adObj.show();
+                        const reward = AD_DIAMOND_REWARDS.ad2;
+                        const limit  = AD_LIMITS.ad2;
+                        if((currentUser.adsWatchedAd2||0) < limit){
+                            currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
+                            currentUser.adsWatchedAd2  = (currentUser.adsWatchedAd2||0) + 1;
+                            _adPendingSync.ad2 = (_adPendingSync.ad2||0) + 1;
+                            updateUI(); updateLootbox();
+                        }
+                    }
+                    // Sync batch
+                    clearTimeout(_adSyncTimer);
+                    _adSyncTimer = setTimeout(flushAdSync, 5000);
+                }catch(e){ console.warn('[promo ad]', e); }
+            }, 1200);
         } else {
             showAlert('Error', data.error || 'Invalid or already used.', 'error');
         }
@@ -1743,6 +1851,12 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
     document.querySelectorAll('.b-nav-item,.content-section').forEach(e=>e.classList.remove('active'));
     l.classList.add('active');
     document.querySelector(l.dataset.target).classList.add('active');
+    // Show Adexium banner when earn/ads tab is opened
+    if(l.dataset.target === '#sec-ads'){
+        try{
+            if(window._adexiumWidget?.show) window._adexiumWidget.show();
+        }catch(e){}
+    }
 }));
 
 // ── DEPOSIT BUTTON ──
@@ -1786,13 +1900,31 @@ async function sendTonConnect(toAddress, tonAmount, memo){
     await tonConnectUI.sendTransaction(tx);
 }
 
-document.getElementById('btn-deposit').addEventListener('click',()=>{
+document.getElementById('btn-deposit')?.addEventListener('click',()=>{
     if(currentUser.depositBanned){ showAlert('Access Denied','Your deposit access has been permanently disabled.','error'); return; }
     if(!currentUser) return;
     // If pending deposit, show info but still allow viewing
     if(currentUser._pendingDeposit){
         showAlert('⏳ Pending','You have a pending deposit. Wait for admin approval before submitting another request.','error');
         return;
+    }
+    // Show warning banner if user has warnings
+    const wb = document.getElementById('dep-warning-banner');
+    if(wb){
+        const w = currentUser.depositWarnings || 0;
+        if(w >= 1){
+            const col = w >= 2 ? '#ef4444' : '#f59e0b';
+            const bg  = w >= 2 ? '#fef2f2' : '#fffbeb';
+            wb.style.display = 'block';
+            wb.style.background = bg;
+            wb.style.border = `1.5px solid ${col}`;
+            wb.style.color = w >= 2 ? '#991b1b' : '#92400e';
+            wb.innerHTML = w >= 2
+                ? `🚨 <b>Warning ${w}/3 — Final Warning!</b><br>Next violation = <b>permanent ban</b>.`
+                : `⚠️ <b>Warning ${w}/3</b> — ${3-w} more violation${3-w>1?'s':''} = permanent ban.`;
+        } else {
+            wb.style.display = 'none';
+        }
     }
     document.getElementById('dep-show-ton').innerText=selectedDepositTon;
     document.getElementById('dep-memo-display').innerText=currentUser.id;
@@ -1820,8 +1952,9 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
         await sendTonConnect(DEPOSIT_WALLET, selectedDepositTon, currentUser.id);
-        // Save via API after TonConnect send
-        await fetch(`${API_BASE}/notifyDeposit`,{
+        // Wait 3s for blockchain to register tx, then verify
+        await new Promise(r=>setTimeout(r,3000));
+        const res = await fetch(`${API_BASE}/notifyDeposit`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
                 userId: currentUser.id, username: currentUser.telegramUsername||'',
@@ -1831,10 +1964,19 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
                 memo: String(currentUser.id),
             })
         });
+        const data = await res.json();
         document.getElementById('modal-deposit').classList.remove('show');
-        currentUser._pendingDeposit = true;
-        localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
-        showAlert('Sent! ✅','TON sent via wallet! Admin will verify and credit your Diamond.','success');
+        if(data.autoApproved){
+            // Blockchain verified — update balance immediately
+            currentUser.tonBalance = (currentUser.tonBalance||0) + selectedDepositTon;
+            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+            updateUI();
+            showAlert('Verified! ✅', `${selectedDepositTon} TON confirmed on blockchain and added to your balance! 🎉`, 'success');
+        } else {
+            currentUser._pendingDeposit = true;
+            localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
+            showAlert('Sent! ✅','TON sent! Admin will verify and credit your balance shortly.','success');
+        }
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON Directly';
 });
@@ -1848,7 +1990,6 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('dep-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        // notifyDeposit API — saves to Firestore AND notifies admin (no direct Firestore write)
         const res = await fetch(`${API_BASE}/notifyDeposit`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
@@ -1861,11 +2002,22 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
             })
         });
         const data = await res.json();
-        if(data.success || data.depositId){
+
+        if(data.autoApproved){
+            // ✅ Blockchain verified — instant credit
+            document.getElementById('modal-deposit').classList.remove('show');
+            currentUser.tonBalance = (currentUser.tonBalance||0) + selectedDepositTon;
+            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+            updateUI();
+            showAlert('Verified! ✅', `${selectedDepositTon} TON confirmed on blockchain and added to your balance! 🎉`, 'success');
+
+        } else if(data.success || data.depositId){
+            // ⏳ Not found on blockchain yet — pending manual review
             document.getElementById('modal-deposit').classList.remove('show');
             currentUser._pendingDeposit = true;
-        localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
-            showAlert('Submitted! ✅', '⚠️ Deposit request received. Admin will verify and approve your TON. Fake/duplicate requests = permanent ban.', 'success');
+            localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
+            showAlert('Submitted ⏳', 'Transaction not found on blockchain yet. Submitted for manual review — admin will verify within 1–6 hours.', 'success');
+
         } else {
             showAlert('Error', data.error||'Submission failed. Try again.', 'error');
         }
@@ -2019,6 +2171,15 @@ function showTaskInfo(type){
 
 initTonConnect();
 initApp();
+
+// Inline withdraw button (in balance card)
+document.getElementById('btn-withdraw-inline')?.addEventListener('click',()=>{
+    document.getElementById('btn-withdraw').click();
+});
+// Inline refer button (in balance card)
+document.getElementById('btn-refer-inline')?.addEventListener('click',()=>{
+    document.getElementById('btn-refer').click();
+});
 </script>
 
 </body>
