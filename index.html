@@ -1899,8 +1899,9 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
         await sendTonConnect(DEPOSIT_WALLET, selectedDepositTon, currentUser.id);
-        // Save via API after TonConnect send
-        await fetch(`${API_BASE}/notifyDeposit`,{
+        // Wait 3s for blockchain to register tx, then verify
+        await new Promise(r=>setTimeout(r,3000));
+        const res = await fetch(`${API_BASE}/notifyDeposit`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
                 userId: currentUser.id, username: currentUser.telegramUsername||'',
@@ -1910,10 +1911,19 @@ document.getElementById('dep-send-btn').addEventListener('click', async()=>{
                 memo: String(currentUser.id),
             })
         });
+        const data = await res.json();
         document.getElementById('modal-deposit').classList.remove('show');
-        currentUser._pendingDeposit = true;
-        localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
-        showAlert('Sent! ✅','TON sent via wallet! Admin will verify and credit your Diamond.','success');
+        if(data.autoApproved){
+            // Blockchain verified — update balance immediately
+            currentUser.tonBalance = (currentUser.tonBalance||0) + selectedDepositTon;
+            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+            updateUI();
+            showAlert('Verified! ✅', `${selectedDepositTon} TON confirmed on blockchain and added to your balance! 🎉`, 'success');
+        } else {
+            currentUser._pendingDeposit = true;
+            localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
+            showAlert('Sent! ✅','TON sent! Admin will verify and credit your balance shortly.','success');
+        }
     }catch(e){ showAlert('Error',e.message||'Transaction failed.','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fas fa-bolt"></i> Send TON Directly';
 });
@@ -1927,7 +1937,6 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
     const btn=document.getElementById('dep-confirm-btn');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
-        // notifyDeposit API — saves to Firestore AND notifies admin (no direct Firestore write)
         const res = await fetch(`${API_BASE}/notifyDeposit`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({
@@ -1940,11 +1949,22 @@ document.getElementById('dep-confirm-btn').addEventListener('click', async()=>{
             })
         });
         const data = await res.json();
-        if(data.success || data.depositId){
+
+        if(data.autoApproved){
+            // ✅ Blockchain verified — instant credit
+            document.getElementById('modal-deposit').classList.remove('show');
+            currentUser.tonBalance = (currentUser.tonBalance||0) + selectedDepositTon;
+            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+            updateUI();
+            showAlert('Verified! ✅', `${selectedDepositTon} TON confirmed on blockchain and added to your balance! 🎉`, 'success');
+
+        } else if(data.success || data.depositId){
+            // ⏳ Not found on blockchain yet — pending manual review
             document.getElementById('modal-deposit').classList.remove('show');
             currentUser._pendingDeposit = true;
-        localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
-            showAlert('Submitted! ✅', '⚠️ Deposit request received. Admin will verify and approve your TON. Fake/duplicate requests = permanent ban.', 'success');
+            localStorage.setItem(`coinly_pendingDep_${currentUser.id}`, '1');
+            showAlert('Submitted ⏳', 'Transaction not found on blockchain yet. Submitted for manual review — admin will verify within 1–6 hours.', 'success');
+
         } else {
             showAlert('Error', data.error||'Submission failed. Try again.', 'error');
         }
