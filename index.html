@@ -561,6 +561,57 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     </div>
 </div>
 
+<!-- CONTACT ADMIN FOR TASK CREATION -->
+<div class="modal-bg" id="modal-contact-admin" style="z-index:5000;">
+    <div class="modal-box" style="border-color:var(--primary);padding:26px 22px;">
+
+        <div style="font-size:2.8rem;margin-bottom:10px;">📋</div>
+        <div class="modal-title">Create a Task</div>
+        <div class="modal-sub" style="font-size:0.82rem;margin-bottom:20px;line-height:1.7;">
+            To create a task, you need to deposit TON first.<br>
+            Contact our admin to get started.
+        </div>
+
+        <!-- Steps -->
+        <div style="background:var(--bg-section);border:1.5px solid var(--border);border-radius:13px;padding:14px 16px;margin-bottom:18px;text-align:left;">
+            <div style="font-weight:800;font-size:0.85rem;color:var(--primary);margin-bottom:10px;">📌 How it works</div>
+            <div style="font-size:0.78rem;color:var(--text-sub);line-height:2;">
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">1</span>
+                Message our admin on Telegram<br>
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">2</span>
+                Tell them your task details &amp; budget<br>
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">3</span>
+                Admin will deposit TON to your account<br>
+                <span style="background:var(--primary);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:800;margin-right:6px;">4</span>
+                Use your TON balance to create tasks ✅
+            </div>
+        </div>
+
+        <!-- Admin Contact Button -->
+        <a href="https://t.me/Your_Admin11" target="_blank"
+           style="display:flex;align-items:center;gap:12px;padding:14px 16px;
+                  background:linear-gradient(135deg,#1a6ff5,#0ea5e9);border-radius:13px;
+                  text-decoration:none;color:#fff;font-weight:700;font-size:0.9rem;
+                  box-shadow:0 4px 14px rgba(26,111,245,0.3);margin-bottom:12px;">
+            <div style="width:38px;height:38px;background:rgba(255,255,255,0.2);border-radius:10px;
+                        display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+                <i class="fab fa-telegram-plane"></i>
+            </div>
+            <div style="text-align:left;flex:1;">
+                <div>Contact Admin</div>
+                <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">@Your_Admin11</div>
+            </div>
+            <i class="fas fa-arrow-right" style="opacity:0.8;"></i>
+        </a>
+
+        <button onclick="document.getElementById('modal-contact-admin').classList.remove('show')"
+                style="width:100%;padding:12px;background:var(--bg-section);border:1.5px solid var(--border);
+                       color:var(--text-sub);border-radius:12px;font-weight:700;font-size:0.85rem;cursor:pointer;">
+            Close
+        </button>
+    </div>
+</div>
+
 <!-- ALERT MODAL -->
 <div class="modal-bg" id="modal-alert">
     <div class="modal-box" style="max-width:290px;">
@@ -1198,7 +1249,7 @@ async function fetchMyTasks(container){
         const myTasks = (data.tasks||[]).filter(t=>t.createdBy===currentUser.id);
 
         if(!myTasks.length){
-            container.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>You haven't created any tasks yet.</p><button onclick="document.getElementById('btn-create-task').click()" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Create First Task</button></div>`;
+            container.innerHTML = `<div class="empty-state"><i class="fas fa-star"></i><p>You haven't created any tasks yet.</p><button onclick="document.getElementById('btn-create-task').click()" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Create a Task</button></div>`;
             return;
         }
         container.innerHTML = myTasks.map(t=>{
@@ -1371,34 +1422,25 @@ function renderPackages(){
 }
 
 document.getElementById('btn-create-task').addEventListener('click',()=>{
+    // Check if user has TON balance — if yes, open create task modal directly
     const userTon = parseFloat(currentUser?.tonBalance||0);
-
-    selectedPackage=null; selectedTaskType=null;
-    window._boostTaskId=null; window._boostTaskTitle=null;
-    document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('ct-to-details-btn').disabled=true;
-    document.getElementById('ct-title').value='';
-    document.getElementById('ct-url').value='';
-    document.getElementById('ct-channel-id').value='';
-    document.getElementById('ct-balance').innerText=userTon.toFixed(4);
-
-    // Show deposit warning inside create task modal if banned/warned
-    const ctWarningEl = document.getElementById('ct-deposit-warning');
-    if(ctWarningEl){
-        if(currentUser.depositBanned){
-            ctWarningEl.style.display='block';
-            ctWarningEl.innerHTML='<div style="background:#fef2f2;border:1.5px solid #ef4444;border-radius:10px;padding:10px 12px;font-size:0.75rem;color:#991b1b;margin-bottom:12px;text-align:center;">🚫 <b>Deposit Permanently Disabled</b> — contact support.</div>';
-        } else if((currentUser.depositWarnings||0)>=1){
-            const w=currentUser.depositWarnings,col=w>=2?'#ef4444':'#f59e0b',bg=w>=2?'#fef2f2':'#fffbeb';
-            ctWarningEl.style.display='block';
-            ctWarningEl.innerHTML=`<div style="background:${bg};border:1.5px solid ${col};border-radius:10px;padding:10px 12px;font-size:0.75rem;color:${w>=2?'#991b1b':'#92400e'};margin-bottom:12px;text-align:center;">${w>=2?'🚨':'⚠️'} <b>Deposit Warning ${w}/3</b> — ${w>=2?'Final warning! Next = permanent ban.':3-w+' more violations = permanent ban.'}</div>`;
-        } else {
-            ctWarningEl.style.display='none';
-        }
+    if(userTon > 0){
+        selectedPackage=null; selectedTaskType=null;
+        window._boostTaskId=null; window._boostTaskTitle=null;
+        document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById('ct-to-details-btn').disabled=true;
+        document.getElementById('ct-title').value='';
+        document.getElementById('ct-url').value='';
+        document.getElementById('ct-channel-id').value='';
+        document.getElementById('ct-balance').innerText=userTon.toFixed(4);
+        const ctWarningEl = document.getElementById('ct-deposit-warning');
+        if(ctWarningEl) ctWarningEl.style.display='none';
+        showStep('ct-step-type');
+        document.getElementById('modal-create-task').classList.add('show');
+    } else {
+        // No TON balance — show contact admin modal
+        document.getElementById('modal-contact-admin').classList.add('show');
     }
-
-    showStep('ct-step-type');
-    document.getElementById('modal-create-task').classList.add('show');
 });
 
 document.querySelectorAll('.task-type-btn').forEach(btn=>{
