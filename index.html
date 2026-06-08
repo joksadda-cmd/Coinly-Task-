@@ -236,9 +236,10 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
     <div class="head-actions">
         <div class="icon-btn" id="btn-promo" title="Promo Code"><i class="fas fa-ticket-alt"></i></div>
-        <div class="icon-btn" id="btn-refer" title="Refer & Earn"><i class="fas fa-user-plus"></i></div>
         <div class="icon-btn" id="btn-history" title="History"><i class="fas fa-clock-rotate-left"></i></div>
-        <div class="icon-btn" id="btn-withdraw" title="Withdraw"><i class="fas fa-wallet"></i></div>
+        <!-- Hidden triggers for modal compatibility -->
+        <div id="btn-refer" style="display:none;"></div>
+        <div id="btn-withdraw" style="display:none;"></div>
     </div>
 </header>
 
@@ -270,10 +271,10 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span>My TON Balance</span>
             <span><span id="bal-ton">0.0000</span> TON</span>
         </div>
-        <!-- Withdraw section replaces Connect Wallet -->
+        <!-- Withdraw + Refer in card -->
         <div style="margin-top:10px;display:flex;gap:8px;">
             <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fas fa-arrow-up-from-bracket"></i> Withdraw</button>
-            <button class="btn btn-gold" id="btn-deposit" style="flex:1;border-radius:10px;padding:10px;"><i class="fas fa-coins"></i> Deposit TON</button>
+            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fas fa-user-plus"></i> Refer & Earn</button>
         </div>
         <!-- TON Connect hidden (still functional for deposit send) -->
         <div id="ton-connect-btn" style="display:none;"></div>
@@ -309,76 +310,87 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <!-- ══ ADS SECTION ══ -->
 <section id="sec-ads" class="content-section">
 
-    <!-- Balance mini -->
+    <!-- Balance + daily summary mini card -->
     <div class="card card-blue" style="padding:16px 18px;margin-bottom:14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div>
-                <div style="font-size:0.72rem;opacity:0.8;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Diamond Balance</div>
-                <div style="font-family:var(--mono);font-size:1.6rem;font-weight:800;" id="ads-bal-diamond">0</div>
+                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Diamond Balance</div>
+                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;" id="ads-bal-diamond">0</div>
             </div>
-            <i class="fas fa-gem" style="font-size:2rem;opacity:0.4;"></i>
+            <div style="text-align:right;">
+                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Today's Max</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;opacity:0.9;">+22.5 💎</div>
+            </div>
         </div>
+        <div style="height:1px;background:rgba(255,255,255,0.15);margin-bottom:10px;"></div>
+        <div style="font-size:0.72rem;opacity:0.7;text-align:center;">Watch all ads daily to maximize earnings 🎯</div>
     </div>
 
     <h2 class="sec-title"><i class="fas fa-play-circle"></i> Watch Ads & Earn Diamond</h2>
 
-    <!-- AdsGram Special: 1 diamond -->
-    <div class="task-card" style="border-color:#fcd34d;background:linear-gradient(135deg,#fffbeb,#fef9ec);">
-        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-star"></i></div>
+    <!-- AdsGram Special: 1 diamond / 10 limit -->
+    <div class="task-card" style="border-color:#fcd34d;background:linear-gradient(135deg,#fffbeb 0%,#fff 100%);">
+        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-star"></i></div>
         <div class="t-info">
-            <div class="t-name">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.6rem;font-weight:800;padding:2px 6px;border-radius:8px;margin-left:4px;">2x</span></div>
-            <div style="margin-top:3px;"><span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +1 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad2">0/5 today</div>
+            <div class="t-name" style="display:flex;align-items:center;gap:6px;">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:20px;">2× REWARD</span></div>
+            <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
+                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +1 💎 per view</span>
+            </div>
+            <div class="t-limit" id="limit-ad2" style="margin-top:4px;">0/10 today</div>
         </div>
-        <button class="btn btn-gold" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad2">Watch</button>
+        <button class="btn btn-gold" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad2">Watch</button>
     </div>
 
-    <!-- AdsGram Daily: 0.5 diamond -->
+    <!-- AdsGram Daily: 0.5 diamond / 10 limit -->
     <div class="task-card">
-        <div class="t-icon"><i class="fas fa-film"></i></div>
+        <div class="t-icon" style="width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-film"></i></div>
         <div class="t-info">
             <div class="t-name">AdsGram Daily</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad1">0/5 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad1" style="margin-top:4px;">0/10 today</div>
         </div>
-        <button class="btn btn-primary" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad1">Watch</button>
+        <button class="btn btn-primary" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad1">Watch</button>
     </div>
 
-    <!-- Monetag: 0.5 diamond -->
+    <!-- Monetag: 0.5 diamond / 25 limit -->
     <div class="task-card">
-        <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;"><i class="fas fa-ad"></i></div>
+        <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
             <div class="t-name">Monetag Ad</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad3">0/20 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/25 today</div>
         </div>
-        <button class="btn btn-accent" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad3">Watch</button>
+        <button class="btn btn-accent" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad3">Watch</button>
     </div>
 
-    <!-- Giga Pub: 0.5 diamond -->
+    <!-- Giga Pub: 0.5 diamond / 25 limit -->
     <div class="task-card">
-        <div class="t-icon" style="background:#fce7f3;border-color:#f9a8d4;color:#be185d;"><i class="fas fa-ad"></i></div>
+        <div class="t-icon" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-photo-video"></i></div>
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
-            <div style="margin-top:3px;"><span class="reward-pill"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad4">0/10 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
+            <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/25 today</div>
         </div>
-        <button class="btn btn-outline" style="padding:9px 15px;font-size:0.8rem;border-radius:10px;" id="btn-ad4">Watch</button>
+        <button class="btn" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.3);" id="btn-ad4">Watch</button>
     </div>
 
     <!-- Lootbox Section -->
-    <div class="card" style="margin-top:16px;border:2px solid var(--border-mid);border-radius:18px;padding:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
-        <div style="position:absolute;top:-20px;right:-20px;font-size:5rem;opacity:0.07;">🎁</div>
-        <div style="font-weight:800;font-size:1rem;margin-bottom:4px;">🎁 Lootbox</div>
-        <div style="font-size:0.75rem;opacity:0.7;margin-bottom:12px;">Ads earned diamond stored here. Transfers to main balance at midnight.</div>
-        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.08);border-radius:12px;padding:12px 16px;margin-bottom:10px;">
-            <div>
-                <div style="font-size:0.7rem;opacity:0.6;text-transform:uppercase;letter-spacing:1px;">Lootbox Balance</div>
-                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;color:#fbbf24;" id="lootbox-balance">0.00</div>
-            </div>
-            <div style="font-size:2.5rem;">🎁</div>
+    <div class="card" style="margin-top:16px;border:2px solid #312e81;border-radius:18px;padding:18px;background:linear-gradient(135deg,#1a1a2e,#16213e);color:#fff;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-20px;right:-20px;font-size:5rem;opacity:0.06;">🎁</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+            <span style="font-size:1.3rem;">🎁</span>
+            <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;opacity:0.55;text-align:center;" id="lootbox-timer">Transfers at midnight</div>
+        <div style="font-size:0.72rem;opacity:0.6;margin-bottom:14px;line-height:1.5;">Ad earnings stored here. Automatically transfers to main balance at midnight (Dhaka time).</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
+            <div>
+                <div style="font-size:0.65rem;opacity:0.5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Lootbox Balance</div>
+                <div style="font-family:var(--mono);font-size:2rem;font-weight:800;color:#fbbf24;" id="lootbox-balance">0.00</div>
+                <div style="font-size:0.68rem;opacity:0.5;margin-top:2px;">💎 Diamond</div>
+            </div>
+            <div style="font-size:2.8rem;">🎁</div>
+        </div>
+        <div style="font-size:0.7rem;opacity:0.45;text-align:center;" id="lootbox-timer">Watch ads to earn here</div>
     </div>
 
     <!-- Adexium Banner -->
@@ -566,7 +578,9 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <!-- Step 1: Choose type -->
         <div id="ct-step-type">
             <div class="modal-title" style="margin-bottom:4px;">Create a Task</div>
-            <div class="modal-sub" style="margin-bottom:14px;">Select the type of promotion</div>
+            <div class="modal-sub" style="margin-bottom:10px;">Select the type of promotion</div>
+            <!-- Deposit warning shown here if user has violations -->
+            <div id="ct-deposit-warning" style="display:none;"></div>
             <div class="task-type-grid" id="task-type-grid">
                 <div class="task-type-btn" data-type="telegram_channel" style="position:relative;">
                     <i class="fab fa-telegram-plane"></i>
@@ -794,7 +808,7 @@ const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
 const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
 const REFER_REWARD_DIAMOND = 10;
 const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:5, ad2:10, ad3:20, ad4:10}; // matches claimAd.js server
+const AD_LIMITS = {ad1:10, ad2:10, ad3:25, ad4:25}; // Daily:10, Special:10, Monetag:25, GigaPub:25
 const AD_DIAMOND_REWARDS = {ad1:0.5, ad2:1, ad3:0.5, ad4:0.5}; // ad2=AdsGram Special=1, rest=0.5
 
 // ── TASK PACKAGES ──
@@ -1058,19 +1072,6 @@ function updateUI(){
     updLim('ad2', currentUser.adsWatchedAd2||0, AD_LIMITS.ad2);
     updLim('ad3', currentUser.adsWatchedAd3||0, AD_LIMITS.ad3);
     updLim('ad4', currentUser.adsWatchedAd4||0, AD_LIMITS.ad4);
-    try{
-        const db2=document.getElementById('btn-deposit'); let nb=document.getElementById('deposit-ban-notice');
-        if(currentUser.depositBanned){
-            if(db2) db2.style.display='none';
-            if(!nb){nb=document.createElement('div');nb.id='deposit-ban-notice';db2?.parentNode?.insertBefore(nb,db2);}
-            nb.innerHTML='<div style="background:#1f0707;border:1.5px solid #ef4444;border-radius:12px;padding:12px 14px;text-align:center;"><div style="font-size:1.3rem;">🚫</div><div style="color:#ef4444;font-weight:800;font-size:0.85rem;">Deposit Permanently Disabled</div><div style="color:#fca5a5;font-size:0.7rem;margin-top:4px;line-height:1.5;">Your deposit access has been permanently disabled due to repeated policy violations.</div></div>';
-        } else if((currentUser.depositWarnings||0)>=1){
-            const w=currentUser.depositWarnings,col=w>=2?'#ef4444':'#f59e0b',bg=w>=2?'#1f0707':'#1c1400';
-            if(!nb){nb=document.createElement('div');nb.id='deposit-ban-notice';db2?.parentNode?.insertBefore(nb,db2);}
-            nb.innerHTML=`<div style="background:${bg};border:1.5px solid ${col};border-radius:10px;padding:9px 12px;margin-bottom:8px;text-align:center;"><div style="color:${col};font-weight:800;font-size:0.78rem;">⚠️ Warning ${w}/3</div><div style="color:#d1d5db;font-size:0.68rem;margin-top:3px;">${w>=2?'🚨 Final warning! Next = permanent ban.':'2 more violations = permanent deposit ban.'}</div></div>`;
-            if(db2) db2.style.display='';
-        } else { if(nb) nb.remove(); if(db2) db2.style.display=''; }
-    }catch(e){}
 }
 
 // ── ADS → Batch write (local first, sync every 5 ads) ──
@@ -1372,14 +1373,6 @@ function renderPackages(){
 document.getElementById('btn-create-task').addEventListener('click',()=>{
     const userTon = parseFloat(currentUser?.tonBalance||0);
 
-    // No TON at all → go to deposit directly
-    if(userTon <= 0){
-        document.getElementById('modal-deposit').classList.add('show');
-        return;
-    }
-
-    // Has TON but pending deposit request → show create task normally
-    // (pending deposit is separate from task TON balance)
     selectedPackage=null; selectedTaskType=null;
     window._boostTaskId=null; window._boostTaskTitle=null;
     document.querySelectorAll('.task-type-btn').forEach(b=>b.classList.remove('active'));
@@ -1388,6 +1381,22 @@ document.getElementById('btn-create-task').addEventListener('click',()=>{
     document.getElementById('ct-url').value='';
     document.getElementById('ct-channel-id').value='';
     document.getElementById('ct-balance').innerText=userTon.toFixed(4);
+
+    // Show deposit warning inside create task modal if banned/warned
+    const ctWarningEl = document.getElementById('ct-deposit-warning');
+    if(ctWarningEl){
+        if(currentUser.depositBanned){
+            ctWarningEl.style.display='block';
+            ctWarningEl.innerHTML='<div style="background:#fef2f2;border:1.5px solid #ef4444;border-radius:10px;padding:10px 12px;font-size:0.75rem;color:#991b1b;margin-bottom:12px;text-align:center;">🚫 <b>Deposit Permanently Disabled</b> — contact support.</div>';
+        } else if((currentUser.depositWarnings||0)>=1){
+            const w=currentUser.depositWarnings,col=w>=2?'#ef4444':'#f59e0b',bg=w>=2?'#fef2f2':'#fffbeb';
+            ctWarningEl.style.display='block';
+            ctWarningEl.innerHTML=`<div style="background:${bg};border:1.5px solid ${col};border-radius:10px;padding:10px 12px;font-size:0.75rem;color:${w>=2?'#991b1b':'#92400e'};margin-bottom:12px;text-align:center;">${w>=2?'🚨':'⚠️'} <b>Deposit Warning ${w}/3</b> — ${w>=2?'Final warning! Next = permanent ban.':3-w+' more violations = permanent ban.'}</div>`;
+        } else {
+            ctWarningEl.style.display='none';
+        }
+    }
+
     showStep('ct-step-type');
     document.getElementById('modal-create-task').classList.add('show');
 });
@@ -1838,7 +1847,7 @@ async function sendTonConnect(toAddress, tonAmount, memo){
     await tonConnectUI.sendTransaction(tx);
 }
 
-document.getElementById('btn-deposit').addEventListener('click',()=>{
+document.getElementById('btn-deposit')?.addEventListener('click',()=>{
     if(currentUser.depositBanned){ showAlert('Access Denied','Your deposit access has been permanently disabled.','error'); return; }
     if(!currentUser) return;
     // If pending deposit, show info but still allow viewing
@@ -2093,6 +2102,10 @@ initApp();
 // Inline withdraw button (in balance card)
 document.getElementById('btn-withdraw-inline')?.addEventListener('click',()=>{
     document.getElementById('btn-withdraw').click();
+});
+// Inline refer button (in balance card)
+document.getElementById('btn-refer-inline')?.addEventListener('click',()=>{
+    document.getElementById('btn-refer').click();
 });
 </script>
 
