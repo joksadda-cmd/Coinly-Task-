@@ -92,4 +92,4 @@ export default async function handler(req, res) {
         console.error('[claimRefer]', e.message);
         return res.status(500).json({ error: e.message });
     }
-}
+            }
