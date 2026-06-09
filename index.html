@@ -1146,13 +1146,14 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
 // ── UPDATE UI ──
 function hideSplash(){
     const splash = document.getElementById('splash-screen');
-    if(splash && splash.style.display !== 'none'){
-        splash.style.opacity = '0';
-        setTimeout(()=>{ splash.style.display='none'; }, 500);
-    }
+    if(!splash || splash.style.display === 'none') return;
+    splash.style.opacity = '0';
+    splash.style.transition = 'opacity 0.4s ease';
+    setTimeout(()=>{ splash.style.display='none'; }, 420);
 }
 
 function updateUI(){
+    hideSplash(); // Always hide splash when UI updates
     if(!currentUser) return;
     try{
         const uidSpan = document.querySelector('#uid-display span');
@@ -2240,6 +2241,8 @@ function showTaskInfo(type){
 
 initTonConnect();
 initApp();
+// Safety fallback — hide splash after 8 seconds no matter what
+setTimeout(hideSplash, 8000);
 
 // Inline withdraw button (in balance card)
 document.getElementById('btn-withdraw-inline')?.addEventListener('click',()=>{
