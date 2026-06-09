@@ -78,6 +78,13 @@ export default async function handler(req, res) {
                 totalReward += reward;
             }
 
+            // Dice reward — direct to diamondBalance (not lootbox)
+            if (batch.diceReward && parseFloat(batch.diceReward) > 0) {
+                const diceAmt = Math.min(parseFloat(batch.diceReward), 2.5); // max 2.5 per roll
+                updates.diamondBalance = FieldValue.increment(diceAmt);
+                totalReward += diceAmt;
+            }
+
             if (isNewDay && !batch.lootboxTransfer) {
                 updates.lastResetDate = today;
                 if (!updates.adsWatchedAd1) {
@@ -114,4 +121,4 @@ export default async function handler(req, res) {
         console.error('[claimAd single]', e.message);
         return res.status(500).json({ error: e.message });
     }
-}
+        }
