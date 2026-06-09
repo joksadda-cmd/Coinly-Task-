@@ -69,7 +69,7 @@
 body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);padding:65px 0 85px;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
 
 /* HEADER */
-.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(110deg,#0b2fd4 0%,#1a6ff5 30%,#0096e6 60%,#00c4d8 100%);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 4px 28px rgba(11,47,212,0.55),0 1px 0 rgba(255,255,255,0.1) inset;}
+.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(135deg,#0d47d9 0%,#1a6ff5 35%,#0ea5e9 70%,#06c4d4 100%);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 4px 24px rgba(13,71,217,0.5);}
 .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.5px;}
 .brand i{color:#fff;}
 .brand .t{color:rgba(255,255,255,0.75);}
@@ -94,7 +94,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
 /* CARDS */
 .card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
-.card-blue{background:linear-gradient(140deg,#0b2fd4 0%,#1557ef 25%,#0096e6 55%,#00bcd4 80%,#00e5cc 100%);border:none;color:#fff;box-shadow:0 12px 44px rgba(11,47,212,0.5),0 2px 12px rgba(0,229,204,0.25);position:relative;overflow:hidden;}
+.card-blue{background:linear-gradient(145deg,#0d47d9 0%,#1a6ff5 30%,#0ea5e9 65%,#06c4d4 100%);border:none;color:#fff;box-shadow:0 10px 40px rgba(13,71,217,0.45),0 2px 8px rgba(6,196,212,0.2);}
 .card-blue .lbl{color:rgba(255,255,255,0.8);}
 .card-blue .val{color:#fff;}
 
@@ -464,7 +464,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <nav class="bottom-nav">
     <div class="b-nav-item active" data-target="#sec-tasks"><i class="fas fa-clipboard-check"></i><span>Tasks</span></div>
     <div class="b-nav-item" data-target="#sec-ads"><i class="fas fa-play-circle"></i><span>Earn</span></div>
-    <div class="b-nav-item" data-target="#sec-dice"><i class="fas fa-dice"></i><span>Dice</span></div>
 </nav>
 
 <!-- ══ MODALS ══ -->
@@ -477,7 +476,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div id="wd-eligibility-info" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 12px;font-size:0.73rem;color:#0369a1;margin-bottom:12px;text-align:left;line-height:1.6;">
             <b>Requirements:</b><br>
             ✅ Min 10 tasks completed<br>
-            ✅ Watch 10 ads per withdrawal<br>
+            ✅ Watch 20 ads per withdrawal<br>
             💎 Min: Tonkeeper 50 | Binance 100 | bKash 150
         </div>
         <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:var(--primary);margin-bottom:14px;" id="wd-balance">0 💎</div>
@@ -914,7 +913,7 @@ const MIN_WITHDRAW_TONKEEPER = 50;
 const MIN_WITHDRAW_BINANCE   = 100;
 const MIN_WITHDRAW_BKASH     = 150;
 const WITHDRAW_MIN_TASKS     = 10;  // must complete 10 tasks
-const WITHDRAW_ADS_REQUIRED  = 10;  // must watch 10 ads per withdraw
+const WITHDRAW_ADS_REQUIRED  = 20;  // must watch 20 ads per withdraw
 
 
 const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
@@ -982,192 +981,6 @@ async function adWrapper(btnId, sdkCall, successCb){
     }
     finally{ isAdRunning = false; btn.innerHTML = orig; btn.disabled = false; }
 }
-
-// ══════════════════════════════════════
-// ── DICE GAME ──
-// ══════════════════════════════════════
-const DICE_COOLDOWN_MS  = 4 * 60 * 60 * 1000; // 4 hours
-const DICE_EMOJI = ['⚀','⚁','⚂','⚃','⚄','⚅'];
-const DICE_PAIRS = [
-    ['⚀','⚁'],['⚀','⚂'],['⚀','⚃'],['⚀','⚄'],['⚀','⚅'],
-    ['⚁','⚂'],['⚁','⚃'],['⚁','⚄'],['⚁','⚅'],
-    ['⚂','⚃'],['⚂','⚄'],['⚂','⚅'],
-    ['⚃','⚄'],['⚃','⚅'],['⚄','⚅'],
-];
-
-let _diceRolling   = false;
-let _diceHistory   = [];
-let _diceTotalRolls = 0;
-let _diceTotalEarned = 0;
-
-function getDiceLastRoll(){
-    try{ return parseInt(localStorage.getItem(`coinly_dice_last_${currentUser?.id}`)||'0'); }
-    catch(e){ return 0; }
-}
-function setDiceLastRoll(){
-    try{ localStorage.setItem(`coinly_dice_last_${currentUser?.id}`, String(Date.now())); }catch(e){}
-}
-function getDiceStats(){
-    try{
-        const s = JSON.parse(localStorage.getItem(`coinly_dice_stats_${currentUser?.id}`)||'{}');
-        _diceTotalRolls  = s.rolls  || 0;
-        _diceTotalEarned = s.earned || 0;
-    }catch(e){}
-}
-function saveDiceStats(){
-    try{ localStorage.setItem(`coinly_dice_stats_${currentUser?.id}`, JSON.stringify({rolls:_diceTotalRolls, earned:_diceTotalEarned})); }catch(e){}
-}
-
-function updateDiceUI(){
-    if(!currentUser) return;
-    getDiceStats();
-    const el_rolls   = document.getElementById('dice-total-rolls');
-    const el_earned  = document.getElementById('dice-total-earned');
-    if(el_rolls)  el_rolls.innerText  = _diceTotalRolls;
-    if(el_earned) el_earned.innerText = _diceTotalEarned.toFixed(1);
-
-    const lastRoll    = getDiceLastRoll();
-    const msSince     = Date.now() - lastRoll;
-    const cooldownEl  = document.getElementById('dice-cooldown-banner');
-    const rollBtn     = document.getElementById('btn-roll-dice');
-
-    if(msSince < DICE_COOLDOWN_MS){
-        const rem = DICE_COOLDOWN_MS - msSince;
-        const h   = Math.floor(rem/3600000);
-        const m   = Math.floor((rem%3600000)/60000);
-        const s   = Math.floor((rem%60000)/1000);
-        const txt = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-        if(cooldownEl){ cooldownEl.style.display='block'; document.getElementById('dice-cooldown-text').innerText=txt; }
-        if(rollBtn){ rollBtn.disabled=true; rollBtn.style.opacity='0.5'; rollBtn.innerHTML='<i class="fas fa-clock"></i> Cooldown...'; }
-    } else {
-        if(cooldownEl) cooldownEl.style.display='none';
-        if(rollBtn){ rollBtn.disabled=false; rollBtn.style.opacity='1'; rollBtn.innerHTML='<i class="fas fa-dice"></i> Roll Dice'; }
-    }
-}
-
-// Cooldown countdown ticker
-setInterval(()=>{
-    if(document.getElementById('page-dice')?.style.display !== 'none') updateDiceUI();
-}, 1000);
-
-// Roll outcome — seeded random with win rates
-function rollOutcome(){
-    const r = Math.random();
-    // Under 7: 45%, Lucky 7: 10%, Over 7: 45%
-    if(r < 0.45){
-        // Under 7 (2-6) — two dice summing 2-6
-        const options = [[1,1],[1,2],[1,3],[1,4],[2,3],[2,2],[1,5],[2,4],[3,3]];
-        const pick = options[Math.floor(Math.random()*options.length)];
-        return { d1:pick[0], d2:pick[1], sum:pick[0]+pick[1], reward:1, type:'under' };
-    } else if(r < 0.55){
-        // Lucky 7 — sum exactly 7
-        const options = [[1,6],[2,5],[3,4],[4,3],[5,2],[6,1]];
-        const pick = options[Math.floor(Math.random()*options.length)];
-        return { d1:pick[0], d2:pick[1], sum:7, reward:2.5, type:'lucky' };
-    } else {
-        // Over 7 (8-12)
-        const options = [[2,6],[3,5],[4,4],[3,6],[4,5],[5,5],[4,6],[5,6],[6,6]];
-        const pick = options[Math.floor(Math.random()*options.length)];
-        return { d1:pick[0], d2:pick[1], sum:pick[0]+pick[1], reward:1, type:'over' };
-    }
-}
-
-async function rollDice(){
-    if(_diceRolling) return;
-    if(!currentUser){ showAlert('Error','Please restart the app.','error'); return; }
-
-    const msSince = Date.now() - getDiceLastRoll();
-    if(msSince < DICE_COOLDOWN_MS){
-        showAlert('Cooldown','Please wait for the cooldown to finish.','error'); return;
-    }
-
-    // Show AdsGram Special ad first
-    const rollBtn = document.getElementById('btn-roll-dice');
-    rollBtn.disabled = true;
-    rollBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading Ad...';
-
-    try{
-        // Show AdsGram Special (ad2) before roll
-        const adObj = window.Adsgram?.init({blockId:'22900'});
-        if(adObj?.show){
-            await adObj.show().catch(()=>{});
-        }
-    }catch(e){}
-
-    // Animate dice roll
-    _diceRolling = true;
-    rollBtn.innerHTML = '<i class="fas fa-dice"></i> Rolling...';
-    const diceEl = document.getElementById('dice-display');
-    const resultEl = document.getElementById('dice-result-text');
-
-    // Shake animation
-    let shakes = 0;
-    const shakeInterval = setInterval(()=>{
-        const r1 = Math.floor(Math.random()*6)+1;
-        const r2 = Math.floor(Math.random()*6)+1;
-        if(diceEl) diceEl.innerText = DICE_EMOJI[r1-1] + DICE_EMOJI[r2-1];
-        shakes++;
-        if(shakes >= 10){ clearInterval(shakeInterval); finalizeRoll(); }
-    }, 120);
-
-    async function finalizeRoll(){
-        const outcome = rollOutcome();
-        if(diceEl) diceEl.innerText = DICE_EMOJI[outcome.d1-1] + ' ' + DICE_EMOJI[outcome.d2-1];
-
-        // Result text
-        let msg='', color='';
-        if(outcome.type==='lucky'){
-            msg = `✨ Lucky 7! +${outcome.reward} 💎`; color='#d97706';
-        } else if(outcome.type==='under'){
-            msg = `⬇️ Under 7 (${outcome.sum}) — +${outcome.reward} 💎`; color='#7c3aed';
-        } else {
-            msg = `⬆️ Over 7 (${outcome.sum}) — +${outcome.reward} 💎`; color='#16a34a';
-        }
-        if(resultEl){ resultEl.innerText=msg; resultEl.style.color=color; }
-
-        // Credit reward via API
-        try{
-            const res = await fetch(`${API_BASE}/claimAd`,{
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id, batch: { diceReward: outcome.reward } })
-            });
-            const data = await res.json();
-            if(data.success !== false){
-                currentUser.diamondBalance = (currentUser.diamondBalance||0) + outcome.reward;
-                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
-                updateUI();
-                showAlert('🎲 Dice Result!', msg, outcome.type==='lucky'?'success':'success');
-            }
-        }catch(e){ console.warn('[dice]', e); }
-
-        // Update history
-        setDiceLastRoll();
-        _diceTotalRolls++;
-        _diceTotalEarned += outcome.reward;
-        saveDiceStats();
-
-        _diceHistory.unshift({ sum:outcome.sum, reward:outcome.reward, type:outcome.type, time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) });
-        if(_diceHistory.length > 5) _diceHistory.pop();
-
-        const histEl = document.getElementById('dice-history');
-        if(histEl){
-            histEl.innerHTML = _diceHistory.map(h=>{
-                const icon = h.type==='lucky'?'✨':h.type==='under'?'⬇️':'⬆️';
-                const col  = h.type==='lucky'?'#d97706':h.type==='under'?'#7c3aed':'#16a34a';
-                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.75rem;">
-                    <span>${icon} Roll: <b>${h.sum}</b></span>
-                    <span style="color:${col};font-weight:700;">+${h.reward} 💎</span>
-                    <span style="color:var(--text-muted);">${h.time}</span>
-                </div>`;
-            }).join('');
-        }
-
-        updateDiceUI();
-        _diceRolling = false;
-    }
-}
-
-document.getElementById('btn-roll-dice')?.addEventListener('click', rollDice);
 
 // ── INIT APP ──
 const INIT_CACHE_TTL = 5 * 60 * 1000;
@@ -1354,7 +1167,6 @@ function updateUI(){
     document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
-    try{ if(document.getElementById('dice-total-rolls')) updateDiceUI(); }catch(e){}
     updateLootbox();
     try{ document.getElementById('wd-balance').innerText = `${diamond.toFixed(2)} 💎`; }catch(e){}
     try{ document.getElementById('ct-balance').innerText = diamond.toFixed(2); }catch(e){}
@@ -2062,7 +1874,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
         info.innerHTML =
             `<b>Your Status:</b><br>` +
             `${t_ok ?'✅':'❌'} Tasks: ${tasksDone}/${WITHDRAW_MIN_TASKS}<br>` +
-            `${ad_ok?'✅':'❌'} Ads: ${adsForWd}/${WITHDRAW_ADS_REQUIRED} watched since last withdraw<br>` +
+            `${ad_ok?'✅':'❌'} Ads watched: ${adsForWd}/${WITHDRAW_ADS_REQUIRED}<br>` +
             `💎 Min: Tonkeeper 50 | Binance 100 | bKash 150`;
         info.style.background = (t_ok && ad_ok) ? '#f0fdf4' : '#fff7ed';
         info.style.borderColor = (t_ok && ad_ok) ? '#86efac' : '#fed7aa';
@@ -2112,9 +1924,6 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
         try{
             if(window._adexiumWidget?.show) window._adexiumWidget.show();
         }catch(e){}
-    }
-    if(l.dataset.target === '#sec-dice'){
-        updateDiceUI();
     }
 }));
 
