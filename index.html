@@ -69,7 +69,7 @@
 body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);padding:65px 0 85px;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
 
 /* HEADER */
-.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(135deg,#1a6ff5,#0ea5e9);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 2px 20px rgba(26,111,245,0.35);}
+.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(135deg,#0d47d9 0%,#1a6ff5 35%,#0ea5e9 70%,#06c4d4 100%);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 4px 24px rgba(13,71,217,0.5);}
 .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.5px;}
 .brand i{color:#fff;}
 .brand .t{color:rgba(255,255,255,0.75);}
@@ -94,7 +94,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
 /* CARDS */
 .card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
-.card-blue{background:linear-gradient(145deg,#1a6ff5 0%,#0ea5e9 60%,#06b6d4 100%);border:none;color:#fff;box-shadow:0 8px 32px rgba(26,111,245,0.3);}
+.card-blue{background:linear-gradient(145deg,#0d47d9 0%,#1a6ff5 30%,#0ea5e9 65%,#06c4d4 100%);border:none;color:#fff;box-shadow:0 10px 40px rgba(13,71,217,0.45),0 2px 8px rgba(6,196,212,0.2);}
 .card-blue .lbl{color:rgba(255,255,255,0.8);}
 .card-blue .val{color:#fff;}
 
@@ -135,7 +135,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .btn-full{width:100%;}
 
 /* CREATE TASK SHAPE BUTTON */
-.create-task-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 20px;background:linear-gradient(135deg,var(--primary),var(--accent));border:none;border-radius:18px;color:#fff;font-family:var(--font);font-weight:800;font-size:1rem;cursor:pointer;width:100%;margin-bottom:16px;box-shadow:var(--shadow-md);transition:0.2s;position:relative;overflow:hidden;}
+.create-task-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 20px;background:linear-gradient(135deg,#0d47d9,#1a6ff5,#0ea5e9);border:none;border-radius:18px;color:#fff;font-family:var(--font);font-weight:800;font-size:1rem;cursor:pointer;width:100%;margin-bottom:16px;box-shadow:0 6px 24px rgba(13,71,217,0.45);transition:0.2s;position:relative;overflow:hidden;}
 .create-task-btn::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 60%);pointer-events:none;}
 .create-task-btn:active{transform:scale(0.98);}
 .create-task-icon{width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
@@ -144,7 +144,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid var(--border);display:flex;padding:8px 0 16px;z-index:1000;box-shadow:0 -4px 20px rgba(26,111,245,0.08);}
 .b-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);font-size:0.62rem;font-weight:700;text-transform:uppercase;cursor:pointer;transition:0.2s;}
 .b-nav-item i{font-size:1.2rem;}
-.b-nav-item.active{color:var(--primary);}
+.b-nav-item.active{color:#0ea5e9;text-shadow:0 0 12px rgba(14,165,233,0.4);}
 .b-nav-item.active i{transform:translateY(-2px);}
 
 /* SECTIONS */
@@ -231,6 +231,65 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 </style>
 </head>
 <body>
+
+<!-- ══ SPLASH LOADING SCREEN ══ -->
+<div id="splash-screen" style="
+    position:fixed;inset:0;z-index:99999;
+    background:linear-gradient(160deg,#0f172a 0%,#1a1f3a 40%,#0d2060 100%);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:Outfit,sans-serif;transition:opacity 0.5s ease;
+">
+    <!-- Logo -->
+    <div style="margin-bottom:28px;text-align:center;">
+        <div style="
+            width:80px;height:80px;border-radius:24px;
+            background:linear-gradient(135deg,#1a6ff5,#0ea5e9,#06b6d4);
+            display:flex;align-items:center;justify-content:center;
+            font-size:2.2rem;margin:0 auto 14px;
+            box-shadow:0 8px 32px rgba(26,111,245,0.5);
+            animation:splashPulse 1.5s ease-in-out infinite;
+        ">⚡</div>
+        <div style="font-size:1.7rem;font-weight:800;color:#fff;letter-spacing:-0.5px;">
+            Coinly<span style="color:#0ea5e9;">Task</span>
+        </div>
+        <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:400;">
+            Earn Diamond. Withdraw Real Money.
+        </div>
+    </div>
+    <!-- Animated loader -->
+    <div style="position:relative;width:56px;height:56px;margin-bottom:24px;">
+        <div style="
+            position:absolute;inset:0;border-radius:50%;
+            border:3px solid rgba(255,255,255,0.1);
+        "></div>
+        <div style="
+            position:absolute;inset:0;border-radius:50%;
+            border:3px solid transparent;
+            border-top-color:#0ea5e9;border-right-color:#1a6ff5;
+            animation:spin 0.9s linear infinite;
+        "></div>
+        <div style="
+            position:absolute;inset:8px;border-radius:50%;
+            border:2px solid transparent;
+            border-bottom-color:#06b6d4;
+            animation:spin 1.4s linear infinite reverse;
+        "></div>
+    </div>
+    <!-- Loading text -->
+    <div id="splash-text" style="font-size:0.8rem;color:rgba(255,255,255,0.45);letter-spacing:1px;text-transform:uppercase;">
+        Loading...
+    </div>
+    <!-- Dots -->
+    <div style="display:flex;gap:6px;margin-top:16px;">
+        <div style="width:6px;height:6px;border-radius:50%;background:#1a6ff5;animation:dotPulse 1.2s ease-in-out 0s infinite;"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:#0ea5e9;animation:dotPulse 1.2s ease-in-out 0.2s infinite;"></div>
+        <div style="width:6px;height:6px;border-radius:50%;background:#06b6d4;animation:dotPulse 1.2s ease-in-out 0.4s infinite;"></div>
+    </div>
+</div>
+<style>
+@keyframes splashPulse{0%,100%{transform:scale(1);box-shadow:0 8px 32px rgba(26,111,245,0.5);}50%{transform:scale(1.06);box-shadow:0 12px 40px rgba(26,111,245,0.7);}}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:0.5;}50%{transform:scale(1.5);opacity:1;}}
+</style>
 
 <header class="app-header">
     <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
@@ -382,7 +441,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span style="font-size:1.3rem;">🎁</span>
             <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;opacity:0.6;margin-bottom:14px;line-height:1.5;">Ad earnings stored here. Automatically transfers to main balance at midnight (Dhaka time).</div>
+        <div style="font-size:0.72rem;opacity:0.6;margin-bottom:14px;line-height:1.5;">Ad earnings stored here. Automatically transfers to main balance the next day when you open the app.</div>
         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
             <div>
                 <div style="font-size:0.65rem;opacity:0.5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Lootbox Balance</div>
@@ -1085,6 +1144,14 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
 });
 
 // ── UPDATE UI ──
+function hideSplash(){
+    const splash = document.getElementById('splash-screen');
+    if(splash && splash.style.display !== 'none'){
+        splash.style.opacity = '0';
+        setTimeout(()=>{ splash.style.display='none'; }, 500);
+    }
+}
+
 function updateUI(){
     if(!currentUser) return;
     try{
@@ -2102,11 +2169,8 @@ function updateLootbox(){
 async function checkLootboxTransfer(){
     if(!currentUser) return;
     const today = getToday();
-    const now   = new Date();
-    const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
-    const hour  = dhaka.getHours();
 
-    // ── Daily reset (any time after midnight, when date changes) ──
+    // ── Daily reset — যেকোনো সময় app open করলে নতুন দিনের reset হবে ──
     const isNewDay = currentUser.lastResetDate !== today;
     if(isNewDay){
         currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
@@ -2114,27 +2178,32 @@ async function checkLootboxTransfer(){
         currentUser.lastResetDate = today;
         ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
         updateUI();
-        // Sync reset to server
         fetch(`${API_BASE}/claimAd`,{method:'POST',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({userId:currentUser.id,batch:{_resetOnly:true}})}).catch(()=>{});
     }
 
-    // ── Lootbox transfer (midnight only: hour 0) ──
+    // ── Lootbox transfer ──
+    // আগে শুধু রাত ১২টায় হতো — এখন নতুন দিনে যেকোনো সময় app open করলেই হবে
+    // lastLootboxTransfer আগের দিনের হলেই transfer হবে
     const lb = parseFloat(currentUser.lootboxBalance||0);
     if(lb <= 0) return;
     if(currentUser.lastLootboxTransfer === today) return;
-    if(hour !== 0) return;
 
     try{
-        await fetch(`${API_BASE}/claimAd`,{
+        const res = await fetch(`${API_BASE}/claimAd`,{
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ userId: currentUser.id, batch: { lootboxTransfer: lb } })
         });
-        currentUser.diamondBalance = (currentUser.diamondBalance||0) + lb;
-        currentUser.lootboxBalance = 0;
-        currentUser.lastLootboxTransfer = today;
-        updateUI(); updateLootbox();
-        showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Transferred to main balance!`, 'success');
+        const data = await res.json();
+        if(data.success){
+            currentUser.diamondBalance = (currentUser.diamondBalance||0) + lb;
+            currentUser.lootboxBalance = 0;
+            currentUser.lastLootboxTransfer = today;
+            // Cache clear করো যাতে balance সঠিক থাকে
+            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+            updateUI(); updateLootbox();
+            showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Transferred to main balance!`, 'success');
+        }
     }catch(e){ console.warn('[lootbox transfer]', e); }
 }
 
