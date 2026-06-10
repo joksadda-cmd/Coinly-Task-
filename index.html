@@ -24,16 +24,30 @@
     <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
     <script type="text/javascript">
         document.addEventListener('DOMContentLoaded', () => {
-            // Adexium — banner mode, auto-show on earn tab
-            if(typeof AdexiumWidget !== 'undefined'){
+            // Adexium — init immediately, auto-show after 1 minute
+            function initAdexium(){
+                if(typeof AdexiumWidget === 'undefined'){
+                    // SDK not loaded yet — retry after 3s
+                    setTimeout(initAdexium, 3000);
+                    return;
+                }
                 try{
                     window._adexiumWidget = new AdexiumWidget({
                         containerId: 'adexium-banner-container',
-                        zoneId: '10135525', // update with your actual zone id if different
+                        zoneId: '10135525',
                         autoShow: false,
                     });
+                    // Auto-show after 1 minute (60000ms) from app load
+                    setTimeout(() => {
+                        try{
+                            if(window._adexiumWidget?.show){
+                                window._adexiumWidget.show();
+                            }
+                        }catch(e){ console.warn('[Adexium auto-show]', e); }
+                    }, 60000);
                 }catch(e){ console.warn('[Adexium init]', e); }
             }
+            initAdexium();
         });
     </script>
     <!-- GigaPub auto-play disabled -->
@@ -294,6 +308,11 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <header class="app-header">
     <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
     <div class="head-actions">
+        <!-- Language Switcher -->
+        <div id="lang-toggle" onclick="toggleLang()" style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.45);color:#fff;cursor:pointer;font-size:0.72rem;font-weight:700;letter-spacing:0.5px;transition:0.2s;">
+            <i class="fas fa-globe" style="font-size:0.8rem;"></i>
+            <span id="lang-label">EN</span>
+        </div>
         <div class="icon-btn" id="btn-promo" title="Promo Code"><i class="fas fa-ticket-alt"></i></div>
         <div class="icon-btn" id="btn-history" title="History"><i class="fas fa-clock-rotate-left"></i></div>
         <!-- Hidden triggers for modal compatibility -->
@@ -331,10 +350,15 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span>My TON Balance</span>
             <span><span id="bal-ton">0.0000</span> TON</span>
         </div>
+        <!-- Dollar rate row -->
+        <div style="margin-top:10px;background:rgba(255,255,255,0.12);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.15);">
+            <span>💱 Rate</span>
+            <span style="font-family:var(--mono);font-weight:700;">1K 💎 = $1 USDT = 0.5 TON = 120৳</span>
+        </div>
         <!-- Withdraw + Refer in card -->
         <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fas fa-arrow-up-from-bracket"></i> Withdraw</button>
-            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.4);color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fas fa-user-plus"></i> Refer & Earn</button>
+            <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(239,68,68,0.35);"><i class="fas fa-arrow-up-from-bracket"></i> Withdraw</button>
+            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);"><i class="fas fa-user-plus"></i> Refer & Earn</button>
         </div>
         <!-- TON Connect hidden (still functional for deposit send) -->
         <div id="ton-connect-btn" style="display:none;"></div>
@@ -370,23 +394,25 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <!-- ══ ADS SECTION ══ -->
 <section id="sec-ads" class="content-section">
 
-    <!-- Balance + daily summary mini card -->
-    <div class="card card-blue" style="padding:16px 18px;margin-bottom:14px;">
+    <!-- Balance + daily summary mini card — emerald theme -->
+    <div style="background:linear-gradient(135deg,#065f46 0%,#059669 40%,#10b981 80%,#34d399 100%);border-radius:18px;padding:16px 18px;margin-bottom:14px;box-shadow:0 8px 28px rgba(16,185,129,0.4);">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
             <div>
-                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Diamond Balance</div>
-                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;" id="ads-bal-diamond">0</div>
+                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;color:rgba(255,255,255,0.8);">💎 Diamond Balance</div>
+                <div style="font-family:var(--mono);font-size:1.8rem;font-weight:800;color:#fff;" id="ads-bal-diamond">0</div>
+                <div style="font-size:0.7rem;color:rgba(255,255,255,0.7);margin-top:2px;" id="ads-bal-usdt">≈ $0.00 USDT</div>
             </div>
             <div style="text-align:right;">
-                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Today's Max</div>
-                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;opacity:0.9;">+22.5 💎</div>
+                <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;color:rgba(255,255,255,0.8);">Today's Max</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fff;opacity:0.9;">+22.5 💎</div>
+                <div style="font-size:0.65rem;color:rgba(255,255,255,0.6);margin-top:2px;">≈ $0.02 USDT</div>
             </div>
         </div>
-        <div style="height:1px;background:rgba(255,255,255,0.15);margin-bottom:10px;"></div>
-        <div style="font-size:0.72rem;opacity:0.7;text-align:center;">Watch all ads daily to maximize earnings 🎯</div>
+        <div style="height:1px;background:rgba(255,255,255,0.2);margin-bottom:10px;"></div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.75);text-align:center;">Watch all ads daily to maximize earnings 🎯</div>
     </div>
 
-    <h2 class="sec-title"><i class="fas fa-play-circle"></i> Watch Ads & Earn Diamond</h2>
+    <h2 class="sec-title" style="color:#059669;"><i class="fas fa-play-circle" style="color:#10b981;"></i> Watch Ads & Earn Diamond</h2>
 
     <!-- AdsGram Special: 1 diamond / 10 limit -->
     <div class="task-card" style="border-color:#fcd34d;background:linear-gradient(135deg,#fffbeb 0%,#fff 100%);">
@@ -441,7 +467,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span style="font-size:1.3rem;">🎁</span>
             <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;opacity:0.6;margin-bottom:14px;line-height:1.5;">Ad earnings stored here. Automatically transfers to main balance the next day when you open the app.</div>
+        <div style="font-size:0.72rem;opacity:0.75;margin-bottom:14px;line-height:1.6;">Ad earnings stored here. <b style="color:#fbbf24;">🕛 ঢাকা সময় রাত ১২টার পর</b> (midnight Dhaka time) automatically main Diamond balance-এ transfer হয়। পরের দিন app open করলেই balance যুক্ত হবে।</div>
         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
             <div>
                 <div style="font-size:0.65rem;opacity:0.5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Lootbox Balance</div>
@@ -600,7 +626,24 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <button class="btn btn-outline btn-full close-modal">Cancel</button>
             <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
         </div>
-        <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:10px;">Processing: 1–24h &bull; Tonkeeper: 1K💎=0.5TON &bull; Binance: 1K💎=$1 &bull; bKash: 1K💎=120৳</p>
+        <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:10px 14px;margin-top:12px;">
+            <div style="font-size:0.7rem;font-weight:800;color:#065f46;margin-bottom:6px;text-align:center;">💱 Exchange Rates</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
+                <div style="background:#fff;border-radius:8px;padding:6px 4px;border:1px solid #bbf7d0;">
+                    <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:2px;">Tonkeeper</div>
+                    <div style="font-weight:800;font-size:0.72rem;color:#059669;">1K💎=0.5TON</div>
+                </div>
+                <div style="background:#fff;border-radius:8px;padding:6px 4px;border:1px solid #bbf7d0;">
+                    <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:2px;">Binance</div>
+                    <div style="font-weight:800;font-size:0.72rem;color:#059669;">1K💎=$1 USDT</div>
+                </div>
+                <div style="background:#fff;border-radius:8px;padding:6px 4px;border:1px solid #bbf7d0;">
+                    <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:2px;">bKash</div>
+                    <div style="font-weight:800;font-size:0.72rem;color:#059669;">1K💎=120৳</div>
+                </div>
+            </div>
+            <div style="font-size:0.65rem;color:var(--text-muted);text-align:center;margin-top:6px;">⏱️ Processing: 1–24 hours</div>
+        </div>
     </div>
 </div>
 
@@ -626,10 +669,11 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="refer-stat-box"><div class="refer-stat-val" id="ref-valid">0</div><div class="refer-stat-label">Valid Refs</div></div>
             <div class="refer-stat-box"><div class="refer-stat-val" id="ref-earned">0</div><div class="refer-stat-label">💎 Earned</div></div>
         </div>
-        <div class="info-box" style="margin-bottom:14px;">
-            🎁 Refer reward: <b>+10 💎 Diamond</b> <span style="color:var(--text-muted);font-size:0.75em;">≈ $0.01 USDT</span><br>
+        <div class="info-box" style="margin-bottom:14px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border-color:#86efac;">
+            🎁 Refer reward: <b style="color:#059669;">+10 💎 Diamond</b> <span style="color:var(--text-muted);font-size:0.75em;">≈ $0.01 USDT</span><br>
             ✅ Valid when: friend completes <b>10 tasks</b><br>
-            <span style="font-size:0.75rem;color:var(--text-muted);">Referral only valid after friend completes 10 tasks</span>
+            🕛 <b style="color:#059669;">Refer Diamond</b> — ঢাকা সময় রাত ১২টার পর Lootbox থেকে main balance-এ auto transfer হয়<br>
+            <span style="font-size:0.72rem;color:var(--text-muted);">App open করলেই balance যুক্ত হবে · Midnight Dhaka Time (GMT+6)</span>
         </div>
         <input type="text" class="input-field" id="invite-link" readonly placeholder="Loading...">
         <div style="display:flex;gap:8px;">
@@ -689,6 +733,73 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div style="font-size:0.8rem;color:var(--text-sub);">Welcome Diamond Bonus</div>
         </div>
         <button class="btn btn-primary btn-full close-modal">Let's Go! 🚀</button>
+    </div>
+</div>
+
+<!-- WHAT'S NEW MODAL — New user only, shown once -->
+<div class="modal-bg" id="modal-whats-new" style="z-index:6500;">
+    <div class="modal-box" style="border-color:#7c3aed;padding:0;overflow:hidden;max-height:90vh;">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#0d47d9,#1a6ff5,#0ea5e9);padding:22px 20px 18px;text-align:center;">
+            <div style="font-size:2rem;margin-bottom:6px;">✨</div>
+            <div style="font-size:1.2rem;font-weight:800;color:#fff;" data-i18n="wnTitle">Welcome to CoinlyTask!</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.8);margin-top:4px;" data-i18n="wnSub">Here's how everything works — read once!</div>
+        </div>
+        <!-- Scrollable body -->
+        <div style="padding:18px;overflow-y:auto;max-height:55vh;">
+            <!-- Tasks -->
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:#eff6ff;border-radius:14px;margin-bottom:10px;border:1.5px solid #bfdbfe;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#1a6ff5;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">✅</div>
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#1e40af;" data-i18n="wnT1">📋 Tasks Section</div>
+                    <div style="font-size:0.76rem;color:#3b82f6;margin-top:3px;line-height:1.5;" data-i18n="wnT1d">Available tasks দেখবে এখানে। GO চাপো → Join করো → VERIFY চাপো → +1 💎 Diamond পাবে। যত বেশি task করবে তত বেশি diamond।</div>
+                </div>
+            </div>
+            <!-- Earn/Ads -->
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:#f0fdf4;border-radius:14px;margin-bottom:10px;border:1.5px solid #86efac;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">▶️</div>
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#065f46;" data-i18n="wnT2">🎬 Earn Section (Ads)</div>
+                    <div style="font-size:0.76rem;color:#16a34a;margin-top:3px;line-height:1.5;" data-i18n="wnT2d">প্রতিদিন ads দেখে diamond earn করো। Ad থেকে earned diamond আগে Lootbox-এ যায়। রাত ১২টার পর (ঢাকা সময়) auto main balance-এ transfer হয়।</div>
+                </div>
+            </div>
+            <!-- Dice -->
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:#fdf4ff;border-radius:14px;margin-bottom:10px;border:1.5px solid #e9d5ff;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#7c3aed;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">🎲</div>
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#6d28d9;" data-i18n="wnT3">🎲 Dice Game</div>
+                    <div style="font-size:0.76rem;color:#7c3aed;margin-top:3px;line-height:1.5;" data-i18n="wnT3d">প্রতি 4 ঘণ্টায় 1 বার dice roll করতে পারবে। 1টা ad দেখতে হবে। Under 7, Lucky 7, বা Over 7 জিতলে diamond পাবে।</div>
+                </div>
+            </div>
+            <!-- Withdraw -->
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:#fff7ed;border-radius:14px;margin-bottom:10px;border:1.5px solid #fed7aa;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#f59e0b;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">💸</div>
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#92400e;" data-i18n="wnT4">💸 Withdraw</div>
+                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Min 10 tasks + 10 ads দেখলে withdraw করতে পারবে। Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳)।</div>
+                </div>
+            </div>
+            <!-- Refer -->
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:#f0fdf4;border-radius:14px;margin-bottom:10px;border:1.5px solid #6ee7b7;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">👥</div>
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#065f46;" data-i18n="wnT5">👥 Refer & Earn</div>
+                    <div style="font-size:0.76rem;color:#059669;margin-top:3px;line-height:1.5;" data-i18n="wnT5d">বন্ধুকে refer করো। সে যখন 10 tasks complete করবে তুমি +10 💎 Diamond পাবে। Refer link শেয়ার করতে Wallet card এ Refer & Earn বাটন চাপো।</div>
+                </div>
+            </div>
+            <!-- Create Task -->
+            <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;background:#eff6ff;border-radius:14px;border:1.5px solid #93c5fd;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#3b82f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">➕</div>
+                <div>
+                    <div style="font-weight:800;font-size:0.88rem;color:#1e40af;" data-i18n="wnT6">➕ Create a Task</div>
+                    <div style="font-size:0.76rem;color:#3b82f6;margin-top:3px;line-height:1.5;" data-i18n="wnT6d">নিজের channel/group promote করতে চাইলে Task create করো। TON দিয়ে package কিনো, admin approve করলে task live হবে।</div>
+                </div>
+            </div>
+        </div>
+        <!-- Footer button -->
+        <div style="padding:16px 20px;border-top:1px solid var(--border);">
+            <button class="btn btn-primary btn-full" id="btn-whats-new-close" style="border-radius:14px;padding:14px;font-size:0.95rem;" data-i18n="wnBtn">🚀 Got it — Let's Start!</button>
+        </div>
     </div>
 </div>
 
@@ -1274,6 +1385,9 @@ async function initApp(){
 
     if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;"><i class="fas fa-ban" style="font-size:4rem;color:red;margin-bottom:20px;"></i><h3>Account Banned.</h3></div>';
 
+    // Show What's New for brand new users (API signals isNew)
+    if(apiData?.isNew || apiData?.justCreated) maybeShowWhatsNew();
+
     // Ad count reset if new day (single clean block)
     if(currentUser.lastResetDate !== today){
         currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
@@ -1383,6 +1497,7 @@ function updateUI(){
     document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
+    try{ document.getElementById('ads-bal-usdt').innerText = '≈ $' + (diamond * DIAMOND_TO_USD).toFixed(2) + ' USDT'; }catch(e){}
     updateLootbox();
     try{ document.getElementById('wd-balance').innerText = `${diamond.toFixed(2)} 💎`; }catch(e){}
     try{ document.getElementById('ct-balance').innerText = diamond.toFixed(2); }catch(e){}
@@ -1981,63 +2096,95 @@ You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
 });
 
 // ── PROMO (API-secured — no client-side Firestore write) ──
+// ── PROMO CODE FLOW ──
+// Step 1: Validate → Step 2: Show Ad → Step 3: Claim reward
 document.getElementById('promo-submit').addEventListener('click', async()=>{
-    const code=document.getElementById('promo-input').value.trim(); if(!code) return;
-    const btn=document.getElementById('promo-submit');
-    btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+    const code = document.getElementById('promo-input').value.trim();
+    if(!code) return showAlert('Error', 'Enter a promo code first.', 'error');
+    const btn = document.getElementById('promo-submit');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+
     try{
-        const res = await fetch(`${API_BASE}/claimPromo`, {
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ userId: currentUser.id, code })
+        // ── Step 1: Validate code (before showing any ad) ──
+        const valRes = await fetch(`${API_BASE}/claimPromo`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.id, code, validateOnly: true })
         });
-        const data = await res.json();
-        if(data.success){
-            currentUser.diamondBalance = (currentUser.diamondBalance||0) + data.reward;
-            updateUI();
-            document.getElementById('promo-input').value='';
-            document.getElementById('modal-promo').classList.remove('show');
-            showAlert('Claimed!', `+${data.reward} 💎 Diamond added!`, 'success');
-            // Play a random ad after promo claim (GigaPub or AdsGram Special randomly)
-            setTimeout(async ()=>{
-                try{
-                    const roll = Math.random();
-                    if(roll < 0.5){
-                        // GigaPub
-                        await showGigaAd();
-                        // Reward for ad view
-                        const reward = AD_DIAMOND_REWARDS.ad4;
-                        const limit  = AD_LIMITS.ad4;
-                        if((currentUser.adsWatchedAd4||0) < limit){
-                            currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
-                            currentUser.adsWatchedAd4  = (currentUser.adsWatchedAd4||0) + 1;
-                            _adPendingSync.ad4 = (_adPendingSync.ad4||0) + 1;
-                            updateUI(); updateLootbox();
-                        }
-                    } else {
-                        // AdsGram Special (ad2)
-                        const adObj = window.Adsgram?.init({blockId:'22900'});
-                        if(adObj?.show) await adObj.show();
-                        const reward = AD_DIAMOND_REWARDS.ad2;
-                        const limit  = AD_LIMITS.ad2;
-                        if((currentUser.adsWatchedAd2||0) < limit){
-                            currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
-                            currentUser.adsWatchedAd2  = (currentUser.adsWatchedAd2||0) + 1;
-                            _adPendingSync.ad2 = (_adPendingSync.ad2||0) + 1;
-                            updateUI(); updateLootbox();
-                        }
-                    }
-                    // Sync batch
-                    clearTimeout(_adSyncTimer);
-                    _adSyncTimer = setTimeout(flushAdSync, 5000);
-                }catch(e){ console.warn('[promo ad]', e); }
-            }, 1200);
-        } else {
-            showAlert('Error', data.error || 'Invalid or already used.', 'error');
+        const valData = await valRes.json();
+
+        // Invalid / already used / expired — stop here, no ad
+        if(!valData.valid){
+            const msg = valData.error || 'Invalid or already used.';
+            showAlert('❌ Promo Failed', msg, 'error');
+            btn.disabled = false; btn.innerHTML = 'Redeem Now';
+            return;
         }
-    }catch(e){ showAlert('Error','Server error. Try again.','error'); }
-    btn.disabled=false; btn.innerHTML='Redeem Now';
-});
+
+        // Valid — tell user what they'll earn, then show ad
+        const previewReward = valData.reward;
+        btn.innerHTML = '<i class="fas fa-play"></i> Watch Ad to Claim...';
+
+        // ── Step 2: Show ad (mandatory to receive reward) ──
+        let adWatched = false;
+        try{
+            // AdsGram Special (blockId 22900)
+            const adObj = window.Adsgram?.init({blockId: '22900'});
+            if(adObj?.show){
+                await adObj.show();
+                adWatched = true;
+            } else {
+                // Fallback to GigaPub
+                await showGigaAd();
+                adWatched = true;
+            }
+        } catch(adErr){
+            const errMsg = (adErr?.message || adErr?.type || '').toLowerCase();
+            if(errMsg.includes('skip') || errMsg.includes('close') || errMsg.includes('dismiss')){
+                showAlert('⚠️ Skipped', 'Watch the full ad to claim your reward.', 'error');
+                btn.disabled = false; btn.innerHTML = 'Redeem Now';
+                return;
+            }
+            // Non-skip SDK error — treat as watched
+            adWatched = true;
+        }
+
+        if(!adWatched){
+            showAlert('⚠️ Ad Unavailable', 'Ad could not load. Try again later.', 'error');
+            btn.disabled = false; btn.innerHTML = 'Redeem Now';
+            return;
+        }
+
+        btn.innerHTML = '<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
+
+        // ── Step 3: Claim reward (after ad) ──
+        const claimRes = await fetch(`${API_BASE}/claimPromo`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ userId: currentUser.id, code, validateOnly: false })
+        });
+        const claimData = await claimRes.json();
+
+        if(claimData.success){
+            const field = claimData.rewardType === 'ton' ? 'tonBalance' : 'diamondBalance';
+            currentUser[field] = (currentUser[field]||0) + claimData.reward;
+            updateUI();
+            document.getElementById('promo-input').value = '';
+            document.getElementById('modal-promo').classList.remove('show');
+            showAlert('🎉 Claimed!', `+${claimData.reward} 💎 Diamond added to your balance!`, 'success');
+            // Cache clear
+            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+        } else {
+            // Edge case: code used between validate and claim (race condition)
+            showAlert('❌ Claim Failed', claimData.error || 'Could not claim reward.', 'error');
+        }
+
+    } catch(e){
+        showAlert('Error', 'Server error. Try again.', 'error');
+        console.error('[promo]', e);
+    }
+
+    btn.disabled = false; btn.innerHTML = 'Redeem Now';
+});;
 
 // ── HISTORY — withdraw only (pending + success) via API ──
 let _historyCache = null;
@@ -2457,6 +2604,81 @@ function showTaskInfo(type){
         </div>`;
     showAlert(title, html, 'info');
 }
+
+// ── LANGUAGE SYSTEM ──
+const LANG_STRINGS = {
+    en: {
+        wnTitle: "Welcome to CoinlyTask!",
+        wnSub: "Here's how everything works — read once!",
+        wnT1: "📋 Tasks Section",
+        wnT1d: "Complete tasks to earn Diamond. Tap GO → Join → VERIFY → get +1 💎. More tasks = more Diamond.",
+        wnT2: "🎬 Earn Section (Ads)",
+        wnT2d: "Watch ads daily to earn Diamond. Earnings go to Lootbox first. After midnight (Dhaka time) auto-transfers to main balance.",
+        wnT3: "🎲 Dice Game",
+        wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win Diamond based on the outcome: Under 7, Lucky 7, or Over 7.",
+        wnT4: "💸 Withdraw",
+        wnT4d: "Need min 10 tasks + 10 ads watched. Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳).",
+        wnT5: "👥 Refer & Earn",
+        wnT5d: "Refer friends and earn +10 💎 when they complete 10 tasks. Tap Refer & Earn in the Wallet card.",
+        wnT6: "➕ Create a Task",
+        wnT6d: "Promote your channel/group by creating a task. Buy a package with TON, admin approves, then it goes live.",
+        wnBtn: "🚀 Got it — Let's Start!",
+    },
+    bn: {
+        wnTitle: "CoinlyTask-এ স্বাগতম!",
+        wnSub: "কীভাবে কাজ করে — একবার পড়ো!",
+        wnT1: "📋 Tasks সেকশন",
+        wnT1d: "এখানে available tasks দেখবে। GO চাপো → Join করো → VERIFY চাপো → +1 💎 Diamond পাবে। যত বেশি task করবে তত বেশি diamond।",
+        wnT2: "🎬 Earn সেকশন (Ads)",
+        wnT2d: "প্রতিদিন ads দেখে diamond earn করো। Ad থেকে earned diamond আগে Lootbox-এ যায়। রাত ১২টার পর (ঢাকা সময়) auto main balance-এ transfer হয়।",
+        wnT3: "🎲 Dice Game",
+        wnT3d: "প্রতি 4 ঘণ্টায় 1 বার dice roll করতে পারবে। 1টা ad দেখতে হবে। Under 7, Lucky 7, বা Over 7 জিতলে diamond পাবে।",
+        wnT4: "💸 Withdraw",
+        wnT4d: "Min 10 tasks + 10 ads দেখলে withdraw করতে পারবে। Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳)।",
+        wnT5: "👥 Refer & Earn",
+        wnT5d: "বন্ধুকে refer করো। সে যখন 10 tasks complete করবে তুমি +10 💎 Diamond পাবে। Wallet card-এ Refer & Earn বাটন চাপো।",
+        wnT6: "➕ Create a Task",
+        wnT6d: "নিজের channel/group promote করতে চাইলে Task create করো। TON দিয়ে package কিনো, admin approve করলে task live হবে।",
+        wnBtn: "🚀 বুঝেছি — শুরু করি!",
+    }
+};
+
+let currentLang = localStorage.getItem('coinly_lang') || 'en';
+
+function applyLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('coinly_lang', lang);
+    const label = document.getElementById('lang-label');
+    if(label) label.innerText = lang === 'bn' ? 'বাং' : 'EN';
+    const strings = LANG_STRINGS[lang] || LANG_STRINGS.en;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if(strings[key]) el.innerText = strings[key];
+    });
+}
+
+function toggleLang() {
+    applyLang(currentLang === 'en' ? 'bn' : 'en');
+}
+
+// Apply on load
+document.addEventListener('DOMContentLoaded', () => applyLang(currentLang));
+
+// ── WHAT'S NEW — new user only, show once ──
+function maybeShowWhatsNew() {
+    if(!currentUser) return;
+    const key = `coinly_wn_${currentUser.id}`;
+    if(localStorage.getItem(key)) return; // already seen
+    // Only show if new user (joinGiftClaimed just happened or very new)
+    setTimeout(() => {
+        document.getElementById('modal-whats-new')?.classList.add('show');
+    }, 600);
+}
+
+document.getElementById('btn-whats-new-close')?.addEventListener('click', () => {
+    document.getElementById('modal-whats-new').classList.remove('show');
+    if(currentUser) localStorage.setItem(`coinly_wn_${currentUser.id}`, '1');
+});
 
 initTonConnect();
 initApp();
