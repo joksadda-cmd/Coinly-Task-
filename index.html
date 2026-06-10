@@ -467,7 +467,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span style="font-size:1.3rem;">🎁</span>
             <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;opacity:0.75;margin-bottom:14px;line-height:1.6;">Ad earnings stored here. <b style="color:#fbbf24;">🕛 ঢাকা সময় রাত ১২টার পর</b> (midnight Dhaka time) automatically main Diamond balance-এ transfer হয়। পরের দিন app open করলেই balance যুক্ত হবে।</div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.65);margin-bottom:14px;line-height:1.6;">Ad earnings এখানে জমা হয়। <b style="color:#fbbf24;">Min 15💎</b> হলেই Claim করতে পারবে। প্রতিদিন <b style="color:#fbbf24;">সর্বোচ্চ ২বার</b> claim করা যাবে।</div>
+        <!-- Balance display -->
         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
             <div>
                 <div style="font-size:0.65rem;opacity:0.5;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;">Lootbox Balance</div>
@@ -476,7 +477,21 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="font-size:2.8rem;">🎁</div>
         </div>
-        <div style="font-size:0.7rem;opacity:0.45;text-align:center;" id="lootbox-timer">Watch ads to earn here</div>
+        <!-- Progress bar to 15💎 -->
+        <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
+                <span id="lootbox-progress-text">0 / 15 💎 to claim</span>
+                <span id="lootbox-claims-left" style="color:#fbbf24;"></span>
+            </div>
+            <div style="background:rgba(255,255,255,0.1);border-radius:99px;height:6px;overflow:hidden;">
+                <div id="lootbox-progress-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#fbbf24,#f59e0b);width:0%;transition:width 0.4s;"></div>
+            </div>
+        </div>
+        <!-- Claim button -->
+        <button id="btn-lootbox-claim" class="btn" style="width:100%;padding:13px;border-radius:13px;background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#1a1a2e;font-weight:800;font-size:0.9rem;border:none;box-shadow:0 4px 16px rgba(251,191,36,0.35);opacity:0.5;cursor:not-allowed;" disabled>
+            🎁 Claim to Main Balance
+        </button>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.35);text-align:center;margin-top:6px;" id="lootbox-timer">Watch ads to earn here</div>
     </div>
 
     <!-- Adexium Banner -->
@@ -2513,71 +2528,104 @@ document.getElementById('pay-task-confirm-btn')?.addEventListener('click', async
 
 // ── LOOTBOX SYSTEM ──
 function updateLootbox(){
-    const lb = parseFloat(currentUser.lootboxBalance||0);
-    const el = document.getElementById('lootbox-balance');
+    if(!currentUser) return;
+    const lb  = parseFloat(currentUser.lootboxBalance||0);
+    const el  = document.getElementById('lootbox-balance');
     if(el) el.innerText = lb.toFixed(2);
-    // countdown to midnight (Dhaka time)
+
+    // Progress bar toward 15💎
+    const MIN = 15;
+    const pct = Math.min(100, (lb / MIN) * 100);
+    const bar = document.getElementById('lootbox-progress-bar');
+    const ptxt = document.getElementById('lootbox-progress-text');
+    if(bar)  bar.style.width = pct + '%';
+    if(ptxt) ptxt.innerText = `${lb.toFixed(1)} / ${MIN} 💎 to claim`;
+
+    // Claims left today
+    const today = getToday();
+    const claimsToday = (currentUser.lootboxClaimDate === today) ? (currentUser.lootboxClaimCount||0) : 0;
+    const claimsLeft  = 2 - claimsToday;
+    const claimsEl = document.getElementById('lootbox-claims-left');
+    if(claimsEl) claimsEl.innerText = `${claimsLeft} claim${claimsLeft!==1?'s':''} left today`;
+
+    // Enable/disable claim button
+    const btn = document.getElementById('btn-lootbox-claim');
+    if(btn){
+        const canClaim = lb >= MIN && claimsLeft > 0;
+        btn.disabled = !canClaim;
+        btn.style.opacity  = canClaim ? '1' : '0.5';
+        btn.style.cursor   = canClaim ? 'pointer' : 'not-allowed';
+        btn.innerText = claimsLeft <= 0
+            ? '✅ Daily limit reached (2/2)'
+            : lb < MIN
+                ? `🎁 Need ${(MIN - lb).toFixed(1)} more 💎 to claim`
+                : '🎁 Claim to Main Balance';
+    }
+
+    // Timer text
     const timerEl = document.getElementById('lootbox-timer');
     if(timerEl){
-        const now = new Date();
-        const dhaka = new Date(now.toLocaleString('en-US',{timeZone:'Asia/Dhaka'}));
-        const midnight = new Date(dhaka);
-        midnight.setHours(24,0,0,0);
-        const diff = midnight - dhaka;
-        const h = Math.floor(diff/3600000);
-        const m = Math.floor((diff%3600000)/60000);
-        timerEl.innerText = lb > 0
-            ? `Transfers at midnight (${h}h ${m}m left)`
-            : 'Watch ads to earn here';
+        timerEl.innerText = lb > 0 && lb < MIN
+            ? `Earn ${(MIN-lb).toFixed(1)} more 💎 by watching ads`
+            : lb <= 0 ? 'Watch ads to earn here' : '';
     }
 }
 
-// Midnight: lootbox → main balance transfer
+// ── Daily reset check (no lootbox auto-transfer anymore) ──
 async function checkLootboxTransfer(){
     if(!currentUser) return;
     const today = getToday();
-
-    // ── Daily reset — যেকোনো সময় app open করলে নতুন দিনের reset হবে ──
     const isNewDay = currentUser.lastResetDate !== today;
     if(isNewDay){
         currentUser.adsWatchedAd1 = 0; currentUser.adsWatchedAd2 = 0;
         currentUser.adsWatchedAd3 = 0; currentUser.adsWatchedAd4 = 0;
         currentUser.lastResetDate = today;
+        // Reset lootbox claim count for new day
+        currentUser.lootboxClaimCount = 0;
+        currentUser.lootboxClaimDate  = null;
         ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
-        updateUI();
+        updateUI(); updateLootbox();
         fetch(`${API_BASE}/claimAd`,{method:'POST',headers:{'Content-Type':'application/json'},
             body:JSON.stringify({userId:currentUser.id,batch:{_resetOnly:true}})}).catch(()=>{});
     }
-
-    // ── Lootbox transfer ──
-    // আগে শুধু রাত ১২টায় হতো — এখন নতুন দিনে যেকোনো সময় app open করলেই হবে
-    // lastLootboxTransfer আগের দিনের হলেই transfer হবে
-    const lb = parseFloat(currentUser.lootboxBalance||0);
-    if(lb <= 0) return;
-    if(currentUser.lastLootboxTransfer === today) return;
-
-    try{
-        const res = await fetch(`${API_BASE}/claimAd`,{
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ userId: currentUser.id, batch: { lootboxTransfer: lb } })
-        });
-        const data = await res.json();
-        if(data.success){
-            currentUser.diamondBalance = (currentUser.diamondBalance||0) + lb;
-            currentUser.lootboxBalance = 0;
-            currentUser.lastLootboxTransfer = today;
-            // Cache clear করো যাতে balance সঠিক থাকে
-            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
-            updateUI(); updateLootbox();
-            showAlert('🎁 Lootbox!', `+${lb.toFixed(2)} 💎 Transferred to main balance!`, 'success');
-        }
-    }catch(e){ console.warn('[lootbox transfer]', e); }
 }
 
-// প্রতি মিনিটে check করবে
+// ── Lootbox claim button handler ──
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btn-lootbox-claim')?.addEventListener('click', async () => {
+        const lb = parseFloat(currentUser?.lootboxBalance||0);
+        if(lb < 15) return;
+        const btn = document.getElementById('btn-lootbox-claim');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loader-spin" style="margin:0 auto;width:16px;height:16px;border-width:2px;"></div>';
+        try{
+            const res = await fetch(`${API_BASE}/claimAd`,{
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({ userId: currentUser.id, batch: { lootboxClaim: true } })
+            });
+            const data = await res.json();
+            if(data.success){
+                const prev = parseFloat(currentUser.lootboxBalance||0);
+                currentUser.diamondBalance    = (currentUser.diamondBalance||0) + prev;
+                currentUser.lootboxBalance    = 0;
+                currentUser.lootboxClaimDate  = getToday();
+                currentUser.lootboxClaimCount = (currentUser.lootboxClaimCount||0) + 1;
+                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+                updateUI(); updateLootbox();
+                showAlert('🎁 Claimed!', `+${prev.toFixed(2)} 💎 added to main balance! (${data.claimsLeft} claim${data.claimsLeft!==1?'s':''} left today)`, 'success');
+            } else {
+                showAlert('❌ Failed', data.error || 'Could not claim.', 'error');
+                updateLootbox(); // re-enable button
+            }
+        } catch(e){
+            showAlert('Error', 'Server error. Try again.', 'error');
+            updateLootbox();
+        }
+    });
+});
+
 setInterval(checkLootboxTransfer, 60000);
-// Lootbox timer update প্রতি মিনিটে
-setInterval(updateLootbox, 60000);
+setInterval(updateLootbox, 30000);
 
 // ── Task Info Modal ──
 function showTaskInfo(type){
