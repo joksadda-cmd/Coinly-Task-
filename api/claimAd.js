@@ -1,4 +1,4 @@
-// api/claimAd.js — batch write support + lootbox transfer + joinGift
+// api/claimAd.js — fixed lootbox + 15💎 manual claim system
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -18,7 +18,10 @@ const AD_REWARDS = { ad1:0.5, ad2:1.0, ad3:0.5, ad4:0.5, joinGift:5 };
 const AD_LIMITS  = { ad1:10,  ad2:10,  ad3:25,  ad4:25  };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
-const MAX_DAILY_LOOTBOX = 42;
+
+// Lootbox claim rules
+const LOOTBOX_MIN_CLAIM  = 15;   // minimum 15💎 to claim
+const LOOTBOX_DAILY_MAX  = 2;    // max 2 claims per day
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -34,7 +37,43 @@ export default async function handler(req, res) {
     const today   = TODAY();
     const userRef = db.collection('users').doc(uid);
 
-    // ── BATCH MODE ──
+    // ── LOOTBOX CLAIM MODE ──
+    // Called when user taps "Claim" button in lootbox (min 15💎, max 2x/day)
+    if (batch?.lootboxClaim === true) {
+        try {
+            const result = await db.runTransaction(async (t) => {
+                const snap = await t.get(userRef);
+                if (!snap.exists) throw new Error('User not found');
+                const user = snap.data();
+
+                const lb = parseFloat(user.lootboxBalance || 0);
+                if (lb < LOOTBOX_MIN_CLAIM) {
+                    throw new Error(`Need at least ${LOOTBOX_MIN_CLAIM}💎 in Lootbox to claim. You have ${lb.toFixed(1)}💎`);
+                }
+
+                // Daily claim count
+                const lbToday  = user.lootboxClaimDate === today ? (user.lootboxClaimCount || 0) : 0;
+                if (lbToday >= LOOTBOX_DAILY_MAX) {
+                    throw new Error(`Daily claim limit reached (${LOOTBOX_DAILY_MAX}x per day). Come back tomorrow!`);
+                }
+
+                t.update(userRef, {
+                    diamondBalance:    FieldValue.increment(lb),
+                    lootboxBalance:    0,
+                    lootboxClaimDate:  today,
+                    lootboxClaimCount: lbToday + 1,
+                });
+
+                return { transferred: lb, claimsLeft: LOOTBOX_DAILY_MAX - lbToday - 1 };
+            });
+
+            return res.status(200).json({ success: true, ...result });
+        } catch(e) {
+            return res.status(200).json({ success: false, error: e.message });
+        }
+    }
+
+    // ── BATCH MODE (ad sync) ──
     if (batch && typeof batch === 'object') {
         try {
             const userSnap = await userRef.get();
@@ -43,28 +82,17 @@ export default async function handler(req, res) {
             const updates = {};
             let totalReward = 0;
 
-            if (batch.lootboxTransfer && parseFloat(batch.lootboxTransfer) > 0) {
-                const lb = parseFloat(batch.lootboxTransfer);
-                const serverLb   = parseFloat(user.lootboxBalance || 0);
-                const safeAmount = Math.min(lb, serverLb, MAX_DAILY_LOOTBOX);
-                if (safeAmount > 0) {
-                    updates.diamondBalance      = FieldValue.increment(safeAmount);
-                    updates.lootboxBalance      = 0;
-                    updates.lastLootboxTransfer = today;
-                    updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
-                    updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
-                    updates.lastResetDate = today;
-                    totalReward = safeAmount;
-                }
-            }
-
+            // Join gift
             if (batch.joinGift && !user.joinGiftClaimed) {
                 updates.joinGiftClaimed = true;
                 updates.diamondBalance  = FieldValue.increment(5);
                 totalReward += 5;
             }
 
+            // Daily reset check
             const isNewDay = user.lastResetDate !== today;
+
+            // Ad rewards → lootbox
             for (const [type, count] of Object.entries(batch)) {
                 if (!AD_REWARDS[type] || !AD_FIELDS[type]) continue;
                 const field   = AD_FIELDS[type];
@@ -78,19 +106,19 @@ export default async function handler(req, res) {
                 totalReward += reward;
             }
 
-            // Dice reward — direct to diamondBalance (not lootbox)
+            // Dice reward → direct to diamondBalance (not lootbox)
             if (batch.diceReward && parseFloat(batch.diceReward) > 0) {
-                const diceAmt = Math.min(parseFloat(batch.diceReward), 2.5); // max 2.5 per roll
+                const diceAmt = Math.min(parseFloat(batch.diceReward), 2.5);
                 updates.diamondBalance = FieldValue.increment(diceAmt);
                 totalReward += diceAmt;
             }
 
-            if (isNewDay && !batch.lootboxTransfer) {
-                updates.lastResetDate = today;
-                if (!updates.adsWatchedAd1) {
-                    updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
-                    updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
-                }
+            if (isNewDay) {
+                updates.lastResetDate  = today;
+                updates.adsWatchedAd1  = 0;
+                updates.adsWatchedAd2  = 0;
+                updates.adsWatchedAd3  = 0;
+                updates.adsWatchedAd4  = 0;
             }
 
             if (Object.keys(updates).length > 0) await userRef.update(updates);
@@ -114,11 +142,15 @@ export default async function handler(req, res) {
         const limit    = AD_LIMITS[adType] || 10;
         if (watched >= limit) return res.status(200).json({ success: false, error: 'Daily limit reached' });
         const updates = { lootboxBalance: FieldValue.increment(reward), [field]: FieldValue.increment(1) };
-        if (isNewDay) updates.lastResetDate = today;
+        if (isNewDay) {
+            updates.lastResetDate = today;
+            updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
+            updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
+        }
         await userRef.update(updates);
         return res.status(200).json({ success: true, reward, watched: watched + 1, limit });
     } catch(e) {
         console.error('[claimAd single]', e.message);
         return res.status(500).json({ error: e.message });
     }
-        }
+            }
