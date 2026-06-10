@@ -17,7 +17,7 @@ const BOT = process.env.BOT_TOKEN;
 
 const REFER_REWARD    = 10;
 const REFER_MIN_TASKS = 10;
-const DIAMOND_TO_USD  = 0.001;   // 1000 💎 = $1 USDT
+const DIAMOND_TO_USD  = 0.001;
 
 async function tgMsg(chatId, text) {
     if (!BOT || !chatId) return;
@@ -47,20 +47,36 @@ export default async function handler(req, res) {
         if (!userSnap.exists) return res.status(404).json({ error: 'User not found' });
 
         const user = userSnap.data();
-        if (user.isValidatedRef) return res.status(200).json({ success: true, alreadyClaimed: true });
+
+        // Already claimed — return current referrer balance for frontend sync
+        if (user.isValidatedRef) {
+            return res.status(200).json({ success: true, alreadyClaimed: true });
+        }
 
         const referrerId = user.referredBy;
         if (!referrerId) return res.status(400).json({ error: 'No referrer' });
 
         const completedTasks = user.completedTasks || [];
         if (completedTasks.length < REFER_MIN_TASKS) {
-            return res.status(400).json({ error: `Need ${REFER_MIN_TASKS} tasks. Done: ${completedTasks.length}` });
+            return res.status(400).json({
+                error: `Need ${REFER_MIN_TASKS} tasks. Done: ${completedTasks.length}`
+            });
         }
+
+        // Run transaction — get referrer's new balance after reward
+        let newReferrerBalance = 0;
+        let newValidReferrals  = 0;
+        let newDiamondEarned   = 0;
 
         await db.runTransaction(async (t) => {
             const referrerRef  = db.collection('users').doc(String(referrerId));
             const referrerSnap = await t.get(referrerRef);
             if (!referrerSnap.exists) throw new Error('Referrer not found');
+
+            const referrer = referrerSnap.data();
+            newReferrerBalance = (referrer.diamondBalance || 0) + REFER_REWARD;
+            newValidReferrals  = (referrer.validReferrals || 0) + 1;
+            newDiamondEarned   = (referrer.referralDiamondEarned || 0) + REFER_REWARD;
 
             t.update(userRef, { isValidatedRef: true });
             t.update(referrerRef, {
@@ -77,19 +93,27 @@ export default async function handler(req, res) {
             });
         });
 
-        // USDT value দেখাবে TON এর বদলে
         const usdtValue = (REFER_REWARD * DIAMOND_TO_USD).toFixed(2);
         await tgMsg(referrerId,
-            `🎉 <b>Refer Successful!</b>\n\n` +
-            `Your referral (UID: <code>${uid}</code>) has completed ${REFER_MIN_TASKS} tasks!\n\n` +
-            `💎 You earned: <b>${REFER_REWARD} Diamond</b>\n` +
+            `🎉 <b>Refer Reward!</b>\n\n` +
+            `Your referral (UID: <code>${uid}</code>) completed ${REFER_MIN_TASKS} tasks!\n\n` +
+            `💎 <b>+${REFER_REWARD} Diamond</b> added to your balance!\n` +
             `💵 Value: <b>$${usdtValue} USDT</b>\n\n` +
+            `🏦 New Balance: <b>${newReferrerBalance} 💎</b>\n\n` +
             `Keep referring to earn more! 🚀`
         );
 
-        return res.status(200).json({ success: true, reward: REFER_REWARD });
+        return res.status(200).json({
+            success: true,
+            reward:  REFER_REWARD,
+            // Frontend uses these to update referrer's local state immediately
+            referrerNewBalance:   newReferrerBalance,
+            referrerValidRefs:    newValidReferrals,
+            referrerDiamondEarned: newDiamondEarned,
+        });
+
     } catch (e) {
         console.error('[claimRefer]', e.message);
         return res.status(500).json({ error: e.message });
     }
-            }
+                }
