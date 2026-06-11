@@ -32,19 +32,12 @@
                     return;
                 }
                 try{
-                    window._adexiumWidget = new AdexiumWidget({
-                        containerId: 'adexium-banner-container',
-                        zoneId: '10135525',
-                        autoShow: false,
+                    const adexiumWidget = new AdexiumWidget({
+                        wid: 'a1a296e8-82a8-4686-8740-2ecd055c403d',
+                        adFormat: 'interstitial'
                     });
-                    // Auto-show after 1 minute (60000ms) from app load
-                    setTimeout(() => {
-                        try{
-                            if(window._adexiumWidget?.show){
-                                window._adexiumWidget.show();
-                            }
-                        }catch(e){ console.warn('[Adexium auto-show]', e); }
-                    }, 60000);
+                    window._adexiumWidget = adexiumWidget;
+                    adexiumWidget.autoMode();
                 }catch(e){ console.warn('[Adexium init]', e); }
             }
             initAdexium();
@@ -61,9 +54,9 @@
     --primary-mid:#5c9aff;
     --accent:#00c6ff;
     --white:#ffffff;
-    --bg-page:#f0f4ff;
-    --bg-card:#ffffff;
-    --bg-section:#f7f9ff;
+    --bg-page:#080818;
+    --bg-card:#111128;
+    --bg-section:#0d0d20;
     --text-main:#0f172a;
     --text-sub:#475569;
     --text-muted:#94a3b8;
@@ -83,19 +76,19 @@
 body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);padding:65px 0 85px;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
 
 /* HEADER */
-.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(135deg,#0d47d9 0%,#1a6ff5 35%,#0ea5e9 70%,#06c4d4 100%);border-bottom:none;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 4px 24px rgba(13,71,217,0.5);}
-.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:#fff;letter-spacing:0.5px;}
-.brand i{color:#fff;}
-.brand .t{color:rgba(255,255,255,0.75);}
+.app-header{position:fixed;top:0;left:0;right:0;z-index:1000;height:60px;background:linear-gradient(135deg,#0f0f23 0%,#1a1a3e 40%,#252550 100%);border-bottom:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-shadow:0 4px 24px rgba(0,0,0,0.5),0 1px 0 rgba(99,102,241,0.2);}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:1.15rem;color:#e2e8f0;letter-spacing:0.5px;}
+.brand i{color:#818cf8;}
+.brand .t{color:#6366f1;}
 .head-actions{display:flex;gap:8px;}
 .icon-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.22s;font-size:0.95rem;position:relative;}
 .icon-btn:active{transform:scale(0.92);}
 /* Promo — amber/gold */
-#btn-promo{background:linear-gradient(135deg,#f59e0b,#fbbf24);border:none;color:#fff;box-shadow:0 3px 10px rgba(245,158,11,0.5);}
+#btn-promo{background:linear-gradient(135deg,#f59e0b,#fbbf24);border:none;color:#fff;box-shadow:0 3px 12px rgba(245,158,11,0.4);}
 #btn-promo:hover{background:linear-gradient(135deg,#d97706,#f59e0b);}
 /* History — teal */
-#btn-history{background:linear-gradient(135deg,#0ea5e9,#06c4d4);border:none;color:#fff;box-shadow:0 3px 10px rgba(14,165,233,0.5);}
-#btn-history:hover{background:linear-gradient(135deg,#0284c7,#0ea5e9);}
+#btn-history{background:linear-gradient(135deg,#6366f1,#818cf8);border:none;color:#fff;box-shadow:0 3px 12px rgba(99,102,241,0.4);}
+#btn-history:hover{background:linear-gradient(135deg,#4f46e5,#6366f1);}
 /* Withdraw/Wallet — primary blue */
 #btn-withdraw{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
 #btn-withdraw:hover{background:rgba(255,255,255,0.3);}
@@ -104,8 +97,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .container{max-width:600px;margin:0 auto;padding:0 14px;}
 
 /* CARDS */
-.card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
-.card-blue{background:linear-gradient(145deg,#0d47d9 0%,#1a6ff5 30%,#0ea5e9 65%,#06c4d4 100%);border:none;color:#fff;box-shadow:0 10px 40px rgba(13,71,217,0.45),0 2px 8px rgba(6,196,212,0.2);}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.card-blue{background:linear-gradient(145deg,#0f0f2e 0%,#1a1a4e 30%,#252570 65%,#1e1e5a 100%);border:1px solid rgba(99,102,241,0.35);color:#fff;box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 0 1px rgba(99,102,241,0.1),inset 0 1px 0 rgba(255,255,255,0.05);}
 .card-blue .lbl{color:rgba(255,255,255,0.8);}
 .card-blue .val{color:#fff;}
 
@@ -116,50 +109,50 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .user-id-pill{font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.15);padding:4px 10px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
 .bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .bal-box{border-radius:13px;padding:12px;text-align:center;}
-.bal-box:first-child{background:linear-gradient(135deg,rgba(6,182,212,0.35),rgba(6,182,212,0.15));border:1.5px solid rgba(6,182,212,0.5);}
-.bal-box:last-child{background:linear-gradient(135deg,rgba(245,158,11,0.35),rgba(245,158,11,0.15));border:1.5px solid rgba(245,158,11,0.5);}
+.bal-box:first-child{background:linear-gradient(135deg,rgba(34,211,238,0.15),rgba(34,211,238,0.05));border:1px solid rgba(34,211,238,0.3);}
+.bal-box:last-child{background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.3);}
 .bal-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-bottom:3px;}
 .bal-num{font-family:var(--mono);font-size:1.45rem;font-weight:800;}
 .bal-box:first-child .bal-num{color:#67e8f9;}
 .bal-box:last-child .bal-num{color:#fde68a;}
 
 /* SECTION TITLE */
-.sec-title{font-size:1rem;font-weight:800;color:var(--text-main);margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;}
-.sec-title i{color:var(--primary);font-size:1rem;}
+.sec-title{font-size:0.88rem;font-weight:800;color:rgba(255,255,255,0.5);margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:1.5px;}
+.sec-title i{color:#6366f1;font-size:0.88rem;}
 
 /* TASK CARDS */
-.task-card{background:var(--bg-card);border:1.5px solid var(--border);border-radius:16px;padding:14px 15px;margin-bottom:10px;display:flex;align-items:center;gap:12px;transition:0.2s;box-shadow:var(--shadow);}
-.task-card:hover{border-color:var(--primary);box-shadow:var(--shadow-md);}
-.t-icon{width:42px;height:42px;border-radius:12px;background:var(--primary-light);border:1.5px solid var(--border-mid);display:flex;align-items:center;justify-content:center;font-size:1.15rem;color:var(--primary);flex-shrink:0;}
+.task-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
+.task-card:hover{border-color:rgba(99,102,241,0.5);box-shadow:0 4px 20px rgba(99,102,241,0.2);}
+.t-icon{width:42px;height:42px;border-radius:12px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;font-size:1.15rem;color:#818cf8;flex-shrink:0;}
 .t-info{flex:1;}
-.t-name{font-size:0.92rem;font-weight:700;color:var(--text-main);}
+.t-name{font-size:0.92rem;font-weight:700;color:#e2e8f0;}
 .t-reward{font-size:0.75rem;color:var(--primary);font-weight:600;margin-top:2px;}
 .t-limit{font-size:0.68rem;color:var(--text-muted);margin-top:1px;}
 
 /* BUTTONS */
 .btn{padding:12px 20px;border:none;border-radius:12px;font-family:var(--font);font-weight:700;font-size:0.88rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:0.2s;letter-spacing:0.3px;}
 .btn:active{transform:scale(0.97);}
-.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 15px rgba(26,111,245,0.3);}
-.btn-primary:hover{background:var(--primary-dark);}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;box-shadow:0 4px 15px rgba(99,102,241,0.35);}
+.btn-primary:hover{background:linear-gradient(135deg,#4f46e5,#3730a3);}
 .btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(14,165,233,0.3);}
-.btn-outline{background:transparent;border:1.5px solid var(--primary);color:var(--primary);}
-.btn-outline:hover{background:var(--primary-light);}
+.btn-outline{background:transparent;border:1px solid rgba(99,102,241,0.5);color:#818cf8;}
+.btn-outline:hover{background:rgba(99,102,241,0.1);}
 .btn-green{background:var(--green);color:#fff;box-shadow:0 4px 15px rgba(16,185,129,0.3);}
 .btn-gold{background:var(--gold);color:#fff;box-shadow:0 4px 15px rgba(245,158,11,0.3);}
 .btn-disabled{background:#e2e8f0!important;color:#94a3b8!important;box-shadow:none!important;cursor:not-allowed;border:none!important;}
 .btn-full{width:100%;}
 
 /* CREATE TASK SHAPE BUTTON */
-.create-task-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px 20px;background:linear-gradient(135deg,#0d47d9,#1a6ff5,#0ea5e9);border:none;border-radius:18px;color:#fff;font-family:var(--font);font-weight:800;font-size:1rem;cursor:pointer;width:100%;margin-bottom:16px;box-shadow:0 6px 24px rgba(13,71,217,0.45);transition:0.2s;position:relative;overflow:hidden;}
+.create-task-btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:15px 20px;background:linear-gradient(135deg,#1e1b4b,#312e81,#3730a3);border:1px solid rgba(99,102,241,0.4);border-radius:16px;color:#e2e8f0;font-family:var(--font);font-weight:800;font-size:0.95rem;cursor:pointer;width:100%;margin-bottom:14px;box-shadow:0 6px 24px rgba(0,0,0,0.4);transition:0.2s;position:relative;overflow:hidden;}
 .create-task-btn::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(255,255,255,0.15) 0%,transparent 60%);pointer-events:none;}
 .create-task-btn:active{transform:scale(0.98);}
-.create-task-icon{width:36px;height:36px;background:rgba(255,255,255,0.25);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;}
+.create-task-icon{width:36px;height:36px;background:rgba(99,102,241,0.3);border:1px solid rgba(99,102,241,0.4);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#818cf8;}
 
 /* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1.5px solid var(--border);display:flex;padding:8px 0 16px;z-index:1000;box-shadow:0 -4px 20px rgba(26,111,245,0.08);}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0d0d20;border-top:1px solid rgba(99,102,241,0.2);display:flex;padding:8px 0 16px;z-index:1000;box-shadow:0 -4px 20px rgba(0,0,0,0.5);}
 .b-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text-muted);font-size:0.62rem;font-weight:700;text-transform:uppercase;cursor:pointer;transition:0.2s;}
 .b-nav-item i{font-size:1.2rem;}
-.b-nav-item.active{color:#0ea5e9;text-shadow:0 0 12px rgba(14,165,233,0.4);}
+.b-nav-item.active{color:#818cf8;text-shadow:0 0 12px rgba(129,140,248,0.5);}
 .b-nav-item.active i{transform:translateY(-2px);}
 
 /* SECTIONS */
@@ -170,7 +163,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 /* MODALS */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
 .modal-bg.show{display:flex;}
-.modal-box{background:var(--white);border:1.5px solid var(--border);border-radius:24px;width:100%;max-width:360px;padding:24px;text-align:center;position:relative;box-shadow:0 20px 60px rgba(26,111,245,0.2);animation:popModal 0.35s cubic-bezier(0.175,0.885,0.32,1.275);max-height:88vh;overflow-y:auto;}
+.modal-box{background:#13132e;border:1px solid rgba(99,102,241,0.3);border-radius:24px;width:100%;max-width:360px;padding:24px;text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.7);animation:popModal 0.35s cubic-bezier(0.175,0.885,0.32,1.275);max-height:88vh;overflow-y:auto;}
 @keyframes popModal{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
 .modal-title{font-size:1.15rem;font-weight:800;color:var(--text-main);margin-bottom:6px;}
 .modal-sub{font-size:0.82rem;color:var(--text-sub);margin-bottom:18px;}
@@ -232,8 +225,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
 /* PLATFORM FILTER */
 .platform-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
-.platform-pill{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:0.76rem;font-weight:700;background:var(--bg-section);border:1.5px solid var(--border);color:var(--text-muted);cursor:pointer;transition:0.2s;white-space:nowrap;}
-.platform-pill.active,.platform-pill:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+.platform-pill{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:0.76rem;font-weight:700;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:var(--text-sub);cursor:pointer;transition:0.2s;white-space:nowrap;}
+.platform-pill.active,.platform-pill:hover{background:rgba(99,102,241,0.2);color:#818cf8;border-color:rgba(99,102,241,0.4);}
 
 /* EMPTY STATE */
 .empty-state{text-align:center;padding:30px 20px;color:var(--text-muted);}
@@ -309,11 +302,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <header class="app-header">
     <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
     <div class="head-actions">
-        <!-- Language Switcher -->
-        <div id="lang-toggle" onclick="toggleLang()" style="display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.45);color:#fff;cursor:pointer;font-size:0.72rem;font-weight:700;letter-spacing:0.5px;transition:0.2s;">
-            <i class="fas fa-globe" style="font-size:0.8rem;"></i>
-            <span id="lang-label">EN</span>
-        </div>
+
         <div class="icon-btn" id="btn-promo" title="Promo Code"><i class="fas fa-ticket-alt"></i></div>
         <div class="icon-btn" id="btn-history" title="History"><i class="fas fa-clock-rotate-left"></i></div>
         <!-- Hidden triggers for modal compatibility -->
@@ -327,41 +316,59 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 <!-- ══ TASKS SECTION ══ -->
 <section id="sec-tasks" class="content-section active">
 
-    <!-- Balance Card -->
-    <div class="card card-blue bal-header">
-        <div class="user-row">
-            <div class="avatar"><i class="fas fa-user-astronaut"></i></div>
-            <div>
-                <div style="font-weight:800;font-size:1rem;margin-bottom:3px;" data-i18n="wallet">My Wallet</div>
-                <div class="user-id-pill" id="uid-display"><i class="fas fa-fingerprint"></i> ID: <span>...</span> <i class="fas fa-copy" style="font-size:0.65rem;opacity:0.7;"></i></div>
+    <!-- Balance Card — Redesigned -->
+    <div style="background:linear-gradient(145deg,#0c0c28 0%,#13133a 50%,#1a1a50 100%);border:1px solid rgba(99,102,241,0.3);border-radius:22px;padding:20px 18px;margin-bottom:14px;box-shadow:0 16px 48px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.04);position:relative;overflow:hidden;">
+        <!-- Background glow -->
+        <div style="position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(99,102,241,0.15) 0%,transparent 70%);pointer-events:none;"></div>
+        <div style="position:absolute;bottom:-30px;left:-30px;width:140px;height:140px;background:radial-gradient(circle,rgba(34,211,238,0.08) 0%,transparent 70%);pointer-events:none;"></div>
+
+        <!-- User row -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(34,211,238,0.15));border:1px solid rgba(99,102,241,0.4);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">
+                    <i class="fas fa-user-astronaut" style="color:#818cf8;"></i>
+                </div>
+                <div>
+                    <div style="font-weight:800;font-size:0.95rem;color:#e2e8f0;margin-bottom:3px;" data-i18n="wallet">My Wallet</div>
+                    <div class="user-id-pill" id="uid-display" style="background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.25);"><i class="fas fa-fingerprint" style="color:#6366f1;"></i> ID: <span style="color:#818cf8;">...</span> <i class="fas fa-copy" style="font-size:0.6rem;opacity:0.6;"></i></div>
+                </div>
+            </div>
+            <!-- TON badge -->
+            <div style="text-align:right;">
+                <div style="font-size:0.6rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">TON</div>
+                <div style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:#22d3ee;" id="bal-ton">0.0000</div>
             </div>
         </div>
-        <div class="bal-grid">
-            <div class="bal-box">
-                <div class="bal-lbl" data-i18n="lblDiamond">💎 Diamond</div>
-                <div class="bal-num" id="bal-diamond">0</div>
-                <div id="bal-usdt" style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:2px;font-weight:600;">≈ $0.00 USDT</div>
+
+        <!-- Diamond balance — hero number -->
+        <div style="text-align:center;padding:16px 0 14px;border-top:1px solid rgba(99,102,241,0.15);border-bottom:1px solid rgba(99,102,241,0.15);margin-bottom:14px;">
+            <div style="font-size:0.65rem;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.4);margin-bottom:4px;">Total Diamond Balance</div>
+            <div style="font-family:var(--mono);font-size:2.6rem;font-weight:800;color:#22d3ee;letter-spacing:-1px;line-height:1;" id="bal-diamond">0</div>
+            <div style="font-size:0.75rem;color:rgba(255,255,255,0.5);margin-top:4px;font-weight:600;" id="bal-usdt">≈ $0.00 USDT</div>
+        </div>
+
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+            <div style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.2);border-radius:12px;padding:10px;text-align:center;">
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);margin-bottom:3px;">💎 Diamond</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#22d3ee;" id="bal-diamond-2">0</div>
             </div>
-            <div class="bal-box">
-                <div class="bal-lbl" data-i18n="lblTasks">⭐ Tasks Done</div>
-                <div class="bal-num" id="tasks-done-count">0</div>
+            <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:12px;padding:10px;text-align:center;">
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.4);margin-bottom:3px;">⭐ Tasks Done</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fbbf24;" id="tasks-done-count">0</div>
             </div>
         </div>
-        <div class="ton-sub-row">
-            <span data-i18n="lblTon">My TON Balance</span>
-            <span><span id="bal-ton">0.0000</span> TON</span>
+
+        <!-- Action buttons -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <button id="btn-withdraw-inline" class="btn" style="border-radius:12px;padding:11px;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-weight:700;font-size:0.82rem;box-shadow:0 4px 14px rgba(239,68,68,0.3);">
+                <i class="fas fa-arrow-up-from-bracket"></i> <span data-i18n="btnWithdraw">Withdraw</span>
+            </button>
+            <button id="btn-refer-inline" class="btn" style="border-radius:12px;padding:11px;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:700;font-size:0.82rem;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
+                <i class="fas fa-user-plus"></i> <span data-i18n="btnRefer">Refer & Earn</span>
+            </button>
         </div>
-        <!-- Dollar rate row -->
-        <div style="margin-top:10px;background:rgba(255,255,255,0.12);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.15);">
-            <span data-i18n="lblRate">💱 Rate</span>
-            <span style="font-family:var(--mono);font-weight:700;">1K 💎 = $1 USDT = 0.5 TON = 120৳</span>
-        </div>
-        <!-- Withdraw + Refer in card -->
-        <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(239,68,68,0.35);"><i class="fas fa-arrow-up-from-bracket"></i> <span data-i18n="btnWithdraw">Withdraw</span></button>
-            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);"><i class="fas fa-user-plus"></i> <span data-i18n="btnRefer">Refer & Earn</span></button>
-        </div>
-        <!-- TON Connect hidden (still functional for deposit send) -->
+        <!-- TON Connect hidden -->
         <div id="ton-connect-btn" style="display:none;"></div>
     </div>
 
@@ -468,7 +475,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span style="font-size:1.3rem;">🎁</span>
             <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;color:rgba(255,255,255,0.65);margin-bottom:14px;line-height:1.6;">Ad earnings এখানে জমা হয়। <b style="color:#fbbf24;">Min 15💎</b> হলেই Claim করতে পারবে। প্রতিদিন <b style="color:#fbbf24;">সর্বোচ্চ ২বার</b> claim করা যাবে।</div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.65);margin-bottom:14px;line-height:1.6;">Ad earnings are stored here. Collect <b style="color:#fbbf24;">min 15💎</b> then claim to main balance. Max <b style="color:#fbbf24;">2x per day</b>.</div>
         <!-- Balance display -->
         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
             <div>
@@ -688,8 +695,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="info-box" style="margin-bottom:14px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border-color:#86efac;">
             🎁 Refer reward: <b style="color:#059669;">+10 💎 Diamond</b> <span style="color:var(--text-muted);font-size:0.75em;">≈ $0.01 USDT</span><br>
             ✅ Valid when: friend completes <b>10 tasks</b><br>
-            🕛 <b style="color:#059669;">Refer Diamond</b> — ঢাকা সময় রাত ১২টার পর Lootbox থেকে main balance-এ auto transfer হয়<br>
-            <span style="font-size:0.72rem;color:var(--text-muted);">App open করলেই balance যুক্ত হবে · Midnight Dhaka Time (GMT+6)</span>
+            
+            <span style="font-size:0.72rem;color:var(--text-muted);">Refer diamonds go to Lootbox · Claim anytime once you reach 15💎</span>
         </div>
         <input type="text" class="input-field" id="invite-link" readonly placeholder="Loading...">
         <div style="display:flex;gap:8px;">
@@ -768,7 +775,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#1a6ff5;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">✅</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#1e40af;" data-i18n="wnT1">📋 Tasks Section</div>
-                    <div style="font-size:0.76rem;color:#3b82f6;margin-top:3px;line-height:1.5;" data-i18n="wnT1d">Available tasks দেখবে এখানে। GO চাপো → Join করো → VERIFY চাপো → +1 💎 Diamond পাবে। যত বেশি task করবে তত বেশি diamond।</div>
+                    <div style="font-size:0.76rem;color:#3b82f6;margin-top:3px;line-height:1.5;" data-i18n="wnT1d">Complete tasks to earn Diamond. Tap GO → Join → VERIFY → get +1 💎. More tasks = more Diamond.</div>
                 </div>
             </div>
             <!-- Earn/Ads -->
@@ -776,7 +783,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">▶️</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#065f46;" data-i18n="wnT2">🎬 Earn Section (Ads)</div>
-                    <div style="font-size:0.76rem;color:#16a34a;margin-top:3px;line-height:1.5;" data-i18n="wnT2d">প্রতিদিন ads দেখে diamond earn করো। Ad থেকে earned diamond আগে Lootbox-এ যায়। রাত ১২টার পর (ঢাকা সময়) auto main balance-এ transfer হয়।</div>
+                    <div style="font-size:0.76rem;color:#16a34a;margin-top:3px;line-height:1.5;" data-i18n="wnT2d">Watch ads daily to earn Diamond. Earnings go to Lootbox. Collect 15💎 to claim to main balance (2x per day).</div>
                 </div>
             </div>
             <!-- Dice -->
@@ -784,7 +791,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#7c3aed;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">🎲</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#6d28d9;" data-i18n="wnT3">🎲 Dice Game</div>
-                    <div style="font-size:0.76rem;color:#7c3aed;margin-top:3px;line-height:1.5;" data-i18n="wnT3d">প্রতি 4 ঘণ্টায় 1 বার dice roll করতে পারবে। 1টা ad দেখতে হবে। Under 7, Lucky 7, বা Over 7 জিতলে diamond পাবে।</div>
+                    <div style="font-size:0.76rem;color:#7c3aed;margin-top:3px;line-height:1.5;" data-i18n="wnT3d">Roll dice every 4 hours. Watch 1 ad per roll. Win Diamond: Under 7, Lucky 7, or Over 7.</div>
                 </div>
             </div>
             <!-- Withdraw -->
@@ -792,7 +799,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#f59e0b;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">💸</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#92400e;" data-i18n="wnT4">💸 Withdraw</div>
-                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Min 10 tasks + 10 ads দেখলে withdraw করতে পারবে। Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳)।</div>
+                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Need min 10 tasks + 10 ads. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1) · bKash (150💎=120৳).</div>
                 </div>
             </div>
             <!-- Refer -->
@@ -800,7 +807,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">👥</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#065f46;" data-i18n="wnT5">👥 Refer & Earn</div>
-                    <div style="font-size:0.76rem;color:#059669;margin-top:3px;line-height:1.5;" data-i18n="wnT5d">বন্ধুকে refer করো। সে যখন 10 tasks complete করবে তুমি +10 💎 Diamond পাবে। Refer link শেয়ার করতে Wallet card এ Refer & Earn বাটন চাপো।</div>
+                    <div style="font-size:0.76rem;color:#059669;margin-top:3px;line-height:1.5;" data-i18n="wnT5d">Refer friends and earn +10 💎 when they complete 10 tasks. Tap Refer & Earn in the Wallet card.</div>
                 </div>
             </div>
             <!-- Create Task -->
@@ -808,7 +815,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#3b82f6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">➕</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#1e40af;" data-i18n="wnT6">➕ Create a Task</div>
-                    <div style="font-size:0.76rem;color:#3b82f6;margin-top:3px;line-height:1.5;" data-i18n="wnT6d">নিজের channel/group promote করতে চাইলে Task create করো। TON দিয়ে package কিনো, admin approve করলে task live হবে।</div>
+                    <div style="font-size:0.76rem;color:#3b82f6;margin-top:3px;line-height:1.5;" data-i18n="wnT6d">Promote your channel/group. Buy a TON package, admin approves, then it goes live.</div>
                 </div>
             </div>
         </div>
@@ -1589,7 +1596,7 @@ const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
     }
 });
 
-// Page unload এ sync
+// Sync on page unload
 window.addEventListener('beforeunload', flushAdSync);
 
 const showGigaAd = async()=>{
@@ -1659,7 +1666,7 @@ async function fetchTasks(filter, forceRefresh){
     }
 }
 
-// ── My Tasks: user এর নিজের create করা tasks ──
+// ── My Tasks: tasks created by the current user ──
 async function fetchMyTasks(container){
     try{
         const res  = await fetch(`${API_BASE}/getTasks?createdBy=${currentUser.id}`);
@@ -1733,7 +1740,7 @@ document.getElementById('task-list-container').addEventListener('click', async e
                 await new Promise(r=>setTimeout(r,2000)); ok=true;
             }
             if(ok){
-                // claimTask API — Firestore direct write নয়
+                // claimTask API — no direct Firestore write from client
                 const claimRes = await fetch(`${API_BASE}/claimTask`, {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
@@ -2567,7 +2574,7 @@ function updateLootbox(){
     const timerEl = document.getElementById('lootbox-timer');
     if(timerEl){
         timerEl.innerText = lb > 0 && lb < MIN
-            ? `Earn ${(MIN-lb).toFixed(1)} more 💎 by watching ads`
+            ? `Earn ${(MIN-lb).toFixed(1)} more 💎 to unlock claim`
             : lb <= 0 ? 'Watch ads to earn here' : '';
     }
 }
@@ -2655,14 +2662,13 @@ function showTaskInfo(type){
 }
 
 // ── LANGUAGE SYSTEM ──
+// Language system — English only (Bengali removed)
 const LANG_STRINGS = {
     en: {
-        // Wallet card
         wallet: "My Wallet",
         lblDiamond: "💎 Diamond",
         lblTasks: "⭐ Tasks Done",
-        lblTon: "My TON Balance",
-        lblRate: "💱 Rate",
+        lblTon: "TON Balance",
         btnWithdraw: "Withdraw",
         btnRefer: "Refer & Earn",
         createTask: "Create a Task",
@@ -2673,7 +2679,6 @@ const LANG_STRINGS = {
         filterGroup: "Group",
         filterBot: "Bot",
         filterSocial: "Social",
-        // What's New
         wnTitle: "Welcome to CoinlyTask!",
         wnSub: "Here's how everything works — read once!",
         wnT1: "📋 Tasks Section",
@@ -2681,85 +2686,30 @@ const LANG_STRINGS = {
         wnT2: "🎬 Earn Section (Ads)",
         wnT2d: "Watch ads daily to earn Diamond. Earnings go to Lootbox first. Collect 15💎 to claim to main balance (2x per day).",
         wnT3: "🎲 Dice Game",
-        wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win Diamond based on the outcome: Under 7, Lucky 7, or Over 7.",
+        wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win Diamond based on outcome: Under 7, Lucky 7, or Over 7.",
         wnT4: "💸 Withdraw",
-        wnT4d: "Need min 10 tasks + 10 ads watched. Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳).",
+        wnT4d: "Need min 10 tasks + 10 ads. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1) · bKash (150💎=120৳).",
         wnT5: "👥 Refer & Earn",
-        wnT5d: "Refer friends and earn +10 💎 when they complete 10 tasks. Tap Refer & Earn in the Wallet card.",
+        wnT5d: "Refer friends and earn +10 💎 when they complete 10 tasks.",
         wnT6: "➕ Create a Task",
-        wnT6d: "Promote your channel/group by creating a task. Buy a package with TON, admin approves, then it goes live.",
+        wnT6d: "Promote your channel/group. Buy a TON package, admin approves, then it goes live.",
         wnBtn: "🚀 Got it — Let's Start!",
-    },
-    bn: {
-        // Wallet card
-        wallet: "আমার ওয়ালেট",
-        lblDiamond: "💎 ডায়মন্ড",
-        lblTasks: "⭐ সম্পন্ন টাস্ক",
-        lblTon: "আমার TON ব্যালেন্স",
-        lblRate: "💱 রেট",
-        btnWithdraw: "উইথড্র",
-        btnRefer: "রেফার করুন",
-        createTask: "টাস্ক তৈরি করুন",
-        createTaskSub: "প্রতি টাস্ক সম্পন্নে পেমেন্ট",
-        availTasks: "উপলব্ধ টাস্ক",
-        filterAll: "সব",
-        filterChannel: "চ্যানেল",
-        filterGroup: "গ্রুপ",
-        filterBot: "বট",
-        filterSocial: "সোশ্যাল",
-        // What's New
-        wnTitle: "CoinlyTask-এ স্বাগতম!",
-        wnSub: "কীভাবে কাজ করে — একবার পড়ো!",
-        wnT1: "📋 Tasks সেকশন",
-        wnT1d: "এখানে available tasks দেখবে। GO চাপো → Join করো → VERIFY চাপো → +1 💎 Diamond পাবে। যত বেশি task করবে তত বেশি diamond।",
-        wnT2: "🎬 Earn সেকশন (Ads)",
-        wnT2d: "প্রতিদিন ads দেখে diamond earn করো। Ad থেকে diamond Lootbox-এ জমা হয়। ১৫💎 জমলে Claim করো (দিনে ২বার)।",
-        wnT3: "🎲 Dice Game",
-        wnT3d: "প্রতি ৪ ঘণ্টায় ১ বার dice roll করতে পারবে। ১টা ad দেখতে হবে। Under 7, Lucky 7, বা Over 7 জিতলে diamond পাবে।",
-        wnT4: "💸 উইথড্র",
-        wnT4d: "Min ১০ tasks + ১০ ads দেখলে withdraw করতে পারবে। Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳)।",
-        wnT5: "👥 রেফার করুন",
-        wnT5d: "বন্ধুকে refer করো। সে যখন ১০ tasks complete করবে তুমি +১০ 💎 পাবে। Wallet card-এ Refer & Earn বাটন চাপো।",
-        wnT6: "➕ টাস্ক তৈরি করুন",
-        wnT6d: "নিজের channel/group promote করতে চাইলে Task create করো। TON দিয়ে package কিনো, admin approve করলে task live হবে।",
-        wnBtn: "🚀 বুঝেছি — শুরু করি!",
     }
 };
 
-let currentLang = localStorage.getItem('coinly_lang') || 'en';
+let currentLang = 'en'; // English only
 
 function applyLang(lang) {
-    currentLang = lang;
-    localStorage.setItem('coinly_lang', lang);
-    const label = document.getElementById('lang-label');
-    if(label) label.innerText = lang === 'bn' ? 'বাং' : 'EN';
-    const strings = LANG_STRINGS[lang] || LANG_STRINGS.en;
-
-    // Translate all data-i18n elements
+    // English only — apply strings on load
+    const strings = LANG_STRINGS.en;
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if(strings[key]) el.innerText = strings[key];
     });
-
-    // Platform pills with nested spans — filter pills get translated via data-i18n already
-    // Update lang toggle button style
-    const toggle = document.getElementById('lang-toggle');
-    if(toggle){
-        toggle.style.background = lang === 'bn'
-            ? 'linear-gradient(135deg,rgba(16,185,129,0.3),rgba(16,185,129,0.15))'
-            : 'rgba(255,255,255,0.15)';
-        toggle.style.border = lang === 'bn'
-            ? '1.5px solid rgba(16,185,129,0.7)'
-            : '1.5px solid rgba(255,255,255,0.45)';
-    }
-}
-
-function toggleLang() {
-    applyLang(currentLang === 'en' ? 'bn' : 'en');
 }
 
 // Apply on load
-document.addEventListener('DOMContentLoaded', () => applyLang(currentLang));
+document.addEventListener('DOMContentLoaded', () => applyLang('en'));
 
 // ── WHAT'S NEW — new user only, show once ──
 function maybeShowWhatsNew() {
