@@ -90,15 +90,12 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .head-actions{display:flex;gap:8px;}
 .icon-btn{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.22s;font-size:0.95rem;position:relative;}
 .icon-btn:active{transform:scale(0.92);}
-/* Promo — amber */
-#btn-promo{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
-#btn-promo:hover{background:rgba(255,255,255,0.3);}
-/* Refer — violet */
-#btn-refer{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
-#btn-refer:hover{background:rgba(255,255,255,0.3);}
+/* Promo — amber/gold */
+#btn-promo{background:linear-gradient(135deg,#f59e0b,#fbbf24);border:none;color:#fff;box-shadow:0 3px 10px rgba(245,158,11,0.5);}
+#btn-promo:hover{background:linear-gradient(135deg,#d97706,#f59e0b);}
 /* History — teal */
-#btn-history{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
-#btn-history:hover{background:rgba(255,255,255,0.3);}
+#btn-history{background:linear-gradient(135deg,#0ea5e9,#06c4d4);border:none;color:#fff;box-shadow:0 3px 10px rgba(14,165,233,0.5);}
+#btn-history:hover{background:linear-gradient(135deg,#0284c7,#0ea5e9);}
 /* Withdraw/Wallet — primary blue */
 #btn-withdraw{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.5);color:#fff;}
 #btn-withdraw:hover{background:rgba(255,255,255,0.3);}
@@ -118,9 +115,13 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .avatar{width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,0.2);border:2px solid rgba(255,255,255,0.4);display:flex;align-items:center;justify-content:center;font-size:1.4rem;}
 .user-id-pill{font-family:var(--mono);font-size:0.75rem;color:rgba(255,255,255,0.9);background:rgba(0,0,0,0.15);padding:4px 10px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
 .bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.bal-box{background:rgba(255,255,255,0.15);border-radius:13px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,0.2);}
-.bal-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;opacity:0.8;margin-bottom:3px;}
+.bal-box{border-radius:13px;padding:12px;text-align:center;}
+.bal-box:first-child{background:linear-gradient(135deg,rgba(6,182,212,0.35),rgba(6,182,212,0.15));border:1.5px solid rgba(6,182,212,0.5);}
+.bal-box:last-child{background:linear-gradient(135deg,rgba(245,158,11,0.35),rgba(245,158,11,0.15));border:1.5px solid rgba(245,158,11,0.5);}
+.bal-lbl{font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;opacity:0.85;margin-bottom:3px;}
 .bal-num{font-family:var(--mono);font-size:1.45rem;font-weight:800;}
+.bal-box:first-child .bal-num{color:#67e8f9;}
+.bal-box:last-child .bal-num{color:#fde68a;}
 
 /* SECTION TITLE */
 .sec-title{font-size:1rem;font-weight:800;color:var(--text-main);margin-bottom:14px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:0.5px;}
@@ -331,34 +332,34 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="user-row">
             <div class="avatar"><i class="fas fa-user-astronaut"></i></div>
             <div>
-                <div style="font-weight:800;font-size:1rem;margin-bottom:3px;">My Wallet</div>
+                <div style="font-weight:800;font-size:1rem;margin-bottom:3px;" data-i18n="wallet">My Wallet</div>
                 <div class="user-id-pill" id="uid-display"><i class="fas fa-fingerprint"></i> ID: <span>...</span> <i class="fas fa-copy" style="font-size:0.65rem;opacity:0.7;"></i></div>
             </div>
         </div>
         <div class="bal-grid">
             <div class="bal-box">
-                <div class="bal-lbl">💎 Diamond</div>
+                <div class="bal-lbl" data-i18n="lblDiamond">💎 Diamond</div>
                 <div class="bal-num" id="bal-diamond">0</div>
                 <div id="bal-usdt" style="font-size:0.72rem;color:rgba(255,255,255,0.7);margin-top:2px;font-weight:600;">≈ $0.00 USDT</div>
             </div>
             <div class="bal-box">
-                <div class="bal-lbl">⭐ Tasks Done</div>
+                <div class="bal-lbl" data-i18n="lblTasks">⭐ Tasks Done</div>
                 <div class="bal-num" id="tasks-done-count">0</div>
             </div>
         </div>
         <div class="ton-sub-row">
-            <span>My TON Balance</span>
+            <span data-i18n="lblTon">My TON Balance</span>
             <span><span id="bal-ton">0.0000</span> TON</span>
         </div>
         <!-- Dollar rate row -->
         <div style="margin-top:10px;background:rgba(255,255,255,0.12);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;font-size:0.7rem;color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.15);">
-            <span>💱 Rate</span>
+            <span data-i18n="lblRate">💱 Rate</span>
             <span style="font-family:var(--mono);font-weight:700;">1K 💎 = $1 USDT = 0.5 TON = 120৳</span>
         </div>
         <!-- Withdraw + Refer in card -->
         <div style="margin-top:10px;display:flex;gap:8px;">
-            <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(239,68,68,0.35);"><i class="fas fa-arrow-up-from-bracket"></i> Withdraw</button>
-            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);"><i class="fas fa-user-plus"></i> Refer & Earn</button>
+            <button class="btn" id="btn-withdraw-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#f59e0b,#ef4444);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(239,68,68,0.35);"><i class="fas fa-arrow-up-from-bracket"></i> <span data-i18n="btnWithdraw">Withdraw</span></button>
+            <button class="btn" id="btn-refer-inline" style="flex:1;border-radius:10px;padding:10px;background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;font-weight:700;font-size:0.82rem;display:flex;align-items:center;justify-content:center;gap:6px;box-shadow:0 4px 14px rgba(16,185,129,0.35);"><i class="fas fa-user-plus"></i> <span data-i18n="btnRefer">Refer & Earn</span></button>
         </div>
         <!-- TON Connect hidden (still functional for deposit send) -->
         <div id="ton-connect-btn" style="display:none;"></div>
@@ -369,8 +370,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <button class="create-task-btn" id="btn-create-task" style="margin-bottom:0;">
             <div class="create-task-icon"><i class="fas fa-plus"></i></div>
             <div style="text-align:left;">
-                <div style="font-size:0.95rem;font-weight:800;">Create a Task</div>
-                <div style="font-size:0.72rem;opacity:0.85;font-weight:400;">Pay per task completion</div>
+                <div style="font-size:0.95rem;font-weight:800;" data-i18n="createTask">Create a Task</div>
+                <div style="font-size:0.72rem;opacity:0.85;font-weight:400;" data-i18n="createTaskSub">Pay per task completion</div>
             </div>
         </button>
 
@@ -378,13 +379,13 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
     <!-- Task List -->
     <div>
-        <h2 class="sec-title"><i class="fas fa-clipboard-check"></i> Available Tasks</h2>
+        <h2 class="sec-title"><i class="fas fa-clipboard-check"></i> <span data-i18n="availTasks">Available Tasks</span></h2>
         <div class="platform-row">
-            <div class="platform-pill active" data-filter="all">All</div>
-            <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> Channel</div>
-            <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
-            <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
-            <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
+            <div class="platform-pill active" data-filter="all" data-i18n="filterAll">All</div>
+            <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> <span data-i18n="filterChannel">Channel</span></div>
+            <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> <span data-i18n="filterGroup">Group</span></div>
+            <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> <span data-i18n="filterBot">Bot</span></div>
+            <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> <span data-i18n="filterSocial">Social</span></div>
             <div class="platform-pill" data-filter="my_tasks"><i class="fas fa-star"></i> My Tasks</div>
         </div>
         <div id="task-list-container"></div>
@@ -2656,12 +2657,29 @@ function showTaskInfo(type){
 // ── LANGUAGE SYSTEM ──
 const LANG_STRINGS = {
     en: {
+        // Wallet card
+        wallet: "My Wallet",
+        lblDiamond: "💎 Diamond",
+        lblTasks: "⭐ Tasks Done",
+        lblTon: "My TON Balance",
+        lblRate: "💱 Rate",
+        btnWithdraw: "Withdraw",
+        btnRefer: "Refer & Earn",
+        createTask: "Create a Task",
+        createTaskSub: "Pay per task completion",
+        availTasks: "Available Tasks",
+        filterAll: "All",
+        filterChannel: "Channel",
+        filterGroup: "Group",
+        filterBot: "Bot",
+        filterSocial: "Social",
+        // What's New
         wnTitle: "Welcome to CoinlyTask!",
         wnSub: "Here's how everything works — read once!",
         wnT1: "📋 Tasks Section",
         wnT1d: "Complete tasks to earn Diamond. Tap GO → Join → VERIFY → get +1 💎. More tasks = more Diamond.",
         wnT2: "🎬 Earn Section (Ads)",
-        wnT2d: "Watch ads daily to earn Diamond. Earnings go to Lootbox first. After midnight (Dhaka time) auto-transfers to main balance.",
+        wnT2d: "Watch ads daily to earn Diamond. Earnings go to Lootbox first. Collect 15💎 to claim to main balance (2x per day).",
         wnT3: "🎲 Dice Game",
         wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win Diamond based on the outcome: Under 7, Lucky 7, or Over 7.",
         wnT4: "💸 Withdraw",
@@ -2673,19 +2691,36 @@ const LANG_STRINGS = {
         wnBtn: "🚀 Got it — Let's Start!",
     },
     bn: {
+        // Wallet card
+        wallet: "আমার ওয়ালেট",
+        lblDiamond: "💎 ডায়মন্ড",
+        lblTasks: "⭐ সম্পন্ন টাস্ক",
+        lblTon: "আমার TON ব্যালেন্স",
+        lblRate: "💱 রেট",
+        btnWithdraw: "উইথড্র",
+        btnRefer: "রেফার করুন",
+        createTask: "টাস্ক তৈরি করুন",
+        createTaskSub: "প্রতি টাস্ক সম্পন্নে পেমেন্ট",
+        availTasks: "উপলব্ধ টাস্ক",
+        filterAll: "সব",
+        filterChannel: "চ্যানেল",
+        filterGroup: "গ্রুপ",
+        filterBot: "বট",
+        filterSocial: "সোশ্যাল",
+        // What's New
         wnTitle: "CoinlyTask-এ স্বাগতম!",
         wnSub: "কীভাবে কাজ করে — একবার পড়ো!",
         wnT1: "📋 Tasks সেকশন",
         wnT1d: "এখানে available tasks দেখবে। GO চাপো → Join করো → VERIFY চাপো → +1 💎 Diamond পাবে। যত বেশি task করবে তত বেশি diamond।",
         wnT2: "🎬 Earn সেকশন (Ads)",
-        wnT2d: "প্রতিদিন ads দেখে diamond earn করো। Ad থেকে earned diamond আগে Lootbox-এ যায়। রাত ১২টার পর (ঢাকা সময়) auto main balance-এ transfer হয়।",
+        wnT2d: "প্রতিদিন ads দেখে diamond earn করো। Ad থেকে diamond Lootbox-এ জমা হয়। ১৫💎 জমলে Claim করো (দিনে ২বার)।",
         wnT3: "🎲 Dice Game",
-        wnT3d: "প্রতি 4 ঘণ্টায় 1 বার dice roll করতে পারবে। 1টা ad দেখতে হবে। Under 7, Lucky 7, বা Over 7 জিতলে diamond পাবে।",
-        wnT4: "💸 Withdraw",
-        wnT4d: "Min 10 tasks + 10 ads দেখলে withdraw করতে পারবে। Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳)।",
-        wnT5: "👥 Refer & Earn",
-        wnT5d: "বন্ধুকে refer করো। সে যখন 10 tasks complete করবে তুমি +10 💎 Diamond পাবে। Wallet card-এ Refer & Earn বাটন চাপো।",
-        wnT6: "➕ Create a Task",
+        wnT3d: "প্রতি ৪ ঘণ্টায় ১ বার dice roll করতে পারবে। ১টা ad দেখতে হবে। Under 7, Lucky 7, বা Over 7 জিতলে diamond পাবে।",
+        wnT4: "💸 উইথড্র",
+        wnT4d: "Min ১০ tasks + ১০ ads দেখলে withdraw করতে পারবে। Tonkeeper (min 50💎=0.5TON) · Binance (min 100💎=$1) · bKash (min 150💎=120৳)।",
+        wnT5: "👥 রেফার করুন",
+        wnT5d: "বন্ধুকে refer করো। সে যখন ১০ tasks complete করবে তুমি +১০ 💎 পাবে। Wallet card-এ Refer & Earn বাটন চাপো।",
+        wnT6: "➕ টাস্ক তৈরি করুন",
         wnT6d: "নিজের channel/group promote করতে চাইলে Task create করো। TON দিয়ে package কিনো, admin approve করলে task live হবে।",
         wnBtn: "🚀 বুঝেছি — শুরু করি!",
     }
@@ -2699,10 +2734,24 @@ function applyLang(lang) {
     const label = document.getElementById('lang-label');
     if(label) label.innerText = lang === 'bn' ? 'বাং' : 'EN';
     const strings = LANG_STRINGS[lang] || LANG_STRINGS.en;
+
+    // Translate all data-i18n elements
     document.querySelectorAll('[data-i18n]').forEach(el => {
         const key = el.getAttribute('data-i18n');
         if(strings[key]) el.innerText = strings[key];
     });
+
+    // Platform pills with nested spans — filter pills get translated via data-i18n already
+    // Update lang toggle button style
+    const toggle = document.getElementById('lang-toggle');
+    if(toggle){
+        toggle.style.background = lang === 'bn'
+            ? 'linear-gradient(135deg,rgba(16,185,129,0.3),rgba(16,185,129,0.15))'
+            : 'rgba(255,255,255,0.15)';
+        toggle.style.border = lang === 'bn'
+            ? '1.5px solid rgba(16,185,129,0.7)'
+            : '1.5px solid rgba(255,255,255,0.45)';
+    }
 }
 
 function toggleLang() {
