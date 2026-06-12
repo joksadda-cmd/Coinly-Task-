@@ -1,10 +1,10 @@
 // api/claimTask.js
-// Credits diamond to user after task completion
+// Credits 0.5 diamond per task + stores completion timestamp for refer validation
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
-const TASK_REWARD = 2; // diamonds per task
+const TASK_REWARD = 0.5; // 0.5 diamond per task
 
 function getAdminApp() {
     if (getApps().length > 0) return getApps()[0];
@@ -33,8 +33,8 @@ export default async function handler(req, res) {
         const app = getAdminApp();
         const db  = getFirestore(app);
 
-        const userRef  = db.collection('users').doc(String(userId));
-        const taskRef  = db.collection('tasks').doc(String(taskId));
+        const userRef = db.collection('users').doc(String(userId));
+        const taskRef = db.collection('tasks').doc(String(taskId));
 
         const reward = await db.runTransaction(async (t) => {
             const [userSnap, taskSnap] = await Promise.all([
@@ -48,16 +48,22 @@ export default async function handler(req, res) {
             const user = userSnap.data();
             const task = taskSnap.data();
 
-            if (user.isBanned) throw { code: 'banned' };
+            if (user.isBanned)    throw { code: 'banned' };
             if (!task.isApproved) throw { code: 'task_not_approved' };
             if ((user.completedTasks || []).includes(taskId)) throw { code: 'already_completed' };
 
+            // Use task's own rewardDiamond if set, else default 0.5
             const taskReward = task.rewardDiamond || TASK_REWARD;
 
+            // Store completion timestamp for refer 24hr validation
+            const nowMs = Date.now();
+
             t.update(userRef, {
-                completedTasks:  FieldValue.arrayUnion(taskId),
-                diamondBalance:  FieldValue.increment(taskReward),
-                totalEarned:     FieldValue.increment(taskReward),
+                completedTasks:    FieldValue.arrayUnion(taskId),
+                // completedTasksAt: { taskId: timestamp } — for 24hr refer check
+                [`completedTasksAt.${taskId}`]: nowMs,
+                diamondBalance:    FieldValue.increment(taskReward),
+                totalEarned:       FieldValue.increment(taskReward),
             });
             t.update(taskRef, {
                 completionCount: FieldValue.increment(1),
@@ -70,9 +76,9 @@ export default async function handler(req, res) {
 
     } catch(err) {
         if (err.code) {
-            return res.status(200).json({ ok: false, error: err.code, message: err.message });
+            return res.status(200).json({ ok: false, error: err.code });
         }
         console.error('[claimTask]', err);
-        return res.status(500).json({ ok: false, error: 'server_error', message: err.message });
+        return res.status(500).json({ ok: false, error: 'server_error' });
     }
 }
