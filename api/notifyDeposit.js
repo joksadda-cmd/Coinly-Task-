@@ -1,5 +1,6 @@
 // api/notifyDeposit.js
-// Handles: deposit request (with TON auto-verify), withdrawal, task payment, broadcast
+// Handles: withdrawal (daily 1x limit), deposit, task payment, broadcast
+// bKash removed — only Tonkeeper + Binance
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -16,6 +17,9 @@ if (!getApps().length) {
 const db       = getFirestore();
 const BOT      = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+
+const TODAY_DHAKA = () =>
+    new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
 async function tgMsg(chatId, text) {
     if (!BOT || !chatId) return;
@@ -65,15 +69,23 @@ export default async function handler(req, res) {
     const type = body.type || 'deposit';
 
     // ════════════════════════════════════
-    // WITHDRAWAL
+    // WITHDRAWAL — daily 1x limit, no bKash
     // ════════════════════════════════════
     if (type === 'withdrawal') {
         const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
         if (!userId || !diamondAmount || !address) {
             return res.status(400).json({ error: 'Missing fields' });
         }
-        const amt = parseFloat(diamondAmount);
-        const uid = String(userId);
+
+        // Block bKash
+        if (method === 'bkash') {
+            return res.status(400).json({ success: false, error: 'bKash withdrawals are no longer supported.' });
+        }
+
+        const amt   = parseFloat(diamondAmount);
+        const uid   = String(userId);
+        const today = TODAY_DHAKA();
+
         try {
             let newBalance = 0, withdrawId = '';
             await db.runTransaction(async (t) => {
@@ -81,7 +93,14 @@ export default async function handler(req, res) {
                 const uSnap = await t.get(uRef);
                 if (!uSnap.exists) throw new Error('User not found');
                 const user = uSnap.data();
+
                 if ((user.diamondBalance || 0) < amt) throw new Error('Insufficient balance');
+
+                // ── Daily 1x withdraw limit ──
+                if (user.lastWithdrawDate === today) {
+                    throw new Error('You can only withdraw once per day. Try again tomorrow.');
+                }
+
                 newBalance = (user.diamondBalance || 0) - amt;
                 const wRef = db.collection('withdrawals').doc();
                 withdrawId = wRef.id;
@@ -94,16 +113,16 @@ export default async function handler(req, res) {
                 const newAdsCount = (user.adsWatchedAd1||0)+(user.adsWatchedAd2||0)+
                     (user.adsWatchedAd3||0)+(user.adsWatchedAd4||0);
                 t.update(uRef, {
-                    diamondBalance: FieldValue.increment(-amt),
+                    diamondBalance:       FieldValue.increment(-amt),
+                    lastWithdrawDate:     today,
                     _lastWithdrawAdsCount: newAdsCount,
                 });
             });
 
-            const currLabel   = method === 'bkash' ? 'BDT'   : method === 'binance' ? 'USDT' : 'TON';
-            const currIcon    = method === 'bkash' ? '৳'     : method === 'binance' ? '$'    : '';
-            const methodLabel = method === 'bkash' ? 'bKash' : method === 'binance' ? 'Binance' : 'Tonkeeper';
+            const currLabel   = method === 'binance' ? 'USDT' : 'TON';
+            const currIcon    = method === 'binance' ? '$'    : '';
+            const methodLabel = method === 'binance' ? 'Binance' : 'Tonkeeper';
 
-            // ── Notify admin ──
             await tgMsg(ADMIN_ID,
                 `🔴 <b>Withdrawal Request</b>\n` +
                 `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
@@ -112,16 +131,15 @@ export default async function handler(req, res) {
                 `🆔 ID: <code>${withdrawId}</code>`
             );
 
-            // ── Notify user ──
             await tgMsg(uid,
                 `✅ <b>Withdrawal Request Received!</b>\n\n` +
-                `💎 <b>${amt} Diamond</b> has been deducted from your balance.\n` +
+                `💎 <b>${amt} Diamond</b> deducted from your balance.\n` +
                 `💰 You will receive: <b>${currIcon}${tonAmount} ${currLabel}</b>\n` +
                 `📬 Method: <b>${methodLabel}</b>\n` +
                 `📮 Address: <code>${address}</code>\n\n` +
                 `⏱️ Processing time: <b>1–24 hours</b>\n` +
                 `🆔 Request ID: <code>${withdrawId}</code>\n\n` +
-                `You will receive another notification when your withdrawal is completed. 🚀`
+                `You will receive another notification when completed. 🚀`
             );
 
             return res.status(200).json({ success: true, newBalance, withdrawId });
@@ -167,22 +185,13 @@ export default async function handler(req, res) {
         try {
             const uSnap = await db.collection('users').doc(uid).get();
             if (uSnap.exists) {
-                const userData = uSnap.data();
-                if (userData.isBanned === true) {
-                    return res.status(403).json({ success: false, banned: true, error: 'Account is banned.' });
+                const ud = uSnap.data();
+                if (ud.isBanned) return res.status(403).json({ success: false, banned: true, error: 'Account is banned.' });
+                if (type === 'deposit' && ud.depositBanned) {
+                    await tgMsg(ADMIN_ID, `🚨 Deposit ban bypass: ${uid}`);
+                    return res.status(403).json({ success: false, depositBanned: true, error: 'Deposit access disabled.' });
                 }
-                if (type === 'deposit' && userData.depositBanned === true) {
-                    await tgMsg(ADMIN_ID,
-                        `🚨 <b>Deposit Ban Bypass Attempt!</b>\n` +
-                        `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-                        `💰 Tried: ${tonAmount} TON — BLOCKED`
-                    );
-                    return res.status(403).json({
-                        success: false, depositBanned: true,
-                        error: 'Your deposit access has been permanently disabled.'
-                    });
-                }
-                body._warnCount = userData.depositWarnings || 0;
+                body._warnCount = ud.depositWarnings || 0;
             }
         } catch(e) { console.warn('[ban-check]', e.message); }
     }
@@ -190,9 +199,7 @@ export default async function handler(req, res) {
     if (type === 'deposit') {
         const ton = parseFloat(tonAmount) || 0;
         if (ton <= 0) return res.status(400).json({ error: 'Invalid TON amount' });
-
         const matchedTx = await checkTonTransaction(uid, ton);
-
         if (matchedTx) {
             try {
                 const diamond = parseInt(expectedDiamond) || Math.floor(ton * 2000);
@@ -201,7 +208,7 @@ export default async function handler(req, res) {
                     const depRef = db.collection('deposits').doc();
                     t.set(depRef, {
                         userId: uid, username: username||'', firstName: firstName||'',
-                        tonAmount: ton, expectedDiamond: diamond, memo: memo || uid,
+                        tonAmount: ton, expectedDiamond: diamond, memo: memo||uid,
                         status: 'auto_approved', autoVerified: true,
                         txHash: matchedTx.transaction_id?.hash || '',
                         createdAt: FieldValue.serverTimestamp(),
@@ -209,48 +216,23 @@ export default async function handler(req, res) {
                     });
                     t.update(uRef, { tonBalance: FieldValue.increment(ton), pendingDeposit: false });
                 });
-                await tgMsg(uid,
-                    `✅ <b>Deposit Auto-Verified!</b>\n\n` +
-                    `💰 <b>${ton} TON</b> confirmed on blockchain.\n` +
-                    `🏦 <b>${ton} TON</b> added to your balance!\n\n` +
-                    `You can now create tasks. 🚀`
-                );
-                await tgMsg(ADMIN_ID,
-                    `✅ <b>Deposit Auto-Approved</b>\n` +
-                    `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-                    `💰 ${ton} TON verified · 💎 ${diamond} Diamond credited`
-                );
+                await tgMsg(uid, `✅ <b>Deposit Auto-Verified!</b>\n\n💰 <b>${ton} TON</b> added to your balance! 🚀`);
+                await tgMsg(ADMIN_ID, `✅ Auto-Approved: ${uid} · ${ton} TON · ${parseInt(expectedDiamond)||Math.floor(ton*2000)} 💎`);
                 return res.status(200).json({ success: true, autoApproved: true, ton, diamond });
-            } catch(e) {
-                console.error('[auto-approve]', e.message);
-            }
+            } catch(e) { console.error('[auto-approve]', e.message); }
         }
-
         try {
             const diamond = parseInt(expectedDiamond) || Math.floor(ton * 2000);
-            const warnNote = body._warnCount > 0 ? `\n⚠️ <b>User has ${body._warnCount} warning(s)!</b>` : '';
             const depRef = await db.collection('deposits').add({
                 userId: uid, username: username||'', firstName: firstName||'',
-                tonAmount: ton, expectedDiamond: diamond, memo: memo || uid,
+                tonAmount: ton, expectedDiamond: diamond, memo: memo||uid,
                 status: 'pending', autoVerified: false,
                 createdAt: FieldValue.serverTimestamp(),
             });
-            await tgMsg(ADMIN_ID,
-                `🟡 <b>Deposit Pending (Manual Review)</b>\n` +
-                `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-                `💰 ${ton} TON · 📝 Memo: <code>${memo||uid}</code>\n` +
-                `🆔 ID: <code>${depRef.id}</code>${warnNote}`
-            );
-            await tgMsg(uid,
-                `⏳ <b>Deposit Under Review</b>\n\n` +
-                `💰 ${ton} TON request received.\n` +
-                `Admin will review within 1–6 hours.\n\n` +
-                `⚠️ Repeated fake requests = permanent ban.`
-            );
+            await tgMsg(ADMIN_ID, `🟡 Deposit Pending: ${uid} · ${ton} TON · ID: ${depRef.id}`);
+            await tgMsg(uid, `⏳ <b>Deposit Under Review</b>\n\n💰 ${ton} TON received.\nAdmin will review within 1–6 hours.`);
             return res.status(200).json({ success: true, autoApproved: false, depositId: depRef.id });
-        } catch(e) {
-            return res.status(500).json({ error: e.message });
-        }
+        } catch(e) { return res.status(500).json({ error: e.message }); }
     }
 
     // ════════════════════════════════════
@@ -258,8 +240,7 @@ export default async function handler(req, res) {
     // ════════════════════════════════════
     try {
         const collection_name = type === 'task_payment' ? 'task_payments'
-                              : type === 'task_create'  ? 'tasks'
-                              : 'deposits';
+                              : type === 'task_create'  ? 'tasks' : 'deposits';
         const docData = {
             userId: uid, username: username||'', firstName: firstName||'',
             status: type === 'task_create' ? 'pending_approval' : 'pending',
@@ -269,7 +250,7 @@ export default async function handler(req, res) {
             const { title, url, category, channelId, rewardDiamond, maxCompletions, tonCost, packageLabel, createdBy } = body;
             Object.assign(docData, {
                 title: title||'', url: url||'', category: category||'social',
-                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||1,
+                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||0.5,
                 maxCompletions: parseInt(maxCompletions)||100, completionCount: 0,
                 isApproved: false, tonCost: parseFloat(tonCost)||0,
                 packageLabel: packageLabel||'', createdBy: createdBy||uid,
@@ -280,11 +261,11 @@ export default async function handler(req, res) {
                     const uRef  = db.collection('users').doc(uid);
                     const uSnap = await uRef.get();
                     if (uSnap.exists) {
-                        const curTon = uSnap.data().tonBalance || 0;
-                        if (curTon < tonCostVal) return res.status(200).json({ success: false, error: 'Insufficient TON balance' });
+                        if ((uSnap.data().tonBalance||0) < tonCostVal)
+                            return res.status(200).json({ success: false, error: 'Insufficient TON balance' });
                         await uRef.update({ tonBalance: FieldValue.increment(-tonCostVal) });
                     }
-                } catch(e) { console.warn('[task_create deduct]', e.message); }
+                } catch(e) { console.warn('[task deduct]', e.message); }
             }
         } else {
             Object.assign(docData, {
@@ -294,10 +275,8 @@ export default async function handler(req, res) {
         }
         const docRef = await db.collection(collection_name).add(docData);
         await tgMsg(ADMIN_ID,
-            `${type === 'task_payment' ? '🟡 <b>Task Payment' : '🟢 <b>Deposit Request'}</b>\n` +
-            `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-            `💰 ${tonAmount} TON · 💎 Expected: ${expectedDiamond}\n` +
-            `🆔 ID: <code>${docRef.id}</code>`
+            `${type==='task_payment'?'🟡 Task Payment':'🟢 Deposit Request'}\n` +
+            `👤 ${firstName||''} [${uid}] · 💰 ${tonAmount} TON\n🆔 ${docRef.id}`
         );
         return res.status(200).json({ success: true, depositId: docRef.id });
     } catch(e) {
