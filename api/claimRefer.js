@@ -1,4 +1,5 @@
-// api/claimRefer.js — refer reward + Telegram notification to referrer
+// api/claimRefer.js
+// Refer reward: friend must complete 10 tasks within 24 hours
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -17,6 +18,7 @@ const BOT = process.env.BOT_TOKEN;
 
 const REFER_REWARD    = 10;
 const REFER_MIN_TASKS = 10;
+const REFER_WINDOW_HR = 24; // must complete 10 tasks within 24 hours
 const DIAMOND_TO_USD  = 0.001;
 
 async function tgMsg(chatId, text) {
@@ -48,7 +50,6 @@ export default async function handler(req, res) {
 
         const user = userSnap.data();
 
-        // Already claimed — return current referrer balance for frontend sync
         if (user.isValidatedRef) {
             return res.status(200).json({ success: true, alreadyClaimed: true });
         }
@@ -56,17 +57,48 @@ export default async function handler(req, res) {
         const referrerId = user.referredBy;
         if (!referrerId) return res.status(400).json({ error: 'No referrer' });
 
-        const completedTasks = user.completedTasks || [];
+        const completedTasks    = user.completedTasks    || [];
+        const completedTasksAt  = user.completedTasksAt  || {};
+
         if (completedTasks.length < REFER_MIN_TASKS) {
             return res.status(400).json({
-                error: `Need ${REFER_MIN_TASKS} tasks. Done: ${completedTasks.length}`
+                error: `Complete ${REFER_MIN_TASKS} tasks within 24 hours. Done: ${completedTasks.length}`
             });
         }
 
-        // Run transaction — get referrer's new balance after reward
-        let newReferrerBalance = 0;
-        let newValidReferrals  = 0;
-        let newDiamondEarned   = 0;
+        // ── 24hr window check ──
+        // Find the earliest window of REFER_MIN_TASKS tasks completed within 24hr
+        const windowMs = REFER_WINDOW_HR * 60 * 60 * 1000;
+        const timestamps = completedTasks
+            .map(id => completedTasksAt[id])
+            .filter(Boolean)
+            .sort((a, b) => a - b); // oldest first
+
+        // Sliding window: check if any 10 consecutive timestamps fit in 24hr
+        let windowValid = false;
+        for (let i = 0; i <= timestamps.length - REFER_MIN_TASKS; i++) {
+            const first = timestamps[i];
+            const last  = timestamps[i + REFER_MIN_TASKS - 1];
+            if (last - first <= windowMs) {
+                windowValid = true;
+                break;
+            }
+        }
+
+        // Fallback: if timestamps not stored yet (old users) — just check count
+        if (timestamps.length < REFER_MIN_TASKS) {
+            // Old user without timestamps — allow if task count met
+            windowValid = completedTasks.length >= REFER_MIN_TASKS;
+        }
+
+        if (!windowValid) {
+            return res.status(400).json({
+                error: `You must complete ${REFER_MIN_TASKS} tasks within ${REFER_WINDOW_HR} hours to qualify.`
+            });
+        }
+
+        // ── Credit referrer ──
+        let newReferrerBalance = 0, newValidReferrals = 0, newDiamondEarned = 0;
 
         await db.runTransaction(async (t) => {
             const referrerRef  = db.collection('users').doc(String(referrerId));
@@ -96,19 +128,18 @@ export default async function handler(req, res) {
         const usdtValue = (REFER_REWARD * DIAMOND_TO_USD).toFixed(2);
         await tgMsg(referrerId,
             `🎉 <b>Refer Reward!</b>\n\n` +
-            `Your referral (UID: <code>${uid}</code>) completed ${REFER_MIN_TASKS} tasks!\n\n` +
-            `💎 <b>+${REFER_REWARD} Diamond</b> added to your balance!\n` +
-            `💵 Value: <b>$${usdtValue} USDT</b>\n\n` +
+            `Your referral (UID: <code>${uid}</code>) completed ${REFER_MIN_TASKS} tasks within ${REFER_WINDOW_HR} hours!\n\n` +
+            `💎 <b>+${REFER_REWARD} Diamond</b> added!\n` +
+            `💵 Value: <b>$${usdtValue} USDT</b>\n` +
             `🏦 New Balance: <b>${newReferrerBalance} 💎</b>\n\n` +
-            `Keep referring to earn more! 🚀`
+            `Keep referring! 🚀`
         );
 
         return res.status(200).json({
             success: true,
             reward:  REFER_REWARD,
-            // Frontend uses these to update referrer's local state immediately
-            referrerNewBalance:   newReferrerBalance,
-            referrerValidRefs:    newValidReferrals,
+            referrerNewBalance:    newReferrerBalance,
+            referrerValidRefs:     newValidReferrals,
             referrerDiamondEarned: newDiamondEarned,
         });
 
@@ -116,4 +147,4 @@ export default async function handler(req, res) {
         console.error('[claimRefer]', e.message);
         return res.status(500).json({ error: e.message });
     }
-                }
+            }
