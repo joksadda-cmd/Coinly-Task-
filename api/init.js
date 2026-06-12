@@ -1,5 +1,6 @@
 // api/init.js
-// User init + data return — replaces all direct Firestore reads from client
+// User init + data return — TP (Task Points) currency
+// Fix: tonBalance: 0 added for new users
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -15,17 +16,13 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-// ── Helper: add user ID to meta/userIds (for broadcast — 1 read instead of N reads) ──
 async function registerUserIdForBroadcast(uid) {
     try {
-        const metaRef = db.collection('meta').doc('userIds');
-        await metaRef.set(
+        await db.collection('meta').doc('userIds').set(
             { ids: FieldValue.arrayUnion(uid) },
             { merge: true }
         );
-    } catch(e) {
-        console.warn('[registerUserIdForBroadcast]', e.message);
-    }
+    } catch(e) { console.warn('[registerUserIdForBroadcast]', e.message); }
 }
 
 export default async function handler(req, res) {
@@ -38,7 +35,7 @@ export default async function handler(req, res) {
     const { userId, firstName, lastName, username, referrerCode } = req.body || {};
     if (!userId) return res.status(400).json({ error: 'userId required' });
 
-    const uid = String(userId);
+    const uid   = String(userId);
     const today = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
     try {
@@ -48,46 +45,46 @@ export default async function handler(req, res) {
         // ── New user ──
         if (!userSnap.exists) {
             // Device multi-account check
-            let blocked = false;
             const devId = req.body.deviceId;
             if (devId) {
                 const devSnap = await db.collection('users')
-                    .where('deviceId', '==', devId)
-                    .limit(2).get();
+                    .where('deviceId', '==', devId).limit(2).get();
                 if (!devSnap.empty) {
                     let otherFound = false;
                     devSnap.forEach(d => { if (d.id !== uid) otherFound = true; });
-                    if (otherFound) blocked = true;
+                    if (otherFound) return res.status(200).json({ blocked: true });
                 }
             }
-            if (blocked) return res.status(200).json({ blocked: true });
 
             const newUser = {
-                diamondBalance: 0, lootboxBalance: 0,
-                completedTasks: [], createdTasks: [],
-                totalInvites: 0, validReferrals: 0, referralDiamondEarned: 0,
-                telegramUsername: username || 'N/A',
-                firstName: firstName || '', lastName: lastName || '',
-                isBanned: false,
-                adsWatchedAd1: 0, adsWatchedAd2: 0, adsWatchedAd3: 0, adsWatchedAd4: 0,
-                lastResetDate: today, joinGiftClaimed: false,
-                isValidatedRef: false,
+                diamondBalance: 0,      // TP balance
+                lootboxBalance: 0,
+                tonBalance:     0,      // TON balance (deposit)
+                completedTasks: [],
+                createdTasks:   [],
+                totalInvites:         0,
+                validReferrals:       0,
+                referralDiamondEarned:0,
+                telegramUsername: username  || 'N/A',
+                firstName:        firstName || '',
+                lastName:         lastName  || '',
+                isBanned:         false,
+                adsWatchedAd1: 0, adsWatchedAd2: 0,
+                adsWatchedAd3: 0, adsWatchedAd4: 0,
+                lastResetDate:    today,
+                joinGiftClaimed:  false,
+                isValidatedRef:   false,
                 referredBy: (referrerCode && referrerCode !== uid) ? referrerCode : null,
-                createdAt: FieldValue.serverTimestamp(),
+                createdAt:  FieldValue.serverTimestamp(),
             };
 
             await userRef.set(newUser);
-
-            // ── Register in meta/userIds for broadcast (1 read instead of N reads) ──
             await registerUserIdForBroadcast(uid);
 
-            // Increment referrer totalInvites
             if (newUser.referredBy) {
-                try {
-                    await db.collection('users').doc(newUser.referredBy).update({
-                        totalInvites: FieldValue.increment(1)
-                    });
-                } catch(e) {}
+                db.collection('users').doc(newUser.referredBy).update({
+                    totalInvites: FieldValue.increment(1)
+                }).catch(()=>{});
             }
 
             return res.status(200).json({ success: true, isNew: true, user: { ...newUser, id: uid } });
@@ -96,15 +93,15 @@ export default async function handler(req, res) {
         // ── Existing user ──
         const userData = userSnap.data();
 
-        // Ensure existing users are also in meta/userIds (backfill on next login)
-        // Only do this once — check a lightweight flag
+        // Backfill tonBalance if missing (old users)
+        const updates = {};
+        if (userData.tonBalance === undefined) updates.tonBalance = 0;
+
         if (!userData._broadcastRegistered) {
-            registerUserIdForBroadcast(uid); // fire and forget — no await
-            userRef.update({ _broadcastRegistered: true }).catch(()=>{});
+            registerUserIdForBroadcast(uid);
+            updates._broadcastRegistered = true;
         }
 
-        // Update name if changed
-        const updates = {};
         if (firstName && firstName !== userData.firstName) updates.firstName = firstName;
         if (username  && username  !== userData.telegramUsername) updates.telegramUsername = username;
 
@@ -115,9 +112,7 @@ export default async function handler(req, res) {
             updates.lastResetDate = today;
         }
 
-        if (Object.keys(updates).length > 0) {
-            await userRef.update(updates);
-        }
+        if (Object.keys(updates).length > 0) await userRef.update(updates);
 
         const finalUser = { ...userData, ...updates, id: uid };
 
@@ -126,7 +121,7 @@ export default async function handler(req, res) {
         try {
             const depSnap = await db.collection('deposits')
                 .where('userId', '==', uid)
-                .where('status', '==', 'pending')
+                .where('status',  '==', 'pending')
                 .limit(1).get();
             pendingDeposit = !depSnap.empty;
         } catch(e) {}
