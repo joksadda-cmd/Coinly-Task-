@@ -1,5 +1,7 @@
-// api/claimAd.js — fixed lootbox + 15💎 manual claim system
-// ad2 (AdsGram Special) daily limit changed: 10 → 5
+// api/claimAd.js
+// Currency: TP (Task Points) — 10K TP = $1 = 0.5 TON
+// Rewards: ad2=30TP, ad1/ad3/ad4=15TP each | Dice: under/over=30TP, lucky7=50TP
+// Lootbox min claim: 150 TP
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -15,13 +17,13 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-const AD_REWARDS = { ad1:0.5, ad2:1.0, ad3:0.5, ad4:0.5, joinGift:5 };
-const AD_LIMITS  = { ad1:10,  ad2:5,   ad3:25,  ad4:25  }; // ad2: 10→5
+const AD_REWARDS = { ad1:15, ad2:30, ad3:15, ad4:15, joinGift:50 }; // TP rewards
+const AD_LIMITS  = { ad1:10, ad2:5,  ad3:10, ad4:10 };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
-const LOOTBOX_MIN_CLAIM  = 15;
-const LOOTBOX_DAILY_MAX  = 2;
+const LOOTBOX_MIN_CLAIM = 150;  // 150 TP min to claim
+const LOOTBOX_DAILY_MAX = 2;
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -46,7 +48,7 @@ export default async function handler(req, res) {
                 const user = snap.data();
                 const lb = parseFloat(user.lootboxBalance || 0);
                 if (lb < LOOTBOX_MIN_CLAIM) {
-                    throw new Error(`Need at least ${LOOTBOX_MIN_CLAIM}💎 in Lootbox to claim. You have ${lb.toFixed(1)}💎`);
+                    throw new Error(`Need at least ${LOOTBOX_MIN_CLAIM} TP in Lootbox to claim. You have ${lb.toFixed(0)} TP`);
                 }
                 const lbToday = user.lootboxClaimDate === today ? (user.lootboxClaimCount || 0) : 0;
                 if (lbToday >= LOOTBOX_DAILY_MAX) {
@@ -66,7 +68,7 @@ export default async function handler(req, res) {
         }
     }
 
-    // ── BATCH MODE (ad sync) ──
+    // ── BATCH MODE ──
     if (batch && typeof batch === 'object') {
         try {
             const userSnap = await userRef.get();
@@ -77,8 +79,8 @@ export default async function handler(req, res) {
 
             if (batch.joinGift && !user.joinGiftClaimed) {
                 updates.joinGiftClaimed = true;
-                updates.diamondBalance  = FieldValue.increment(5);
-                totalReward += 5;
+                updates.diamondBalance  = FieldValue.increment(AD_REWARDS.joinGift);
+                totalReward += AD_REWARDS.joinGift;
             }
 
             const isNewDay = user.lastResetDate !== today;
@@ -96,8 +98,9 @@ export default async function handler(req, res) {
                 totalReward += reward;
             }
 
+            // Dice reward → direct to diamondBalance (not lootbox), max 50 TP
             if (batch.diceReward && parseFloat(batch.diceReward) > 0) {
-                const diceAmt = Math.min(parseFloat(batch.diceReward), 2.5);
+                const diceAmt = Math.min(parseFloat(batch.diceReward), 50);
                 updates.diamondBalance = FieldValue.increment(diceAmt);
                 totalReward += diceAmt;
             }
@@ -142,4 +145,4 @@ export default async function handler(req, res) {
         console.error('[claimAd single]', e.message);
         return res.status(500).json({ error: e.message });
     }
-                    }
+    }
