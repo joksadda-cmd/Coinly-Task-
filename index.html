@@ -57,11 +57,11 @@
     --bg-page:#080818;
     --bg-card:#111128;
     --bg-section:#0d0d20;
-    --text-main:#0f172a;
-    --text-sub:#475569;
+    --text-main:#e2e8f0;
+    --text-sub:#cbd5e1;
     --text-muted:#94a3b8;
-    --border:#dbeafe;
-    --border-mid:#bfdbfe;
+    --border:#2d2d50;
+    --border-mid:#3d3d70;
     --gold:#f59e0b;
     --diamond:#06b6d4;
     --diamond-bg:#ecfeff;
@@ -121,13 +121,13 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .sec-title i{color:#6366f1;font-size:0.88rem;}
 
 /* TASK CARDS */
-.task-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
+.task-card{background:#111128;border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:13px 15px;margin-bottom:8px;display:flex;align-items:center;gap:12px;transition:0.2s;box-shadow:0 2px 12px rgba(0,0,0,0.3);}
 .task-card:hover{border-color:rgba(99,102,241,0.5);box-shadow:0 4px 20px rgba(99,102,241,0.2);}
 .t-icon{width:42px;height:42px;border-radius:12px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);display:flex;align-items:center;justify-content:center;font-size:1.15rem;color:#818cf8;flex-shrink:0;}
 .t-info{flex:1;}
 .t-name{font-size:0.92rem;font-weight:700;color:#e2e8f0;}
-.t-reward{font-size:0.75rem;color:var(--primary);font-weight:600;margin-top:2px;}
-.t-limit{font-size:0.68rem;color:var(--text-muted);margin-top:1px;}
+.t-reward{font-size:0.75rem;color:#818cf8;font-weight:600;margin-top:2px;}
+.t-limit{font-size:0.68rem;color:#94a3b8;margin-top:1px;}
 
 /* BUTTONS */
 .btn{padding:12px 20px;border:none;border-radius:12px;font-family:var(--font);font-weight:700;font-size:0.88rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:0.2s;letter-spacing:0.3px;}
@@ -164,32 +164,34 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(8px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px;}
 .modal-bg.show{display:flex;}
 .modal-box{background:#13132e;border:1px solid rgba(99,102,241,0.3);border-radius:24px;width:100%;max-width:360px;padding:24px;text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.7);animation:popModal 0.35s cubic-bezier(0.175,0.885,0.32,1.275);max-height:88vh;overflow-y:auto;}
+.modal-title{font-size:1.15rem;font-weight:800;color:#e2e8f0;margin-bottom:6px;}
+.modal-sub{font-size:0.82rem;color:#94a3b8;margin-bottom:18px;}
+.input-field{width:100%;background:#1a1a35;border:1.5px solid #3d3d70;padding:13px 14px;border-radius:12px;color:#e2e8f0;font-family:var(--font);font-size:0.9rem;margin-bottom:12px;outline:none;transition:0.2s;}
+.input-field::placeholder{color:#64748b;}
+.input-field:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,0.15);}
+.info-box{background:rgba(99,102,241,0.1);border:1.5px solid rgba(99,102,241,0.3);border-radius:12px;padding:12px 14px;font-size:0.8rem;color:#cbd5e1;line-height:1.8;text-align:left;margin-bottom:14px;}
+.info-box b{color:#818cf8;}
+
 @keyframes popModal{from{transform:scale(0.85);opacity:0;}to{transform:scale(1);opacity:1;}}
-.modal-title{font-size:1.15rem;font-weight:800;color:var(--text-main);margin-bottom:6px;}
-.modal-sub{font-size:0.82rem;color:var(--text-sub);margin-bottom:18px;}
-.input-field{width:100%;background:var(--bg-section);border:1.5px solid var(--border-mid);padding:13px 14px;border-radius:12px;color:var(--text-main);font-family:var(--font);font-size:0.9rem;margin-bottom:12px;outline:none;transition:0.2s;}
-.input-field:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,111,245,0.1);}
-.info-box{background:var(--primary-light);border:1.5px solid var(--border-mid);border-radius:12px;padding:12px 14px;font-size:0.8rem;color:var(--text-sub);line-height:1.8;text-align:left;margin-bottom:14px;}
-.info-box b{color:var(--primary);}
 
 /* TASK TYPE BUTTONS */
 .task-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-.task-type-btn{padding:14px 10px;background:var(--bg-section);border:1.5px solid var(--border);border-radius:14px;text-align:center;cursor:pointer;transition:0.2s;}
-.task-type-btn:hover,.task-type-btn.active{background:var(--primary-light);border-color:var(--primary);}
-.task-type-btn i{font-size:1.5rem;color:var(--primary);display:block;margin-bottom:5px;}
-.task-type-btn span{font-size:0.78rem;font-weight:700;color:var(--text-main);}
+.task-type-btn{padding:14px 10px;background:#1a1a35;border:1.5px solid #3d3d70;border-radius:14px;text-align:center;cursor:pointer;transition:0.2s;}
+.task-type-btn:hover,.task-type-btn.active{background:rgba(99,102,241,0.15);border-color:#6366f1;}
+.task-type-btn i{font-size:1.5rem;color:#818cf8;display:block;margin-bottom:5px;}
+.task-type-btn span{font-size:0.78rem;font-weight:700;color:#e2e8f0;}
 
 /* REFER STATS */
 .refer-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
-.refer-stat-box{background:var(--primary-light);border:1.5px solid var(--border-mid);border-radius:12px;padding:10px;text-align:center;}
-.refer-stat-val{font-family:var(--mono);font-size:1.2rem;font-weight:800;color:var(--primary);}
+.refer-stat-box{background:rgba(99,102,241,0.1);border:1.5px solid rgba(99,102,241,0.3);border-radius:12px;padding:10px;text-align:center;}
+.refer-stat-val{font-family:var(--mono);font-size:1.2rem;font-weight:800;color:#818cf8;}
 .refer-stat-label{font-size:0.62rem;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.5px;}
 
 /* PENDING TAG */
 .status-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:0.68rem;font-weight:700;text-transform:uppercase;}
-.status-pending{background:#fef3c7;color:#92400e;}
-.status-success{background:#d1fae5;color:#065f46;}
-.status-failed{background:#fee2e2;color:#991b1b;}
+.status-pending{background:#3d2800;color:#fbbf24;}
+.status-success{background:#052e16;color:#4ade80;}
+.status-failed{background:#2d0a0a;color:#f87171;}
 
 /* ADS REWARD PILL */
 .reward-pill{display:inline-flex;align-items:center;gap:4px;background:var(--diamond-bg);border:1px solid #a5f3fc;border-radius:20px;padding:3px 10px;font-size:0.72rem;font-weight:700;color:var(--diamond);}
@@ -423,8 +425,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <h2 class="sec-title" style="color:#059669;"><i class="fas fa-play-circle" style="color:#10b981;"></i> Watch Ads & Earn Diamond</h2>
 
     <!-- AdsGram Special: 1 diamond / 10 limit -->
-    <div class="task-card" style="border-color:#fcd34d;background:linear-gradient(135deg,#fffbeb 0%,#fff 100%);">
-        <div class="t-icon" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-star"></i></div>
+    <div class="task-card" style="border-color:#92400e;background:linear-gradient(135deg,#2d1a00 0%,#1a1200 100%);">
+        <div class="t-icon" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.4);color:#fbbf24;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-star"></i></div>
         <div class="t-info">
             <div class="t-name" style="display:flex;align-items:center;gap:6px;">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:20px;">2× REWARD</span></div>
             <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
@@ -520,26 +522,26 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
     <div style="padding:0 14px;">
         <!-- Win rates -->
-        <div style="background:#fff;border-radius:18px;border:1.5px solid #ede9fe;padding:14px;margin-bottom:12px;box-shadow:0 2px 12px rgba(139,92,246,0.1);">
-            <div style="font-weight:800;font-size:0.82rem;color:#7c3aed;margin-bottom:10px;">🏆 Win Rates</div>
+        <div style="background:#1a1a35;border-radius:18px;border:1.5px solid rgba(99,102,241,0.3);padding:14px;margin-bottom:12px;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+            <div style="font-weight:800;font-size:0.82rem;color:#a78bfa;margin-bottom:10px;">🏆 Win Rates</div>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center;">
-                <div style="background:#f5f3ff;border-radius:12px;padding:10px 6px;border:1.5px solid #ddd6fe;">
+                <div style="background:rgba(124,58,237,0.1);border-radius:12px;padding:10px 6px;border:1.5px solid rgba(124,58,237,0.3);">
                     <div style="font-size:1rem;">⬇️</div>
-                    <div style="font-weight:800;font-size:0.78rem;color:#6d28d9;margin-top:2px;">Under 7</div>
-                    <div style="font-size:0.72rem;color:#7c3aed;">+1 💎</div>
-                    <div style="font-size:0.62rem;color:#a78bfa;">45% chance</div>
+                    <div style="font-weight:800;font-size:0.78rem;color:#a78bfa;margin-top:2px;">Under 7</div>
+                    <div style="font-size:0.72rem;color:#c4b5fd;">+1 💎</div>
+                    <div style="font-size:0.62rem;color:#94a3b8;">45% chance</div>
                 </div>
-                <div style="background:#fefce8;border-radius:12px;padding:10px 6px;border:1.5px solid #fde68a;">
+                <div style="background:rgba(245,158,11,0.1);border-radius:12px;padding:10px 6px;border:1.5px solid rgba(245,158,11,0.3);">
                     <div style="font-size:1rem;">⭐</div>
-                    <div style="font-weight:800;font-size:0.78rem;color:#92400e;margin-top:2px;">Lucky 7</div>
-                    <div style="font-size:0.72rem;color:#d97706;">+2.5 💎</div>
-                    <div style="font-size:0.62rem;color:#fbbf24;">10% chance</div>
+                    <div style="font-weight:800;font-size:0.78rem;color:#fbbf24;margin-top:2px;">Lucky 7</div>
+                    <div style="font-size:0.72rem;color:#fcd34d;">+2.5 💎</div>
+                    <div style="font-size:0.62rem;color:#94a3b8;">10% chance</div>
                 </div>
-                <div style="background:#f0fdf4;border-radius:12px;padding:10px 6px;border:1.5px solid #bbf7d0;">
+                <div style="background:rgba(16,185,129,0.1);border-radius:12px;padding:10px 6px;border:1.5px solid rgba(16,185,129,0.3);">
                     <div style="font-size:1rem;">⬆️</div>
-                    <div style="font-weight:800;font-size:0.78rem;color:#166534;margin-top:2px;">Over 7</div>
-                    <div style="font-size:0.72rem;color:#16a34a;">+1 💎</div>
-                    <div style="font-size:0.62rem;color:#4ade80;">45% chance</div>
+                    <div style="font-weight:800;font-size:0.78rem;color:#4ade80;margin-top:2px;">Over 7</div>
+                    <div style="font-size:0.72rem;color:#86efac;">+1 💎</div>
+                    <div style="font-size:0.62rem;color:#94a3b8;">45% chance</div>
                 </div>
             </div>
         </div>
@@ -550,31 +552,31 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         </div>
 
         <!-- Roll area -->
-        <div style="background:#fff;border-radius:22px;border:2px solid #ede9fe;padding:22px 18px;text-align:center;box-shadow:0 4px 20px rgba(139,92,246,0.12);margin-bottom:12px;">
+        <div style="background:#1a1a35;border-radius:22px;border:2px solid rgba(99,102,241,0.3);padding:22px 18px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);margin-bottom:12px;">
             <div id="dice-display" style="font-size:4.5rem;margin-bottom:6px;line-height:1;user-select:none;min-height:80px;display:flex;align-items:center;justify-content:center;">🎲</div>
-            <div id="dice-result-text" style="font-size:0.88rem;font-weight:700;min-height:24px;margin-bottom:18px;color:var(--text-muted);"></div>
+            <div id="dice-result-text" style="font-size:0.88rem;font-weight:700;min-height:24px;margin-bottom:18px;color:#94a3b8;"></div>
             <button id="btn-roll-dice" style="background:linear-gradient(135deg,#4c1d95,#7c3aed,#a855f7);color:#fff;border:none;border-radius:16px;padding:15px;font-size:0.95rem;font-weight:800;cursor:pointer;width:100%;max-width:220px;box-shadow:0 6px 22px rgba(124,58,237,0.45);font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto;">
                 <i class="fas fa-dice"></i> Roll Dice
             </button>
-            <div style="font-size:0.68rem;color:var(--text-muted);margin-top:10px;line-height:1.5;">🎯 1 AdsGram ad before each roll &nbsp;|&nbsp; ⏰ Cooldown: 4 hours</div>
+            <div style="font-size:0.68rem;color:#94a3b8;margin-top:10px;line-height:1.5;">🎯 1 AdsGram ad before each roll &nbsp;|&nbsp; ⏰ Cooldown: 4 hours</div>
         </div>
 
         <!-- Stats -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-            <div style="background:#fff;border-radius:14px;border:1.5px solid #ede9fe;padding:14px;text-align:center;box-shadow:0 1px 8px rgba(139,92,246,0.08);">
-                <div id="dice-total-rolls" style="font-size:1.5rem;font-weight:800;color:#7c3aed;">0</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">Total Rolls</div>
+            <div style="background:#1a1a35;border-radius:14px;border:1.5px solid rgba(99,102,241,0.2);padding:14px;text-align:center;">
+                <div id="dice-total-rolls" style="font-size:1.5rem;font-weight:800;color:#a78bfa;">0</div>
+                <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;">Total Rolls</div>
             </div>
-            <div style="background:#fff;border-radius:14px;border:1.5px solid #ede9fe;padding:14px;text-align:center;box-shadow:0 1px 8px rgba(139,92,246,0.08);">
-                <div id="dice-total-earned" style="font-size:1.5rem;font-weight:800;color:#10b981;">0.0</div>
-                <div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">💎 Earned</div>
+            <div style="background:#1a1a35;border-radius:14px;border:1.5px solid rgba(99,102,241,0.2);padding:14px;text-align:center;">
+                <div id="dice-total-earned" style="font-size:1.5rem;font-weight:800;color:#4ade80;">0.0</div>
+                <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;">💎 Earned</div>
             </div>
         </div>
 
         <!-- History -->
-        <div style="background:#fff;border-radius:16px;border:1.5px solid var(--border);padding:14px;margin-bottom:14px;">
-            <div style="font-weight:800;font-size:0.82rem;color:var(--text-sub);margin-bottom:10px;">📜 Recent Rolls</div>
-            <div id="dice-history" style="font-size:0.78rem;color:var(--text-muted);text-align:center;padding:8px 0;">No rolls yet</div>
+        <div style="background:#1a1a35;border-radius:16px;border:1.5px solid rgba(99,102,241,0.2);padding:14px;margin-bottom:14px;">
+            <div style="font-weight:800;font-size:0.82rem;color:#cbd5e1;margin-bottom:10px;">📜 Recent Rolls</div>
+            <div id="dice-history" style="font-size:0.78rem;color:#94a3b8;text-align:center;padding:8px 0;">No rolls yet</div>
         </div>
     </div>
 </section>
@@ -593,54 +595,45 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     <div class="modal-box">
         <i class="fas fa-wallet" style="font-size:2.2rem;color:var(--primary);margin-bottom:8px;display:block;"></i>
         <div class="modal-title">Withdraw</div>
-        <div id="wd-eligibility-info" style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;padding:10px 12px;font-size:0.73rem;color:#0369a1;margin-bottom:12px;text-align:left;line-height:1.6;">
+        <div id="wd-eligibility-info" style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:10px;padding:10px 12px;font-size:0.73rem;color:#a5b4fc;margin-bottom:12px;text-align:left;line-height:1.6;">
             <b>Requirements:</b><br>
             ✅ Min 10 tasks completed<br>
             ✅ Watch 10 ads per withdrawal<br>
-            💎 Min: Tonkeeper 50 | Binance 100 | bKash 150
+            ✅ Max 1 withdrawal per day<br>
+            💎 Min: Tonkeeper 50 | Binance 100
         </div>
-        <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:var(--primary);margin-bottom:14px;" id="wd-balance">0 💎</div>
+        <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:#22d3ee;margin-bottom:14px;" id="wd-balance">0 💎</div>
 
-        <!-- Method tabs -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:16px;">
-            <div class="wd-method-tab active" data-method="tonkeeper" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--primary);background:var(--primary-light);text-align:center;cursor:pointer;transition:0.2s;">
-                <i class="fas fa-gem" style="font-size:1.1rem;color:var(--primary);display:block;margin-bottom:3px;"></i>
-                <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">Tonkeeper</div>
-                <div style="font-size:0.62rem;color:var(--text-muted);">Min 50 💎</div>
+        <!-- Method tabs — 2 methods only -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px;">
+            <div class="wd-method-tab active" data-method="tonkeeper" style="padding:10px 6px;border-radius:13px;border:1.5px solid #6366f1;background:rgba(99,102,241,0.15);text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-gem" style="font-size:1.1rem;color:#818cf8;display:block;margin-bottom:3px;"></i>
+                <div style="font-weight:800;font-size:0.75rem;color:#e2e8f0;">Tonkeeper</div>
+                <div style="font-size:0.62rem;color:#94a3b8;">Min 50 💎</div>
             </div>
-            <div class="wd-method-tab" data-method="binance" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
-                <i class="fas fa-university" style="font-size:1.1rem;color:var(--text-muted);display:block;margin-bottom:3px;" id="wd-binance-icon"></i>
-                <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">Binance UID</div>
-                <div style="font-size:0.62rem;color:var(--text-muted);">Min 100 💎</div>
-            </div>
-            <div class="wd-method-tab" data-method="bkash" style="padding:10px 6px;border-radius:13px;border:1.5px solid var(--border);background:var(--bg-section);text-align:center;cursor:pointer;transition:0.2s;">
-                <i class="fas fa-mobile-alt" style="font-size:1.1rem;color:#e2136e;display:block;margin-bottom:3px;"></i>
-                <div style="font-weight:800;font-size:0.75rem;color:var(--text-main);">bKash</div>
-                <div style="font-size:0.62rem;color:var(--text-muted);">Min 150 💎</div>
+            <div class="wd-method-tab" data-method="binance" style="padding:10px 6px;border-radius:13px;border:1.5px solid #3d3d70;background:#1a1a35;text-align:center;cursor:pointer;transition:0.2s;">
+                <i class="fas fa-university" style="font-size:1.1rem;color:#94a3b8;display:block;margin-bottom:3px;" id="wd-binance-icon"></i>
+                <div style="font-weight:800;font-size:0.75rem;color:#e2e8f0;">Binance UID</div>
+                <div style="font-size:0.62rem;color:#94a3b8;">Min 100 💎</div>
             </div>
         </div>
 
         <div id="wd-tonkeeper-fields">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">TON Wallet Address</label>
+            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">TON Wallet Address</label>
             <input type="text" class="input-field" id="wd-address-ton" placeholder="UQ... or EQ... wallet address">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 50)</span></label>
+            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">Diamond Amount <span style="color:#94a3b8;">(Min 50)</span></label>
             <input type="number" class="input-field" id="wd-amount-ton" placeholder="e.g. 100" min="50">
         </div>
         <div id="wd-binance-fields" style="display:none;">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Binance UID</label>
+            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">Binance UID</label>
             <input type="text" class="input-field" id="wd-address-bnb" placeholder="Your Binance UID (numbers only)">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 100)</span></label>
+            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">Diamond Amount <span style="color:#94a3b8;">(Min 100)</span></label>
             <input type="number" class="input-field" id="wd-amount-bnb" placeholder="e.g. 200" min="100">
         </div>
+        <!-- bKash fields kept hidden for JS compatibility but not shown -->
         <div id="wd-bkash-fields" style="display:none;">
-            <div style="background:#fdf2f8;border:1.5px solid #f9a8d4;border-radius:11px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-                <i class="fas fa-mobile-alt" style="color:#e2136e;font-size:1.3rem;"></i>
-                <div><div style="font-weight:800;font-size:0.82rem;color:#9d174d;">bKash Withdrawal</div><div style="font-size:0.7rem;color:#be185d;">Processing time: 1&#x2013;24 hours</div></div>
-            </div>
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">bKash Number</label>
-            <input type="text" class="input-field" id="wd-address-bkash" placeholder="01XXXXXXXXX">
-            <label style="font-size:0.75rem;font-weight:700;color:var(--text-sub);display:block;margin-bottom:5px;">Diamond Amount <span style="color:var(--text-muted);">(Min 150)</span></label>
-            <input type="number" class="input-field" id="wd-amount-bkash" placeholder="e.g. 150" min="150">
+            <input type="text" class="input-field" id="wd-address-bkash" placeholder="01XXXXXXXXX" style="display:none;">
+            <input type="number" class="input-field" id="wd-amount-bkash" min="150" style="display:none;">
         </div>
 
         <div id="wd-preview" style="background:var(--primary-light);border-radius:11px;padding:10px 13px;font-size:0.82rem;color:var(--text-sub);margin-bottom:14px;display:none;"></div>
@@ -649,23 +642,19 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <button class="btn btn-outline btn-full close-modal">Cancel</button>
             <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
         </div>
-        <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:12px;padding:10px 14px;margin-top:12px;">
-            <div style="font-size:0.7rem;font-weight:800;color:#065f46;margin-bottom:6px;text-align:center;">💱 Exchange Rates</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;">
-                <div style="background:#fff;border-radius:8px;padding:6px 4px;border:1px solid #bbf7d0;">
-                    <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:2px;">Tonkeeper</div>
-                    <div style="font-weight:800;font-size:0.72rem;color:#059669;">1K💎=0.5TON</div>
+        <div style="background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.3);border-radius:12px;padding:10px 14px;margin-top:12px;">
+            <div style="font-size:0.7rem;font-weight:800;color:#4ade80;margin-bottom:6px;text-align:center;">💱 Exchange Rates</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:center;">
+                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 4px;border:1px solid rgba(16,185,129,0.2);">
+                    <div style="font-size:0.62rem;color:#94a3b8;margin-bottom:2px;">Tonkeeper</div>
+                    <div style="font-weight:800;font-size:0.72rem;color:#4ade80;">1K💎=0.5TON</div>
                 </div>
-                <div style="background:#fff;border-radius:8px;padding:6px 4px;border:1px solid #bbf7d0;">
-                    <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:2px;">Binance</div>
-                    <div style="font-weight:800;font-size:0.72rem;color:#059669;">1K💎=$1 USDT</div>
-                </div>
-                <div style="background:#fff;border-radius:8px;padding:6px 4px;border:1px solid #bbf7d0;">
-                    <div style="font-size:0.62rem;color:var(--text-muted);margin-bottom:2px;">bKash</div>
-                    <div style="font-weight:800;font-size:0.72rem;color:#059669;">1K💎=120৳</div>
+                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 4px;border:1px solid rgba(16,185,129,0.2);">
+                    <div style="font-size:0.62rem;color:#94a3b8;margin-bottom:2px;">Binance</div>
+                    <div style="font-weight:800;font-size:0.72rem;color:#4ade80;">1K💎=$1 USDT</div>
                 </div>
             </div>
-            <div style="font-size:0.65rem;color:var(--text-muted);text-align:center;margin-top:6px;">⏱️ Processing: 1–24 hours</div>
+            <div style="font-size:0.65rem;color:#94a3b8;text-align:center;margin-top:6px;">⏱️ Processing: 1–24 hours · Max 1 withdraw/day</div>
         </div>
     </div>
 </div>
@@ -799,7 +788,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#f59e0b;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">💸</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#92400e;" data-i18n="wnT4">💸 Withdraw</div>
-                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Need min 10 tasks + 10 ads. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1) · bKash (150💎=120৳).</div>
+                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Need min 10 tasks + 10 ads + 1x per day. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1 USDT).</div>
                 </div>
             </div>
             <!-- Refer -->
@@ -1639,7 +1628,8 @@ function _renderTasks(allTasks, filter, container){
         if(filter !== 'all' && t.category !== filter) return;
         count++;
         const cat = t.category||'social';
-        container.innerHTML += `<div class="task-card"><div class="t-icon" style="${colorMap[cat]||colorMap.social}"><i class="${iconMap[cat]||'fas fa-tasks'}"></i></div><div class="t-info"><div class="t-name">${t.title}</div><div class="t-reward">+${TASK_REWARD_DIAMOND} 💎 Diamond</div></div><button class="btn btn-outline t-task-btn" data-id="${t.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button></div>`;
+        const rewardVal = t.rewardDiamond || TASK_REWARD_DIAMOND;
+        container.innerHTML += `<div class="task-card"><div class="t-icon" style="${colorMap[cat]||colorMap.social}"><i class="${iconMap[cat]||'fas fa-tasks'}"></i></div><div class="t-info"><div class="t-name">${t.title}</div><div class="t-reward">+${rewardVal} 💎 Diamond</div></div><button class="btn btn-outline t-task-btn" data-id="${t.id}" data-url="${t.url||''}" data-channel="${t.channelId||''}" data-cat="${cat}" style="padding:8px 15px;font-size:0.78rem;border-radius:10px;flex-shrink:0;">GO</button></div>`;
     });
     if(!count) container.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>No tasks available right now.</p></div>';
 }
@@ -2005,12 +1995,12 @@ document.querySelectorAll('.wd-method-tab').forEach(tab=>{
         wdMethod=tab.dataset.method;
         document.querySelectorAll('.wd-method-tab').forEach(t=>{
             const active=t.dataset.method===wdMethod;
-            t.style.background=active?(wdMethod==='bkash'?'#fdf2f8':'var(--primary-light)'):'var(--bg-section)';
-            t.style.borderColor=active?(wdMethod==='bkash'?'#f9a8d4':'var(--primary)'):'var(--border)';
+            t.style.background=active?'rgba(99,102,241,0.15)':'#1a1a35';
+            t.style.borderColor=active?'#6366f1':'#3d3d70';
         });
         document.getElementById('wd-tonkeeper-fields').style.display=wdMethod==='tonkeeper'?'block':'none';
         document.getElementById('wd-binance-fields').style.display=wdMethod==='binance'?'block':'none';
-        document.getElementById('wd-bkash-fields').style.display=wdMethod==='bkash'?'block':'none';
+        document.getElementById('wd-bkash-fields').style.display='none'; // always hidden
         document.getElementById('wd-preview').style.display='none';
     });
 });
@@ -2052,6 +2042,12 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
     if(!addr) return showAlert('Error',`Enter your ${addrLabel}.`,'error');
     if(isNaN(amt)||amt<minAmt) return showAlert('Notice',`Minimum ${minAmt} 💎 required.`,'error');
     if((currentUser.diamondBalance||0)<amt) return showAlert('Error','Insufficient Diamond balance.','error');
+
+    // ── Daily 1x withdraw limit (client-side check) ──
+    const today = getToday();
+    if(currentUser.lastWithdrawDate === today){
+        return showAlert('Daily Limit','You can only withdraw once per day. Come back tomorrow! 📅','error');
+    }
 
     // ── Eligibility checks ──
     const tasksDone = (currentUser.completedTasks||[]).length;
@@ -2099,6 +2095,7 @@ You have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
         const wData = await wRes.json();
         if(wData.success){
             currentUser.diamondBalance = wData.newBalance ?? (currentUser.diamondBalance - amt);
+            currentUser.lastWithdrawDate = getToday(); // Update local daily limit tracker
             try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
             _historyCache = null;
             updateUI();
@@ -2214,7 +2211,7 @@ let _historyCache = null;
 document.getElementById('btn-history').addEventListener('click', async()=>{
     document.getElementById('modal-history').classList.add('show');
     const c=document.getElementById('history-list');
-    if(_historyCache){ _renderHistory(_historyCache, c); return; }
+    // Always fetch fresh — don't use cache so latest withdrawal shows up
     c.innerHTML='<div style="text-align:center;padding:20px;"><div class="loader-spin" style="margin:0 auto;"></div></div>';
     try{
         const res  = await fetch(`${API_BASE}/getHistory?userId=${currentUser.id}`);
@@ -2227,19 +2224,23 @@ document.getElementById('btn-history').addEventListener('click', async()=>{
     }
 });
 function _renderHistory(list, c){
-    if(!list.length){ c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p>No withdraw history yet.</p></div>'; return; }
+    if(!list.length){ c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p style="color:#94a3b8;">No withdraw history yet.</p></div>'; return; }
     c.innerHTML = list.map(d=>{
-            const statusColor = d.status==='success'||d.status==='completed' ? '#10b981' : '#f59e0b';
-            const statusBg   = d.status==='success'||d.status==='completed' ? '#ecfdf5' : '#fffbeb';
+            const statusColor = d.status==='success'||d.status==='completed' ? '#4ade80' : '#fbbf24';
+            const statusBg   = d.status==='success'||d.status==='completed' ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)';
             const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${d.status||'pending'}</span>`;
-            const ton   = d.tonAmount ? `<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">≈ ${parseFloat(d.tonAmount).toFixed(4)} TON</div>` : '';
-            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1.5px solid var(--border);font-size:0.83rem;gap:8px;">
+            const methodLabel = d.method === 'binance' ? 'Binance' : 'Tonkeeper';
+            const amtLabel = d.method === 'binance'
+                ? `≈ $${parseFloat(d.tonAmount||0).toFixed(2)} USDT`
+                : `≈ ${parseFloat(d.tonAmount||0).toFixed(4)} TON`;
+            const subAmt = d.tonAmount ? `<div style="font-size:0.68rem;color:#94a3b8;margin-top:1px;">${amtLabel}</div>` : '';
+            return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1.5px solid rgba(99,102,241,0.15);font-size:0.83rem;gap:8px;">
                 <div>
-                    <div style="font-weight:700;color:var(--text-main);">Withdraw (${d.method||'tonkeeper'})</div>
-                    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:3px;">${d.date||''} ${badge}</div>
-                    ${ton}
+                    <div style="font-weight:700;color:#e2e8f0;">Withdraw (${methodLabel})</div>
+                    <div style="font-size:0.7rem;color:#94a3b8;margin-top:3px;">${d.date||''} ${badge}</div>
+                    ${subAmt}
                 </div>
-                <div style="font-weight:800;color:var(--red);white-space:nowrap;">-${d.diamondAmount||0} 💎</div>
+                <div style="font-weight:800;color:#f87171;white-space:nowrap;">-${d.diamondAmount||0} 💎</div>
             </div>`;
         }).join('');
 }
@@ -2253,18 +2254,23 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
     const totalAds  = (currentUser.adsWatchedAd1||0)+(currentUser.adsWatchedAd2||0)+
                       (currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
     const adsForWd  = totalAds - (currentUser._lastWithdrawAdsCount||0);
+    const today = getToday();
+    const alreadyWithdrawnToday = currentUser.lastWithdrawDate === today;
     const info = document.getElementById('wd-eligibility-info');
     if(info){
         const t_ok  = tasksDone >= WITHDRAW_MIN_TASKS;
         const ad_ok = adsForWd  >= WITHDRAW_ADS_REQUIRED;
+        const wd_ok = !alreadyWithdrawnToday;
         info.innerHTML =
             `<b>Your Status:</b><br>` +
             `${t_ok ?'✅':'❌'} Tasks: ${tasksDone}/${WITHDRAW_MIN_TASKS}<br>` +
             `${ad_ok?'✅':'❌'} Ads watched: ${adsForWd}/${WITHDRAW_ADS_REQUIRED}<br>` +
-            `💎 Min: Tonkeeper 50 | Binance 100 | bKash 150`;
-        info.style.background = (t_ok && ad_ok) ? '#f0fdf4' : '#fff7ed';
-        info.style.borderColor = (t_ok && ad_ok) ? '#86efac' : '#fed7aa';
-        info.style.color = (t_ok && ad_ok) ? '#166534' : '#9a3412';
+            `${wd_ok?'✅':'❌'} Daily limit: ${wd_ok?'Available':'Already withdrew today'}<br>` +
+            `💎 Min: Tonkeeper 50 | Binance 100`;
+        const allOk = t_ok && ad_ok && wd_ok;
+        info.style.background = allOk ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)';
+        info.style.borderColor = allOk ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)';
+        info.style.color = allOk ? '#4ade80' : '#fbbf24';
     }
     document.getElementById('wd-amount-ton').value='';
     document.getElementById('wd-amount-bnb').value='';
@@ -2688,7 +2694,7 @@ const LANG_STRINGS = {
         wnT3: "🎲 Dice Game",
         wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win Diamond based on outcome: Under 7, Lucky 7, or Over 7.",
         wnT4: "💸 Withdraw",
-        wnT4d: "Need min 10 tasks + 10 ads. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1) · bKash (150💎=120৳).",
+        wnT4d: "Need min 10 tasks + 10 ads + 1 per day. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1 USDT).",
         wnT5: "👥 Refer & Earn",
         wnT5d: "Refer friends and earn +10 💎 when they complete 10 tasks.",
         wnT6: "➕ Create a Task",
