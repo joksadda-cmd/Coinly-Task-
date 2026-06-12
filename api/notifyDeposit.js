@@ -1,5 +1,5 @@
 // api/notifyDeposit.js
-// Handles: withdrawal (daily 1x limit), deposit, task payment, broadcast
+// Handles: withdrawal (daily 1x limit + 1 refer per withdraw), deposit, task payment, broadcast
 // bKash removed — only Tonkeeper + Binance
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
     const type = body.type || 'deposit';
 
     // ════════════════════════════════════
-    // WITHDRAWAL — daily 1x limit, no bKash
+    // WITHDRAWAL — daily 1x limit + 1 refer per withdraw
     // ════════════════════════════════════
     if (type === 'withdrawal') {
         const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
@@ -77,7 +77,6 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Missing fields' });
         }
 
-        // Block bKash
         if (method === 'bkash') {
             return res.status(400).json({ success: false, error: 'bKash withdrawals are no longer supported.' });
         }
@@ -101,6 +100,20 @@ export default async function handler(req, res) {
                     throw new Error('You can only withdraw once per day. Try again tomorrow.');
                 }
 
+                // ── 1 refer per withdraw check ──
+                // totalInvites = total people invited (not just valid/completed)
+                // _lastWithdrawReferCount = totalInvites count at last withdraw
+                const currentReferCount  = user.totalInvites || 0;
+                const lastReferCount     = user._lastWithdrawReferCount ?? -1; // -1 = first ever withdraw, skip check
+
+                // First-time withdraw: skip refer check (lastReferCount === -1 means never withdrawn)
+                if (lastReferCount !== -1 && currentReferCount <= lastReferCount) {
+                    throw new Error(
+                        'Refer 1 friend before withdrawing again.\n' +
+                        `You need ${lastReferCount + 1 - currentReferCount} more invite(s) since your last withdrawal.`
+                    );
+                }
+
                 newBalance = (user.diamondBalance || 0) - amt;
                 const wRef = db.collection('withdrawals').doc();
                 withdrawId = wRef.id;
@@ -113,9 +126,10 @@ export default async function handler(req, res) {
                 const newAdsCount = (user.adsWatchedAd1||0)+(user.adsWatchedAd2||0)+
                     (user.adsWatchedAd3||0)+(user.adsWatchedAd4||0);
                 t.update(uRef, {
-                    diamondBalance:       FieldValue.increment(-amt),
-                    lastWithdrawDate:     today,
-                    _lastWithdrawAdsCount: newAdsCount,
+                    diamondBalance:            FieldValue.increment(-amt),
+                    lastWithdrawDate:          today,
+                    _lastWithdrawAdsCount:     newAdsCount,
+                    _lastWithdrawReferCount:   currentReferCount, // save current refer count
                 });
             });
 
@@ -282,4 +296,4 @@ export default async function handler(req, res) {
     } catch(e) {
         return res.status(500).json({ error: e.message });
     }
-                        }
+    }
