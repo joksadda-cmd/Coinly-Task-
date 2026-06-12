@@ -1,6 +1,7 @@
 // api/notifyDeposit.js
-// Handles: withdrawal (daily 1x limit + 1 refer per withdraw), deposit, task payment, broadcast
-// bKash removed — only Tonkeeper + Binance
+// Currency: TP (Task Points) — 10K TP = $1 = 0.5 TON
+// Withdrawal: daily 1x limit | Tonkeeper min 300 TP | Binance min 1000 TP
+// Refer check removed
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -17,6 +18,12 @@ if (!getApps().length) {
 const db       = getFirestore();
 const BOT      = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+
+// TP rate constants
+const TP_TO_TON = 0.00005;   // 10000 TP = 0.5 TON
+const TP_TO_USD = 0.0001;    // 10000 TP = $1
+
+const MIN_WITHDRAW = { tonkeeper: 300, binance: 1000 };
 
 const TODAY_DHAKA = () =>
     new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
@@ -69,21 +76,25 @@ export default async function handler(req, res) {
     const type = body.type || 'deposit';
 
     // ════════════════════════════════════
-    // WITHDRAWAL — daily 1x limit + 1 refer per withdraw
+    // WITHDRAWAL — TP currency, daily 1x
     // ════════════════════════════════════
     if (type === 'withdrawal') {
         const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
         if (!userId || !diamondAmount || !address) {
             return res.status(400).json({ error: 'Missing fields' });
         }
-
         if (method === 'bkash') {
             return res.status(400).json({ success: false, error: 'bKash withdrawals are no longer supported.' });
         }
 
-        const amt   = parseFloat(diamondAmount);
-        const uid   = String(userId);
-        const today = TODAY_DHAKA();
+        const amt     = parseFloat(diamondAmount);
+        const uid     = String(userId);
+        const today   = TODAY_DHAKA();
+        const minAmt  = MIN_WITHDRAW[method] || 300;
+
+        if (isNaN(amt) || amt < minAmt) {
+            return res.status(200).json({ success: false, error: `Minimum ${minAmt} TP required for ${method}.` });
+        }
 
         try {
             let newBalance = 0, withdrawId = '';
@@ -93,25 +104,11 @@ export default async function handler(req, res) {
                 if (!uSnap.exists) throw new Error('User not found');
                 const user = uSnap.data();
 
-                if ((user.diamondBalance || 0) < amt) throw new Error('Insufficient balance');
+                if ((user.diamondBalance || 0) < amt) throw new Error('Insufficient TP balance');
 
                 // ── Daily 1x withdraw limit ──
                 if (user.lastWithdrawDate === today) {
                     throw new Error('You can only withdraw once per day. Try again tomorrow.');
-                }
-
-                // ── 1 refer per withdraw check ──
-                // totalInvites = total people invited (not just valid/completed)
-                // _lastWithdrawReferCount = totalInvites count at last withdraw
-                const currentReferCount  = user.totalInvites || 0;
-                const lastReferCount     = user._lastWithdrawReferCount ?? -1; // -1 = first ever withdraw, skip check
-
-                // First-time withdraw: skip refer check (lastReferCount === -1 means never withdrawn)
-                if (lastReferCount !== -1 && currentReferCount <= lastReferCount) {
-                    throw new Error(
-                        'Refer 1 friend before withdrawing again.\n' +
-                        `You need ${lastReferCount + 1 - currentReferCount} more invite(s) since your last withdrawal.`
-                    );
                 }
 
                 newBalance = (user.diamondBalance || 0) - amt;
@@ -126,10 +123,9 @@ export default async function handler(req, res) {
                 const newAdsCount = (user.adsWatchedAd1||0)+(user.adsWatchedAd2||0)+
                     (user.adsWatchedAd3||0)+(user.adsWatchedAd4||0);
                 t.update(uRef, {
-                    diamondBalance:            FieldValue.increment(-amt),
-                    lastWithdrawDate:          today,
-                    _lastWithdrawAdsCount:     newAdsCount,
-                    _lastWithdrawReferCount:   currentReferCount, // save current refer count
+                    diamondBalance:        FieldValue.increment(-amt),
+                    lastWithdrawDate:      today,
+                    _lastWithdrawAdsCount: newAdsCount,
                 });
             });
 
@@ -140,14 +136,13 @@ export default async function handler(req, res) {
             await tgMsg(ADMIN_ID,
                 `🔴 <b>Withdrawal Request</b>\n` +
                 `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-                `💎 ${amt} Diamond → ${currIcon}${tonAmount} ${currLabel}\n` +
+                `💎 ${amt} TP → ${currIcon}${tonAmount} ${currLabel}\n` +
                 `📬 ${methodLabel}: <code>${address}</code>\n` +
                 `🆔 ID: <code>${withdrawId}</code>`
             );
-
             await tgMsg(uid,
                 `✅ <b>Withdrawal Request Received!</b>\n\n` +
-                `💎 <b>${amt} Diamond</b> deducted from your balance.\n` +
+                `💎 <b>${amt} TP</b> deducted from your balance.\n` +
                 `💰 You will receive: <b>${currIcon}${tonAmount} ${currLabel}</b>\n` +
                 `📬 Method: <b>${methodLabel}</b>\n` +
                 `📮 Address: <code>${address}</code>\n\n` +
@@ -155,7 +150,6 @@ export default async function handler(req, res) {
                 `🆔 Request ID: <code>${withdrawId}</code>\n\n` +
                 `You will receive another notification when completed. 🚀`
             );
-
             return res.status(200).json({ success: true, newBalance, withdrawId });
         } catch(e) {
             return res.status(200).json({ success: false, error: e.message });
@@ -205,7 +199,6 @@ export default async function handler(req, res) {
                     await tgMsg(ADMIN_ID, `🚨 Deposit ban bypass: ${uid}`);
                     return res.status(403).json({ success: false, depositBanned: true, error: 'Deposit access disabled.' });
                 }
-                body._warnCount = ud.depositWarnings || 0;
             }
         } catch(e) { console.warn('[ban-check]', e.message); }
     }
@@ -216,13 +209,13 @@ export default async function handler(req, res) {
         const matchedTx = await checkTonTransaction(uid, ton);
         if (matchedTx) {
             try {
-                const diamond = parseInt(expectedDiamond) || Math.floor(ton * 2000);
+                const tpAmount = parseInt(expectedDiamond) || Math.floor(ton / TP_TO_TON);
                 await db.runTransaction(async (t) => {
                     const uRef   = db.collection('users').doc(uid);
                     const depRef = db.collection('deposits').doc();
                     t.set(depRef, {
                         userId: uid, username: username||'', firstName: firstName||'',
-                        tonAmount: ton, expectedDiamond: diamond, memo: memo||uid,
+                        tonAmount: ton, expectedDiamond: tpAmount, memo: memo||uid,
                         status: 'auto_approved', autoVerified: true,
                         txHash: matchedTx.transaction_id?.hash || '',
                         createdAt: FieldValue.serverTimestamp(),
@@ -231,15 +224,15 @@ export default async function handler(req, res) {
                     t.update(uRef, { tonBalance: FieldValue.increment(ton), pendingDeposit: false });
                 });
                 await tgMsg(uid, `✅ <b>Deposit Auto-Verified!</b>\n\n💰 <b>${ton} TON</b> added to your balance! 🚀`);
-                await tgMsg(ADMIN_ID, `✅ Auto-Approved: ${uid} · ${ton} TON · ${parseInt(expectedDiamond)||Math.floor(ton*2000)} 💎`);
-                return res.status(200).json({ success: true, autoApproved: true, ton, diamond });
+                await tgMsg(ADMIN_ID, `✅ Auto-Approved: ${uid} · ${ton} TON`);
+                return res.status(200).json({ success: true, autoApproved: true, ton });
             } catch(e) { console.error('[auto-approve]', e.message); }
         }
         try {
-            const diamond = parseInt(expectedDiamond) || Math.floor(ton * 2000);
+            const tpAmount = parseInt(expectedDiamond) || Math.floor(ton / TP_TO_TON);
             const depRef = await db.collection('deposits').add({
                 userId: uid, username: username||'', firstName: firstName||'',
-                tonAmount: ton, expectedDiamond: diamond, memo: memo||uid,
+                tonAmount: ton, expectedDiamond: tpAmount, memo: memo||uid,
                 status: 'pending', autoVerified: false,
                 createdAt: FieldValue.serverTimestamp(),
             });
@@ -264,7 +257,7 @@ export default async function handler(req, res) {
             const { title, url, category, channelId, rewardDiamond, maxCompletions, tonCost, packageLabel, createdBy } = body;
             Object.assign(docData, {
                 title: title||'', url: url||'', category: category||'social',
-                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||0.5,
+                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||10,
                 maxCompletions: parseInt(maxCompletions)||100, completionCount: 0,
                 isApproved: false, tonCost: parseFloat(tonCost)||0,
                 packageLabel: packageLabel||'', createdBy: createdBy||uid,
@@ -296,4 +289,4 @@ export default async function handler(req, res) {
     } catch(e) {
         return res.status(500).json({ error: e.message });
     }
-    }
+}
