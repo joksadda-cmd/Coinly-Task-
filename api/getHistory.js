@@ -1,6 +1,7 @@
 // api/getHistory.js
 // Withdraw history — server-side fetch
-// Returns only pending + success withdrawals for a user
+// Fix: removed orderBy to avoid composite index requirement
+// Sorting is done in JS after fetch
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -27,16 +28,17 @@ export default async function handler(req, res) {
     if (!userId) return res.status(400).json({ error: 'userId required' });
 
     try {
+        // No orderBy — avoids composite index requirement
+        // We sort in JS after fetching
         const snap = await db.collection('withdrawals')
             .where('userId', '==', String(userId))
-            .orderBy('createdAt', 'desc')
             .limit(30)
             .get();
 
         const history = [];
         snap.forEach(d => {
             const data = d.data();
-            // Only pending + success
+            // Include pending, success, completed — exclude failed/rejected
             if (data.status === 'pending' || data.status === 'success' || data.status === 'completed') {
                 history.push({
                     id:            d.id,
@@ -44,12 +46,20 @@ export default async function handler(req, res) {
                     status:        data.status || 'pending',
                     diamondAmount: data.diamondAmount || 0,
                     tonAmount:     data.tonAmount || 0,
+                    // Convert Firestore timestamp to milliseconds for sorting
+                    _ts:           data.createdAt ? data.createdAt.toMillis() : 0,
                     date:          data.createdAt
                         ? data.createdAt.toDate().toLocaleDateString('en-GB')
                         : '',
                 });
             }
         });
+
+        // Sort newest first in JS (no Firestore index needed)
+        history.sort((a, b) => b._ts - a._ts);
+
+        // Remove internal sort field before sending
+        history.forEach(h => delete h._ts);
 
         return res.status(200).json({ success: true, history });
 
