@@ -1,5 +1,6 @@
 // api/claimRefer.js
-// Refer reward: friend must complete 10 tasks within 24 hours
+// Refer reward: 100 TP | Friend must complete 10 tasks within 24 hours
+// Currency: TP (Task Points) — 10K TP = $1
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -16,10 +17,10 @@ if (!getApps().length) {
 const db  = getFirestore();
 const BOT = process.env.BOT_TOKEN;
 
-const REFER_REWARD    = 10;
+const REFER_REWARD    = 100;   // 100 TP per valid refer
 const REFER_MIN_TASKS = 10;
-const REFER_WINDOW_HR = 24; // must complete 10 tasks within 24 hours
-const DIAMOND_TO_USD  = 0.001;
+const REFER_WINDOW_HR = 24;
+const TP_TO_USD       = 0.0001; // 10K TP = $1
 
 async function tgMsg(chatId, text) {
     if (!BOT || !chatId) return;
@@ -57,8 +58,8 @@ export default async function handler(req, res) {
         const referrerId = user.referredBy;
         if (!referrerId) return res.status(400).json({ error: 'No referrer' });
 
-        const completedTasks    = user.completedTasks    || [];
-        const completedTasksAt  = user.completedTasksAt  || {};
+        const completedTasks   = user.completedTasks   || [];
+        const completedTasksAt = user.completedTasksAt || {};
 
         if (completedTasks.length < REFER_MIN_TASKS) {
             return res.status(400).json({
@@ -66,39 +67,28 @@ export default async function handler(req, res) {
             });
         }
 
-        // ── 24hr window check ──
-        // Find the earliest window of REFER_MIN_TASKS tasks completed within 24hr
         const windowMs = REFER_WINDOW_HR * 60 * 60 * 1000;
         const timestamps = completedTasks
             .map(id => completedTasksAt[id])
             .filter(Boolean)
-            .sort((a, b) => a - b); // oldest first
+            .sort((a, b) => a - b);
 
-        // Sliding window: check if any 10 consecutive timestamps fit in 24hr
         let windowValid = false;
         for (let i = 0; i <= timestamps.length - REFER_MIN_TASKS; i++) {
-            const first = timestamps[i];
-            const last  = timestamps[i + REFER_MIN_TASKS - 1];
-            if (last - first <= windowMs) {
-                windowValid = true;
-                break;
+            if (timestamps[i + REFER_MIN_TASKS - 1] - timestamps[i] <= windowMs) {
+                windowValid = true; break;
             }
         }
-
-        // Fallback: if timestamps not stored yet (old users) — just check count
         if (timestamps.length < REFER_MIN_TASKS) {
-            // Old user without timestamps — allow if task count met
             windowValid = completedTasks.length >= REFER_MIN_TASKS;
         }
-
         if (!windowValid) {
             return res.status(400).json({
-                error: `You must complete ${REFER_MIN_TASKS} tasks within ${REFER_WINDOW_HR} hours to qualify.`
+                error: `Complete ${REFER_MIN_TASKS} tasks within ${REFER_WINDOW_HR} hours to qualify.`
             });
         }
 
-        // ── Credit referrer ──
-        let newReferrerBalance = 0, newValidReferrals = 0, newDiamondEarned = 0;
+        let newReferrerBalance = 0, newValidReferrals = 0, newTpEarned = 0;
 
         await db.runTransaction(async (t) => {
             const referrerRef  = db.collection('users').doc(String(referrerId));
@@ -108,7 +98,7 @@ export default async function handler(req, res) {
             const referrer = referrerSnap.data();
             newReferrerBalance = (referrer.diamondBalance || 0) + REFER_REWARD;
             newValidReferrals  = (referrer.validReferrals || 0) + 1;
-            newDiamondEarned   = (referrer.referralDiamondEarned || 0) + REFER_REWARD;
+            newTpEarned        = (referrer.referralDiamondEarned || 0) + REFER_REWARD;
 
             t.update(userRef, { isValidatedRef: true });
             t.update(referrerRef, {
@@ -125,26 +115,25 @@ export default async function handler(req, res) {
             });
         });
 
-        const usdtValue = (REFER_REWARD * DIAMOND_TO_USD).toFixed(2);
+        const usdtValue = (REFER_REWARD * TP_TO_USD).toFixed(3);
         await tgMsg(referrerId,
             `🎉 <b>Refer Reward!</b>\n\n` +
             `Your referral (UID: <code>${uid}</code>) completed ${REFER_MIN_TASKS} tasks within ${REFER_WINDOW_HR} hours!\n\n` +
-            `💎 <b>+${REFER_REWARD} Diamond</b> added!\n` +
+            `💎 <b>+${REFER_REWARD} TP</b> added!\n` +
             `💵 Value: <b>$${usdtValue} USDT</b>\n` +
-            `🏦 New Balance: <b>${newReferrerBalance} 💎</b>\n\n` +
+            `🏦 New Balance: <b>${newReferrerBalance} TP</b>\n\n` +
             `Keep referring! 🚀`
         );
 
         return res.status(200).json({
             success: true,
             reward:  REFER_REWARD,
-            referrerNewBalance:    newReferrerBalance,
-            referrerValidRefs:     newValidReferrals,
-            referrerDiamondEarned: newDiamondEarned,
+            referrerNewBalance: newReferrerBalance,
+            referrerValidRefs:  newValidReferrals,
         });
 
     } catch (e) {
         console.error('[claimRefer]', e.message);
         return res.status(500).json({ error: e.message });
     }
-            }
+                }
