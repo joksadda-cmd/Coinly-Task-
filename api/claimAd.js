@@ -1,4 +1,5 @@
 // api/claimAd.js — fixed lootbox + 15💎 manual claim system
+// ad2 (AdsGram Special) daily limit changed: 10 → 5
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -15,13 +16,12 @@ if (!getApps().length) {
 const db = getFirestore();
 
 const AD_REWARDS = { ad1:0.5, ad2:1.0, ad3:0.5, ad4:0.5, joinGift:5 };
-const AD_LIMITS  = { ad1:10,  ad2:10,  ad3:25,  ad4:25  };
+const AD_LIMITS  = { ad1:10,  ad2:5,   ad3:25,  ad4:25  }; // ad2: 10→5
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
-// Lootbox claim rules
-const LOOTBOX_MIN_CLAIM  = 15;   // minimum 15💎 to claim
-const LOOTBOX_DAILY_MAX  = 2;    // max 2 claims per day
+const LOOTBOX_MIN_CLAIM  = 15;
+const LOOTBOX_DAILY_MAX  = 2;
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -38,35 +38,28 @@ export default async function handler(req, res) {
     const userRef = db.collection('users').doc(uid);
 
     // ── LOOTBOX CLAIM MODE ──
-    // Called when user taps "Claim" button in lootbox (min 15💎, max 2x/day)
     if (batch?.lootboxClaim === true) {
         try {
             const result = await db.runTransaction(async (t) => {
                 const snap = await t.get(userRef);
                 if (!snap.exists) throw new Error('User not found');
                 const user = snap.data();
-
                 const lb = parseFloat(user.lootboxBalance || 0);
                 if (lb < LOOTBOX_MIN_CLAIM) {
                     throw new Error(`Need at least ${LOOTBOX_MIN_CLAIM}💎 in Lootbox to claim. You have ${lb.toFixed(1)}💎`);
                 }
-
-                // Daily claim count
-                const lbToday  = user.lootboxClaimDate === today ? (user.lootboxClaimCount || 0) : 0;
+                const lbToday = user.lootboxClaimDate === today ? (user.lootboxClaimCount || 0) : 0;
                 if (lbToday >= LOOTBOX_DAILY_MAX) {
                     throw new Error(`Daily claim limit reached (${LOOTBOX_DAILY_MAX}x per day). Come back tomorrow!`);
                 }
-
                 t.update(userRef, {
                     diamondBalance:    FieldValue.increment(lb),
                     lootboxBalance:    0,
                     lootboxClaimDate:  today,
                     lootboxClaimCount: lbToday + 1,
                 });
-
                 return { transferred: lb, claimsLeft: LOOTBOX_DAILY_MAX - lbToday - 1 };
             });
-
             return res.status(200).json({ success: true, ...result });
         } catch(e) {
             return res.status(200).json({ success: false, error: e.message });
@@ -82,17 +75,14 @@ export default async function handler(req, res) {
             const updates = {};
             let totalReward = 0;
 
-            // Join gift
             if (batch.joinGift && !user.joinGiftClaimed) {
                 updates.joinGiftClaimed = true;
                 updates.diamondBalance  = FieldValue.increment(5);
                 totalReward += 5;
             }
 
-            // Daily reset check
             const isNewDay = user.lastResetDate !== today;
 
-            // Ad rewards → lootbox
             for (const [type, count] of Object.entries(batch)) {
                 if (!AD_REWARDS[type] || !AD_FIELDS[type]) continue;
                 const field   = AD_FIELDS[type];
@@ -106,7 +96,6 @@ export default async function handler(req, res) {
                 totalReward += reward;
             }
 
-            // Dice reward → direct to diamondBalance (not lootbox)
             if (batch.diceReward && parseFloat(batch.diceReward) > 0) {
                 const diceAmt = Math.min(parseFloat(batch.diceReward), 2.5);
                 updates.diamondBalance = FieldValue.increment(diceAmt);
@@ -153,4 +142,4 @@ export default async function handler(req, res) {
         console.error('[claimAd single]', e.message);
         return res.status(500).json({ error: e.message });
     }
-            }
+                    }
