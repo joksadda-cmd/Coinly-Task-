@@ -1,5 +1,6 @@
 // api/getTasks.js
-// Fetch approved tasks — server-side, no Firestore rules issue
+// Fetch approved tasks — TP (Task Points) currency
+// Default rewardDiamond: 10 TP per task
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -26,12 +27,9 @@ export default async function handler(req, res) {
 
     try {
         let query = db.collection('tasks');
-
         if (createdBy) {
-            // My Tasks: all tasks by this user (approved or not)
             query = query.where('createdBy', '==', String(createdBy)).limit(50);
         } else {
-            // Public tasks: approved only
             query = query.where('isApproved', '==', true).limit(100);
         }
 
@@ -45,7 +43,7 @@ export default async function handler(req, res) {
                 url:             t.url   || '',
                 category:        t.category || 'social',
                 channelId:       t.channelId || '',
-                rewardDiamond:   t.rewardDiamond || 1,
+                rewardDiamond:   t.rewardDiamond || 10, // default 10 TP
                 isApproved:      t.isApproved || false,
                 completionCount: t.completionCount || 0,
                 maxCompletions:  t.maxCompletions || 0,
