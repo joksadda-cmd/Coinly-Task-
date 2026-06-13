@@ -44,22 +44,10 @@ export default async function handler(req, res) {
 
         // ── New user ──
         if (!userSnap.exists) {
-            // Device multi-account check
-            const devId = req.body.deviceId;
-            if (devId) {
-                const devSnap = await db.collection('users')
-                    .where('deviceId', '==', devId).limit(2).get();
-                if (!devSnap.empty) {
-                    let otherFound = false;
-                    devSnap.forEach(d => { if (d.id !== uid) otherFound = true; });
-                    if (otherFound) return res.status(200).json({ blocked: true });
-                }
-            }
-
             const newUser = {
-                diamondBalance: 0,      // TP balance
+                diamondBalance: 0,
                 lootboxBalance: 0,
-                tonBalance:     0,      // TON balance (deposit)
+                tonBalance:     0,
                 completedTasks: [],
                 createdTasks:   [],
                 totalInvites:         0,
