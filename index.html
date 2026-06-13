@@ -130,16 +130,19 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 .t-limit{font-size:0.68rem;color:#94a3b8;margin-top:1px;}
 
 /* BUTTONS */
-.btn{padding:12px 20px;border:none;border-radius:12px;font-family:var(--font);font-weight:700;font-size:0.88rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:0.2s;letter-spacing:0.3px;}
-.btn:active{transform:scale(0.97);}
-.btn-primary{background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;box-shadow:0 4px 15px rgba(99,102,241,0.35);}
-.btn-primary:hover{background:linear-gradient(135deg,#4f46e5,#3730a3);}
-.btn-accent{background:var(--accent);color:#fff;box-shadow:0 4px 15px rgba(14,165,233,0.3);}
-.btn-outline{background:transparent;border:1px solid rgba(99,102,241,0.5);color:#818cf8;}
-.btn-outline:hover{background:rgba(99,102,241,0.1);}
-.btn-green{background:var(--green);color:#fff;box-shadow:0 4px 15px rgba(16,185,129,0.3);}
-.btn-gold{background:var(--gold);color:#fff;box-shadow:0 4px 15px rgba(245,158,11,0.3);}
-.btn-disabled{background:#e2e8f0!important;color:#94a3b8!important;box-shadow:none!important;cursor:not-allowed;border:none!important;}
+.btn{padding:12px 20px;border:none;border-radius:12px;font-family:var(--font);font-weight:700;font-size:0.88rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:all 0.15s ease;letter-spacing:0.3px;position:relative;top:0;}
+.btn:active{transform:scale(0.95) translateY(2px);box-shadow:none!important;}
+.btn-primary{background:linear-gradient(160deg,#818cf8 0%,#6366f1 40%,#4338ca 100%);color:#fff;box-shadow:0 6px 0 #3730a3,0 8px 16px rgba(99,102,241,0.4);}
+.btn-primary:active{box-shadow:0 2px 0 #3730a3!important;}
+.btn-accent{background:linear-gradient(160deg,#38bdf8 0%,#0ea5e9 40%,#0284c7 100%);color:#fff;box-shadow:0 6px 0 #0369a1,0 8px 16px rgba(14,165,233,0.4);}
+.btn-accent:active{box-shadow:0 2px 0 #0369a1!important;}
+.btn-outline{background:transparent;border:1.5px solid rgba(99,102,241,0.5);color:#818cf8;box-shadow:0 4px 0 rgba(99,102,241,0.2);}
+.btn-outline:active{box-shadow:0 1px 0 rgba(99,102,241,0.2)!important;}
+.btn-green{background:linear-gradient(160deg,#34d399 0%,#10b981 40%,#059669 100%);color:#fff;box-shadow:0 6px 0 #047857,0 8px 16px rgba(16,185,129,0.4);}
+.btn-green:active{box-shadow:0 2px 0 #047857!important;}
+.btn-gold{background:linear-gradient(160deg,#fcd34d 0%,#f59e0b 40%,#d97706 100%);color:#1a1a2e;box-shadow:0 6px 0 #b45309,0 8px 16px rgba(245,158,11,0.4);}
+.btn-gold:active{box-shadow:0 2px 0 #b45309!important;}
+.btn-disabled{background:#2d2d50!important;color:#64748b!important;box-shadow:none!important;cursor:not-allowed;border:none!important;}
 .btn-full{width:100%;}
 
 /* CREATE TASK SHAPE BUTTON */
@@ -332,7 +335,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 </div>
                 <div>
                     <div style="font-weight:800;font-size:0.95rem;color:#e2e8f0;margin-bottom:3px;" data-i18n="wallet">My Wallet</div>
-                    <div class="user-id-pill" id="uid-display" style="background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.25);"><i class="fas fa-fingerprint" style="color:#6366f1;"></i> ID: <span style="color:#818cf8;">...</span> <i class="fas fa-copy" style="font-size:0.6rem;opacity:0.6;"></i></div>
+                    <div class="user-id-pill" id="uid-display" style="background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.25);"><i class="fas fa-hashtag" style="color:#6366f1;"></i> ID: <span style="color:#818cf8;">...</span> <i class="fas fa-copy" style="font-size:0.6rem;opacity:0.6;"></i></div>
                 </div>
             </div>
             <!-- TON badge -->
@@ -454,7 +457,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-info">
             <div class="t-name">Monetag Ad</div>
             <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/25 today</div>
+            <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn btn-accent" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad3">Watch</button>
     </div>
@@ -465,7 +468,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
             <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +0.5 💎 per view</span></div>
-            <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/25 today</div>
+            <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.3);" id="btn-ad4">Watch</button>
     </div>
@@ -1114,8 +1117,8 @@ const WITHDRAW_ADS_REQUIRED  = 10;  // must watch 20 ads per withdraw
 const TASK_REWARD_DIAMOND = 1;      // 1 Diamond per task
 const REFER_REWARD_DIAMOND = 10;
 const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:10, ad2:5, ad3:25, ad4:25}; // ad2 special: 5/day. synced with claimAd.js
-const AD_DIAMOND_REWARDS = {ad1:0.5, ad2:1.0, ad3:0.5, ad4:0.5}; // synced with claimAd.js
+const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10}; // synced with claimAd.js
+const AD_DIAMOND_REWARDS = {ad1:15, ad2:30, ad3:15, ad4:15}; // TP rewards synced with claimAd.js
 
 // ── TASK PACKAGES ──
 const TASK_PACKAGES = [
@@ -1424,18 +1427,10 @@ async function initApp(){
 let _joinCheckInterval = null;
 
 async function checkCommunityJoin(){
-    // Always call API — no local cache bypass.
-    // Ensures users who leave channel/group see the popup again on next open.
     try{
         const res = await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
-        if(!res.ok){
-            // API error — do not block the user
-            document.getElementById('modal-join').classList.remove('show');
-            return;
-        }
+        if(!res.ok){ document.getElementById('modal-join').classList.remove('show'); return; }
         const data = await res.json();
-
-        // IMPORTANT: check data.joined only (not data.ok — ok is always true from API)
         if(data.joined === true){
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
             document.getElementById('modal-join').classList.remove('show');
@@ -1448,7 +1443,6 @@ async function checkCommunityJoin(){
             }
         }
     }catch(e){
-        // Network error — do not block
         console.warn('[checkCommunityJoin]', e.message);
         document.getElementById('modal-join').classList.remove('show');
     }
@@ -1458,30 +1452,23 @@ document.getElementById('btn-verify-join').addEventListener('click', async()=>{
     const btn=document.getElementById('btn-verify-join');
     const err=document.getElementById('join-error');
     btn.innerHTML='<div class="loader-spin" style="margin:0;width:18px;height:18px;border-width:2px;"></div>';
-    btn.disabled=true;
-    err.innerText='';
+    btn.disabled=true; err.innerText='';
     try{
         const res=await fetch(`${API_BASE}/checkJoin?userId=${currentUser.id}`);
         const d=await res.json();
         if(d.joined === true){
             currentUser.hasJoinedCommunity = true;
             clearInterval(_joinCheckInterval); _joinCheckInterval = null;
-            err.style.color = 'var(--green)';
-            err.innerText = '✅ Verified! Access granted.';
-            setTimeout(()=>{
-                document.getElementById('modal-join').classList.remove('show');
-                err.innerText = '';
-            }, 800);
+            err.style.color='var(--green)'; err.innerText='✅ Verified! Access granted.';
+            setTimeout(()=>{ document.getElementById('modal-join').classList.remove('show'); err.innerText=''; }, 800);
         } else {
-            const missing = [];
+            const missing=[];
             if(!d.channel) missing.push('Channel (@coinly_task)');
             if(!d.group)   missing.push('Community (@newTon_Gc)');
-            err.style.color = 'var(--red)';
-            err.innerText = '❌ Not joined: ' + missing.join(' & ') + '. Please join and try again.';
+            err.style.color='var(--red)';
+            err.innerText='❌ Not joined: '+missing.join(' & ')+'. Please join and try again.';
         }
-    }catch(e){
-        document.getElementById('modal-join').classList.remove('show');
-    }
+    }catch(e){ document.getElementById('modal-join').classList.remove('show'); }
     btn.innerHTML='<i class="fas fa-check-circle"></i> Verify & Unlock';
     btn.disabled=false;
 });
@@ -1589,22 +1576,37 @@ const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
 // Sync on page unload
 window.addEventListener('beforeunload', flushAdSync);
 
+// ── GIGAPUB — preloaded on init to avoid click delay ──
+let _gigaPubReady = false;
+(function preloadGigaPub(){
+    if(typeof window.showGiga === 'function'){ _gigaPubReady = true; return; }
+    const s = document.createElement('script');
+    s.src = 'https://ad.gigapub.tech/script?id=4088';
+    s.onload = () => { _gigaPubReady = true; };
+    s.onerror = () => { console.warn('[GigaPub] preload failed'); };
+    document.head.appendChild(s);
+})();
+
 const showGigaAd = async()=>{
-    // GigaPub SDK manually loaded on demand (auto-play disabled)
     if(typeof window.showGiga === 'function'){
         await window.showGiga();
-    } else {
-        // fallback: load script on demand then show
-        await new Promise((resolve, reject)=>{
-            const s = document.createElement('script');
-            s.src = 'https://ad.gigapub.tech/script?id=4088';
-            s.onload = ()=> setTimeout(resolve, 1000);
-            s.onerror = ()=> reject(new Error('GigaPub unavailable'));
-            document.head.appendChild(s);
-        });
-        if(typeof window.showGiga === 'function') await window.showGiga();
-        else throw new Error('GigaPub SDK not loaded');
+        return;
     }
+    // Fallback: wait up to 5s for preloaded script to be ready
+    await new Promise((resolve, reject) => {
+        let attempts = 0;
+        const check = setInterval(()=>{
+            attempts++;
+            if(typeof window.showGiga === 'function'){
+                clearInterval(check);
+                resolve();
+            } else if(attempts >= 25){ // 5s timeout
+                clearInterval(check);
+                reject(new Error('GigaPub SDK not loaded'));
+            }
+        }, 200);
+    });
+    await window.showGiga();
 };
 
 document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', window.Adsgram?.init({blockId:"int-22897"})?.show));
