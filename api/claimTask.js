@@ -1,14 +1,12 @@
-// api/claimTask.js
-// Credits 0.5 diamond per task + stores completion timestamp for refer validation
+// api/init.js
+// User init + data return — TP (Task Points) currency
+// Fix: tonBalance: 0 added for new users
 
-import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { initializeApp, cert, getApps } from "firebase-admin/app";
+import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
-const TASK_REWARD = 0.5; // 0.5 diamond per task
-
-function getAdminApp() {
-    if (getApps().length > 0) return getApps()[0];
-    return initializeApp({
+if (!getApps().length) {
+    initializeApp({
         credential: cert({
             projectId:   process.env.FIREBASE_PROJECT_ID,
             clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
@@ -16,69 +14,110 @@ function getAdminApp() {
         }),
     });
 }
+const db = getFirestore();
+
+async function registerUserIdForBroadcast(uid) {
+    try {
+        await db.collection('meta').doc('userIds').set(
+            { ids: FieldValue.arrayUnion(uid) },
+            { merge: true }
+        );
+    } catch(e) { console.warn('[registerUserIdForBroadcast]', e.message); }
+}
 
 export default async function handler(req, res) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Origin',  '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { userId, taskId } = req.body || {};
-    if (!userId || !taskId) {
-        return res.status(400).json({ ok: false, error: 'missing_fields' });
-    }
+    const { userId, firstName, lastName, username, referrerCode } = req.body || {};
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const uid   = String(userId);
+    const today = new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
     try {
-        const app = getAdminApp();
-        const db  = getFirestore(app);
+        const userRef  = db.collection('users').doc(uid);
+        const userSnap = await userRef.get();
 
-        const userRef = db.collection('users').doc(String(userId));
-        const taskRef = db.collection('tasks').doc(String(taskId));
+        // ── New user ──
+        if (!userSnap.exists) {
+            const newUser = {
+                diamondBalance: 0,
+                lootboxBalance: 0,
+                tonBalance:     0,
+                completedTasks: [],
+                createdTasks:   [],
+                totalInvites:         0,
+                validReferrals:       0,
+                referralDiamondEarned:0,
+                telegramUsername: username  || 'N/A',
+                firstName:        firstName || '',
+                lastName:         lastName  || '',
+                isBanned:         false,
+                adsWatchedAd1: 0, adsWatchedAd2: 0,
+                adsWatchedAd3: 0, adsWatchedAd4: 0,
+                lastResetDate:    today,
+                joinGiftClaimed:  false,
+                isValidatedRef:   false,
+                referredBy: (referrerCode && referrerCode !== uid) ? referrerCode : null,
+                createdAt:  FieldValue.serverTimestamp(),
+            };
 
-        const reward = await db.runTransaction(async (t) => {
-            const [userSnap, taskSnap] = await Promise.all([
-                t.get(userRef),
-                t.get(taskRef),
-            ]);
+            await userRef.set(newUser);
+            await registerUserIdForBroadcast(uid);
 
-            if (!userSnap.exists) throw { code: 'user_not_found' };
-            if (!taskSnap.exists) throw { code: 'task_not_found' };
+            if (newUser.referredBy) {
+                db.collection('users').doc(newUser.referredBy).update({
+                    totalInvites: FieldValue.increment(1)
+                }).catch(()=>{});
+            }
 
-            const user = userSnap.data();
-            const task = taskSnap.data();
-
-            if (user.isBanned)    throw { code: 'banned' };
-            if (!task.isApproved) throw { code: 'task_not_approved' };
-            if ((user.completedTasks || []).includes(taskId)) throw { code: 'already_completed' };
-
-            // Use task's own rewardDiamond if set, else default 0.5
-            const taskReward = task.rewardDiamond || TASK_REWARD;
-
-            // Store completion timestamp for refer 24hr validation
-            const nowMs = Date.now();
-
-            t.update(userRef, {
-                completedTasks:    FieldValue.arrayUnion(taskId),
-                // completedTasksAt: { taskId: timestamp } — for 24hr refer check
-                [`completedTasksAt.${taskId}`]: nowMs,
-                diamondBalance:    FieldValue.increment(taskReward),
-                totalEarned:       FieldValue.increment(taskReward),
-            });
-            t.update(taskRef, {
-                completionCount: FieldValue.increment(1),
-            });
-
-            return taskReward;
-        });
-
-        return res.status(200).json({ ok: true, reward });
-
-    } catch(err) {
-        if (err.code) {
-            return res.status(200).json({ ok: false, error: err.code });
+            return res.status(200).json({ success: true, isNew: true, user: { ...newUser, id: uid } });
         }
-        console.error('[claimTask]', err);
-        return res.status(500).json({ ok: false, error: 'server_error' });
+
+        // ── Existing user ──
+        const userData = userSnap.data();
+
+        // Backfill tonBalance if missing (old users)
+        const updates = {};
+        if (userData.tonBalance === undefined) updates.tonBalance = 0;
+
+        if (!userData._broadcastRegistered) {
+            registerUserIdForBroadcast(uid);
+            updates._broadcastRegistered = true;
+        }
+
+        if (firstName && firstName !== userData.firstName) updates.firstName = firstName;
+        if (username  && username  !== userData.telegramUsername) updates.telegramUsername = username;
+
+        // Daily ad reset
+        if (userData.lastResetDate !== today) {
+            updates.adsWatchedAd1 = 0; updates.adsWatchedAd2 = 0;
+            updates.adsWatchedAd3 = 0; updates.adsWatchedAd4 = 0;
+            updates.lastResetDate = today;
+        }
+
+        if (Object.keys(updates).length > 0) await userRef.update(updates);
+
+        const finalUser = { ...userData, ...updates, id: uid };
+
+        // Check pending deposit
+        let pendingDeposit = false;
+        try {
+            const depSnap = await db.collection('deposits')
+                .where('userId', '==', uid)
+                .where('status',  '==', 'pending')
+                .limit(1).get();
+            pendingDeposit = !depSnap.empty;
+        } catch(e) {}
+
+        return res.status(200).json({ success: true, isNew: false, user: finalUser, pendingDeposit });
+
+    } catch (e) {
+        console.error('[init]', e.message);
+        return res.status(500).json({ error: e.message });
     }
 }
