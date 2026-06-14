@@ -1,6 +1,5 @@
 // api/claimRefer.js
 // Refer reward: 100 TP | Friend must complete 10 tasks within 24 hours
-// Currency: TP (Task Points) — 10K TP = $1
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -17,18 +16,18 @@ if (!getApps().length) {
 const db  = getFirestore();
 const BOT = process.env.BOT_TOKEN;
 
-const REFER_REWARD    = 100;   // 100 TP per valid refer
+const REFER_REWARD    = 100;
 const REFER_MIN_TASKS = 10;
 const REFER_WINDOW_HR = 24;
 const TP_TO_USD       = 0.0001; // 10K TP = $1
 
-async function tgMsg(chatId, text) {
+async function tgMsg(chatId, text, extra = {}) {
     if (!BOT || !chatId) return;
     try {
         await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML', ...extra })
         });
     } catch(e) { console.warn('[tgMsg]', e.message); }
 }
@@ -50,7 +49,6 @@ export default async function handler(req, res) {
         if (!userSnap.exists) return res.status(404).json({ error: 'User not found' });
 
         const user = userSnap.data();
-
         if (user.isValidatedRef) {
             return res.status(200).json({ success: true, alreadyClaimed: true });
         }
@@ -88,7 +86,7 @@ export default async function handler(req, res) {
             });
         }
 
-        let newReferrerBalance = 0, newValidReferrals = 0, newTpEarned = 0;
+        let newReferrerBalance = 0, newValidReferrals = 0;
 
         await db.runTransaction(async (t) => {
             const referrerRef  = db.collection('users').doc(String(referrerId));
@@ -98,7 +96,6 @@ export default async function handler(req, res) {
             const referrer = referrerSnap.data();
             newReferrerBalance = (referrer.diamondBalance || 0) + REFER_REWARD;
             newValidReferrals  = (referrer.validReferrals || 0) + 1;
-            newTpEarned        = (referrer.referralDiamondEarned || 0) + REFER_REWARD;
 
             t.update(userRef, { isValidatedRef: true });
             t.update(referrerRef, {
@@ -115,14 +112,31 @@ export default async function handler(req, res) {
             });
         });
 
-        const usdtValue = (REFER_REWARD * TP_TO_USD).toFixed(3);
-        await tgMsg(referrerId,
-            `🎉 <b>Refer Reward!</b>\n\n` +
-            `Your referral (UID: <code>${uid}</code>) completed ${REFER_MIN_TASKS} tasks within ${REFER_WINDOW_HR} hours!\n\n` +
-            `💎 <b>+${REFER_REWARD} TP</b> added!\n` +
-            `💵 Value: <b>$${usdtValue} USDT</b>\n` +
-            `🏦 New Balance: <b>${newReferrerBalance} TP</b>\n\n` +
-            `Keep referring! 🚀`
+        const usdValue = (REFER_REWARD * TP_TO_USD).toFixed(2);
+
+        // ── Notification with Mini App button ──
+        const BOT_USERNAME = process.env.BOT_USERNAME || 'CoinlyTaskBot';
+        const APP_URL      = process.env.APP_URL      || 'https://coinly-task.vercel.app';
+
+        await tgMsg(
+            referrerId,
+            `🎉 <b>Congratulations!</b>\n\n` +
+            `🏆 Your referral completed <b>${REFER_MIN_TASKS} tasks</b> within 24 hours!\n\n` +
+            `💎 <b>You received: +${REFER_REWARD} TP</b>\n` +
+            `💵 <b>Value: $${usdValue} USDT</b>\n` +
+            `🏦 <b>New Balance: ${newReferrerBalance} TP</b>\n\n` +
+            `🚀 Keep referring to earn more rewards!\n` +
+            `👥 Valid Referrals: <b>${newValidReferrals}</b>`,
+            {
+                reply_markup: {
+                    inline_keyboard: [[
+                        {
+                            text: '🚀 Open Coinly Task',
+                            web_app: { url: APP_URL }
+                        }
+                    ]]
+                }
+            }
         );
 
         return res.status(200).json({
@@ -136,4 +150,4 @@ export default async function handler(req, res) {
         console.error('[claimRefer]', e.message);
         return res.status(500).json({ error: e.message });
     }
-                }
+}
