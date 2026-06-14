@@ -1,7 +1,7 @@
 // api/claimAd.js
 // Currency: TP (Task Points) — 10K TP = $1 = 0.5 TON
-// Rewards: ad2=30TP, ad1/ad3/ad4=15TP each | Dice: under/over=30TP, lucky7=50TP
-// Lootbox min claim: 150 TP
+// Rewards: ad2=30TP, ad1/ad3/ad4=15TP | Dice: under/over=30TP, lucky7=50TP
+// Lootbox min: 150 TP | Dice cooldown: 4hr server-side (0 extra Firebase ops)
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -17,13 +17,15 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-const AD_REWARDS = { ad1:15, ad2:30, ad3:15, ad4:15, joinGift:50 }; // TP rewards
+const AD_REWARDS = { ad1:15, ad2:30, ad3:15, ad4:15, joinGift:50 };
 const AD_LIMITS  = { ad1:10, ad2:5,  ad3:10, ad4:10 };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
-const LOOTBOX_MIN_CLAIM = 150;  // 150 TP min to claim
-const LOOTBOX_DAILY_MAX = 2;
+const LOOTBOX_MIN_CLAIM  = 150;
+const LOOTBOX_DAILY_MAX  = 2;
+const DICE_COOLDOWN_MS   = 4 * 60 * 60 * 1000; // 4 hours
+const DICE_VALID_REWARDS = new Set([30, 50]);    // only under/over=30, lucky=50
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -39,7 +41,7 @@ export default async function handler(req, res) {
     const today   = TODAY();
     const userRef = db.collection('users').doc(uid);
 
-    // ── LOOTBOX CLAIM MODE ──
+    // ── LOOTBOX CLAIM ──
     if (batch?.lootboxClaim === true) {
         try {
             const result = await db.runTransaction(async (t) => {
@@ -47,13 +49,11 @@ export default async function handler(req, res) {
                 if (!snap.exists) throw new Error('User not found');
                 const user = snap.data();
                 const lb = parseFloat(user.lootboxBalance || 0);
-                if (lb < LOOTBOX_MIN_CLAIM) {
-                    throw new Error(`Need at least ${LOOTBOX_MIN_CLAIM} TP in Lootbox to claim. You have ${lb.toFixed(0)} TP`);
-                }
+                if (lb < LOOTBOX_MIN_CLAIM)
+                    throw new Error(`Need at least ${LOOTBOX_MIN_CLAIM} TP. You have ${lb.toFixed(0)} TP`);
                 const lbToday = user.lootboxClaimDate === today ? (user.lootboxClaimCount || 0) : 0;
-                if (lbToday >= LOOTBOX_DAILY_MAX) {
-                    throw new Error(`Daily claim limit reached (${LOOTBOX_DAILY_MAX}x per day). Come back tomorrow!`);
-                }
+                if (lbToday >= LOOTBOX_DAILY_MAX)
+                    throw new Error(`Daily claim limit reached (${LOOTBOX_DAILY_MAX}x/day). Come back tomorrow!`);
                 t.update(userRef, {
                     diamondBalance:    FieldValue.increment(lb),
                     lootboxBalance:    0,
@@ -77,6 +77,7 @@ export default async function handler(req, res) {
             const updates = {};
             let totalReward = 0;
 
+            // Join gift
             if (batch.joinGift && !user.joinGiftClaimed) {
                 updates.joinGiftClaimed = true;
                 updates.diamondBalance  = FieldValue.increment(AD_REWARDS.joinGift);
@@ -85,6 +86,7 @@ export default async function handler(req, res) {
 
             const isNewDay = user.lastResetDate !== today;
 
+            // Ad rewards
             for (const [type, count] of Object.entries(batch)) {
                 if (!AD_REWARDS[type] || !AD_FIELDS[type]) continue;
                 const field   = AD_FIELDS[type];
@@ -98,11 +100,28 @@ export default async function handler(req, res) {
                 totalReward += reward;
             }
 
-            // Dice reward → direct to diamondBalance (not lootbox), max 50 TP
+            // ── DICE REWARD — server-side cooldown + valid amount check ──
             if (batch.diceReward && parseFloat(batch.diceReward) > 0) {
-                const diceAmt = Math.min(parseFloat(batch.diceReward), 50);
-                updates.diamondBalance = FieldValue.increment(diceAmt);
-                totalReward += diceAmt;
+                const rawAmt  = parseFloat(batch.diceReward);
+
+                // Only allow valid dice outcomes: 30 (under/over) or 50 (lucky 7)
+                const diceAmt = DICE_VALID_REWARDS.has(rawAmt) ? rawAmt : null;
+
+                if (diceAmt !== null) {
+                    // Cooldown check using existing user data — 0 extra Firebase read
+                    const lastDice = user.lastDiceRollAt || 0;
+                    const nowMs    = Date.now();
+                    const elapsed  = nowMs - lastDice;
+
+                    if (elapsed >= DICE_COOLDOWN_MS) {
+                        // Valid roll — grant reward + save timestamp
+                        updates.diamondBalance = FieldValue.increment(diceAmt);
+                        updates.lastDiceRollAt = nowMs;
+                        totalReward += diceAmt;
+                    }
+                    // If cooldown not met — silently ignore (don't error, just skip)
+                }
+                // Invalid amount — silently ignore
             }
 
             if (isNewDay) {
@@ -132,7 +151,8 @@ export default async function handler(req, res) {
         const isNewDay = user.lastResetDate !== today;
         const watched  = isNewDay ? 0 : (user[field] || 0);
         const limit    = AD_LIMITS[adType] || 10;
-        if (watched >= limit) return res.status(200).json({ success: false, error: 'Daily limit reached' });
+        if (watched >= limit)
+            return res.status(200).json({ success: false, error: 'Daily limit reached' });
         const updates = { lootboxBalance: FieldValue.increment(reward), [field]: FieldValue.increment(1) };
         if (isNewDay) {
             updates.lastResetDate = today;
