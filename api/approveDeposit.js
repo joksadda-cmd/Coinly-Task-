@@ -1,6 +1,6 @@
 // api/approveDeposit.js
-// Admin approves or rejects a deposit — handles warning system & deposit ban
-// Auto-approved deposits (blockchain-verified) don't need admin action
+// Handles: deposit approve/reject + withdraw approve/reject
+// TP Currency: 10K TP = $1 = 0.5 TON
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -16,17 +16,26 @@ if (!getApps().length) {
 }
 const db  = getFirestore();
 const BOT = process.env.BOT_TOKEN;
+const APP_URL = process.env.APP_URL || 'https://coinly-task.vercel.app';
 
-async function tgMsg(chatId, text) {
+async function tgMsg(chatId, text, extra = {}) {
     if (!BOT || !chatId) return;
     try {
         await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML', ...extra })
         });
     } catch(e) { console.warn('[tgMsg]', e.message); }
 }
+
+const miniAppBtn = {
+    reply_markup: {
+        inline_keyboard: [[
+            { text: '🚀 Open Coinly Task', web_app: { url: APP_URL } }
+        ]]
+    }
+};
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -35,7 +44,86 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { depositId, action, adminNote, warningCount, permBan } = req.body || {};
+    const { depositId, withdrawId, action, adminNote, warningCount, permBan } = req.body || {};
+
+    // ════════════════════════════════════════════
+    // WITHDRAW APPROVE / REJECT
+    // ════════════════════════════════════════════
+    if (withdrawId) {
+        if (!action) return res.status(400).json({ error: 'action required' });
+
+        try {
+            const wRef  = db.collection('withdrawals').doc(String(withdrawId));
+            const wSnap = await wRef.get();
+            if (!wSnap.exists) return res.status(404).json({ error: 'Withdrawal not found' });
+
+            const wd  = wSnap.data();
+            const uid = String(wd.userId);
+            const tp  = wd.diamondAmount || 0;
+            const methodLabel = wd.method === 'binance' ? 'Binance USDT' : 'Tonkeeper TON';
+            const currIcon    = wd.method === 'binance' ? '$' : '';
+            const currLabel   = wd.method === 'binance' ? 'USDT' : 'TON';
+            const converted   = wd.method === 'binance'
+                ? `$${(tp * 0.0001).toFixed(3)} USDT`
+                : `${(tp * 0.00005).toFixed(4)} TON`;
+
+            if (action === 'approve') {
+                await wRef.update({
+                    status:     'completed',
+                    approvedAt: FieldValue.serverTimestamp(),
+                    adminNote:  adminNote || '',
+                });
+
+                await tgMsg(uid,
+                    `✅ <b>Withdrawal Successfully Sent!</b>\n\n` +
+                    `🎉 Your withdrawal has been processed!\n\n` +
+                    `💎 <b>${tp} TP</b> withdrawn\n` +
+                    `💰 <b>Amount sent: ${converted}</b>\n` +
+                    `📬 Method: <b>${methodLabel}</b>\n` +
+                    `📮 Address: <code>${wd.details || 'N/A'}</code>\n\n` +
+                    `⏱️ It may take a few minutes to reflect in your wallet.\n` +
+                    `🆔 Request ID: <code>${withdrawId}</code>`,
+                    miniAppBtn
+                );
+
+                return res.status(200).json({ success: true, action: 'approved', withdrawId });
+            }
+
+            if (action === 'reject') {
+                // Refund TP back to user
+                const uRef = db.collection('users').doc(uid);
+                await db.runTransaction(async (t) => {
+                    t.update(uRef, { diamondBalance: FieldValue.increment(tp) });
+                    t.update(wRef, {
+                        status:     'rejected',
+                        rejectedAt: FieldValue.serverTimestamp(),
+                        adminNote:  adminNote || '',
+                    });
+                });
+
+                await tgMsg(uid,
+                    `❌ <b>Withdrawal Rejected</b>\n\n` +
+                    `Your withdrawal request has been rejected.\n\n` +
+                    `💎 <b>${tp} TP</b> has been refunded to your balance.\n` +
+                    `📋 Reason: ${adminNote || 'Please contact support.'}\n\n` +
+                    `You can try withdrawing again. 🔄`,
+                    miniAppBtn
+                );
+
+                return res.status(200).json({ success: true, action: 'rejected', withdrawId, refunded: tp });
+            }
+
+            return res.status(400).json({ error: 'Invalid action for withdraw' });
+
+        } catch(e) {
+            console.error('[approveDeposit withdraw]', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
+    // ════════════════════════════════════════════
+    // DEPOSIT APPROVE / REJECT
+    // ════════════════════════════════════════════
     if (!depositId || !action) return res.status(400).json({ error: 'depositId and action required' });
 
     try {
@@ -47,97 +135,76 @@ export default async function handler(req, res) {
         const uid = String(dep.userId);
         const ton = dep.tonAmount || 0;
 
-        // ── Already auto-approved — skip ──
         if (dep.status === 'auto_approved' && action === 'approve') {
             return res.status(200).json({
                 success: false,
                 alreadyApproved: true,
-                message: 'This deposit was already auto-approved via blockchain verification.'
+                message: 'Already auto-approved via blockchain verification.'
             });
         }
 
-        // ════════════════════════════════════════════
-        // APPROVE (manual — for pending deposits only)
-        // ════════════════════════════════════════════
         if (action === 'approve') {
             await db.runTransaction(async (t) => {
                 const uRef = db.collection('users').doc(uid);
                 t.update(uRef, { tonBalance: FieldValue.increment(ton) });
                 t.update(depRef, {
-                    status:     'approved',
-                    approvedAt: FieldValue.serverTimestamp(),
+                    status:        'approved',
+                    approvedAt:    FieldValue.serverTimestamp(),
                     manualApproval: true,
                 });
             });
 
             await tgMsg(uid,
                 `🎉 <b>Deposit Approved!</b>\n\n` +
-                `✅ Your deposit of <b>${ton} TON</b> has been verified by admin.\n` +
-                `💰 <b>${ton} TON</b> added to your TON balance!\n` +
-                `You can now create tasks. 🚀\n\n` +
-                `💎 Earn Diamond by completing tasks & watching ads.`
+                `✅ Your deposit of <b>${ton} TON</b> has been verified.\n` +
+                `💰 <b>${ton} TON</b> added to your TON balance!\n\n` +
+                `💎 Earn TP by completing tasks & watching ads.`,
+                miniAppBtn
             );
 
             return res.status(200).json({ success: true, action: 'approved', ton });
         }
 
-        // ════════════════════════════════════════════
-        // REJECT with warning system
-        // ════════════════════════════════════════════
         if (action === 'reject') {
             const warns    = parseInt(warningCount) || 1;
             const isBanned = permBan === true;
 
-            // Update user warnings in Firestore
             const uRef = db.collection('users').doc(uid);
             if (isBanned) {
-                await uRef.update({
-                    depositBanned:   true,
-                    depositWarnings: 3,
-                });
+                await uRef.update({ depositBanned: true, depositWarnings: 3 });
             } else {
-                await uRef.update({
-                    depositWarnings: warns,
-                });
+                await uRef.update({ depositWarnings: warns });
             }
 
-            // Update deposit status
             await depRef.update({
                 status:     'rejected',
                 rejectedAt: FieldValue.serverTimestamp(),
                 adminNote:  adminNote || '',
-                warns,
-                permBan:    isBanned,
+                warns, permBan: isBanned,
             });
 
-            // Build user Telegram message
             let userMsg = '';
             if (isBanned) {
                 userMsg =
                     `🚫 <b>Deposit Section Permanently Disabled</b>\n\n` +
-                    `Your deposit request of <b>${ton} TON</b> has been rejected.\n\n` +
-                    `⛔ <b>This was your 3rd fake deposit violation.</b>\n` +
-                    `Your deposit section has been <b>permanently disabled</b>.\n\n` +
-                    `You can still earn Diamond by completing tasks & watching ads, ` +
-                    `but you will <b>never be able to deposit again</b>.\n\n` +
-                    `If you believe this is a mistake, contact support.`;
+                    `Your deposit of <b>${ton} TON</b> has been rejected.\n\n` +
+                    `⛔ 3rd violation — deposit section permanently disabled.\n` +
+                    `Contact support if you believe this is a mistake.`;
             } else if (warns >= 2) {
                 userMsg =
                     `🚨 <b>Deposit Rejected — FINAL WARNING (${warns}/3)</b>\n\n` +
-                    `Your deposit request of <b>${ton} TON</b> has been rejected.\n\n` +
-                    `⚠️ This is your <b>FINAL WARNING</b>.\n` +
-                    `One more fake request = <b>permanent deposit ban, no appeal</b>.\n\n` +
-                    `<b>Reason:</b> ${adminNote || 'Payment not received or invalid.'}`;
+                    `Your deposit of <b>${ton} TON</b> has been rejected.\n\n` +
+                    `⚠️ One more fake request = permanent ban.\n` +
+                    `Reason: ${adminNote || 'Payment not received or invalid.'}`;
             } else {
                 userMsg =
                     `⚠️ <b>Deposit Rejected — Warning ${warns}/3</b>\n\n` +
-                    `Your deposit request of <b>${ton} TON</b> has been rejected.\n\n` +
-                    `Submitting fake deposit requests violates our terms.\n` +
-                    `🔴 <b>${3 - warns} more violation(s)</b> = permanent deposit ban.\n\n` +
-                    `<b>Reason:</b> ${adminNote || 'Payment not received or invalid.'}`;
+                    `Your deposit of <b>${ton} TON</b> has been rejected.\n` +
+                    `🔴 ${3 - warns} more violation(s) = permanent ban.\n\n` +
+                    `Reason: ${adminNote || 'Payment not received or invalid.'}`;
             }
 
-            await tgMsg(uid, userMsg);
+            await tgMsg(uid, userMsg, miniAppBtn);
             return res.status(200).json({ success: true, action: 'rejected', warns, isBanned });
         }
 
