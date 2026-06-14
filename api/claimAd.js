@@ -1,7 +1,8 @@
 // api/claimAd.js
 // Currency: TP (Task Points) — 10K TP = $1 = 0.5 TON
-// Rewards: ad2=30TP, ad1/ad3/ad4=15TP | Dice: under/over=30TP, lucky7=50TP
-// Lootbox min: 150 TP | Dice cooldown: 4hr server-side (0 extra Firebase ops)
+// Rewards: ad1(AdsGram Daily)=10TP, ad2(AdsGram Special)=20TP, ad3(Monetag)=10TP, ad4(Giga)=10TP
+// Dice: under/over=30TP, lucky7=50TP
+// Lootbox min: 150 TP | Dice cooldown: 4hr server-side
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -17,7 +18,12 @@ if (!getApps().length) {
 }
 const db = getFirestore();
 
-const AD_REWARDS = { ad1:15, ad2:30, ad3:15, ad4:15, joinGift:50 };
+// ── Updated ad rewards ──
+// ad1 = AdsGram Daily    → 10 TP (was 15)
+// ad2 = AdsGram Special  → 20 TP (was 30)
+// ad3 = Monetag          → 10 TP (was 15)
+// ad4 = Giga Pub         → 10 TP (was 15)
+const AD_REWARDS = { ad1:10, ad2:20, ad3:10, ad4:10, joinGift:50 };
 const AD_LIMITS  = { ad1:10, ad2:5,  ad3:10, ad4:10 };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
@@ -86,14 +92,16 @@ export default async function handler(req, res) {
 
             const isNewDay = user.lastResetDate !== today;
 
-            // Ad rewards
+            // Ad rewards — server enforces limits and correct reward amounts
             for (const [type, count] of Object.entries(batch)) {
                 if (!AD_REWARDS[type] || !AD_FIELDS[type]) continue;
                 const field   = AD_FIELDS[type];
                 const watched = isNewDay ? 0 : (user[field] || 0);
                 const limit   = AD_LIMITS[type] || 10;
+                // Clamp count to what's actually allowed (prevent any bypass)
                 const safeCnt = Math.min(Math.max(0, parseInt(count) || 0), limit - watched);
                 if (safeCnt <= 0) continue;
+                // Use SERVER-SIDE reward amount — ignore any client-sent reward value
                 const reward = AD_REWARDS[type] * safeCnt;
                 updates[field]         = FieldValue.increment(safeCnt);
                 updates.lootboxBalance = FieldValue.increment(reward);
@@ -119,7 +127,7 @@ export default async function handler(req, res) {
                         updates.lastDiceRollAt = nowMs;
                         totalReward += diceAmt;
                     }
-                    // If cooldown not met — silently ignore (don't error, just skip)
+                    // If cooldown not met — silently ignore
                 }
                 // Invalid amount — silently ignore
             }
@@ -165,4 +173,4 @@ export default async function handler(req, res) {
         console.error('[claimAd single]', e.message);
         return res.status(500).json({ error: e.message });
     }
-    }
+}
