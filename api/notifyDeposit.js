@@ -23,7 +23,7 @@ const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
 const TP_TO_TON = 0.00005;   // 10000 TP = 0.5 TON
 const TP_TO_USD = 0.0001;    // 10000 TP = $1
 
-const MIN_WITHDRAW = { tonkeeper: 300, binance: 1000 };
+const MIN_WITHDRAW = { tonkeeper: 500, binance: 1000 };
 
 const TODAY_DHAKA = () =>
     new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
