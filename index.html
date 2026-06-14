@@ -1576,7 +1576,45 @@ const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
 // Sync on page unload
 window.addEventListener('beforeunload', flushAdSync);
 
-// ── GIGAPUB — preloaded on init to avoid click delay ──
+// ── MONETAG — 6 second minimum watch timer ──
+const showMoneytagAd = () => new Promise((resolve, reject) => {
+    if(!window.show_10135525){
+        reject(new Error('Monetag SDK not loaded'));
+        return;
+    }
+    let adStarted = false;
+    let timerDone = false;
+    let adDone    = false;
+
+    // Start 6 second timer when ad begins
+    const startTimer = () => {
+        if(adStarted) return;
+        adStarted = true;
+        setTimeout(() => {
+            timerDone = true;
+            if(adDone) resolve(); // both done → reward
+        }, 6000);
+    };
+
+    // Call SDK
+    try {
+        const p = window.show_10135525();
+        startTimer(); // start timer immediately
+        Promise.resolve(p).then(() => {
+            adDone = true;
+            if(timerDone) resolve(); // timer already done → reward
+            // else wait for timer
+        }).catch(() => {
+            adDone = true;
+            if(timerDone) resolve();
+        });
+    } catch(e) {
+        startTimer();
+        setTimeout(() => { adDone = true; if(timerDone) resolve(); }, 100);
+    }
+});
+
+// ── GIGAPUB — preloaded + 6 second minimum watch ──
 let _gigaPubReady = false;
 (function preloadGigaPub(){
     if(typeof window.showGiga === 'function'){ _gigaPubReady = true; return; }
@@ -1587,31 +1625,28 @@ let _gigaPubReady = false;
     document.head.appendChild(s);
 })();
 
-const showGigaAd = async()=>{
-    if(typeof window.showGiga === 'function'){
-        await window.showGiga();
-        return;
+const showGigaAd = async() => {
+    // Wait for SDK if not ready
+    if(typeof window.showGiga !== 'function'){
+        await new Promise((resolve, reject) => {
+            let attempts = 0;
+            const check = setInterval(()=>{
+                attempts++;
+                if(typeof window.showGiga === 'function'){ clearInterval(check); resolve(); }
+                else if(attempts >= 25){ clearInterval(check); reject(new Error('GigaPub SDK not loaded')); }
+            }, 200);
+        });
     }
-    // Fallback: wait up to 5s for preloaded script to be ready
-    await new Promise((resolve, reject) => {
-        let attempts = 0;
-        const check = setInterval(()=>{
-            attempts++;
-            if(typeof window.showGiga === 'function'){
-                clearInterval(check);
-                resolve();
-            } else if(attempts >= 25){ // 5s timeout
-                clearInterval(check);
-                reject(new Error('GigaPub SDK not loaded'));
-            }
-        }, 200);
-    });
-    await window.showGiga();
+    // Show ad + enforce 6 second minimum
+    await Promise.all([
+        window.showGiga(),
+        new Promise(r => setTimeout(r, 6000)) // 6s minimum
+    ]);
 };
 
-document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', window.Adsgram?.init({blockId:"int-22897"})?.show));
-document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', window.Adsgram?.init({blockId:"22900"})?.show));
-document.getElementById('btn-ad3').addEventListener('click', ()=>runAdMission('ad3','btn-ad3', null));
+document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', ()=>{ const o=window.Adsgram?.init({blockId:"int-22897"}); return o?.show ? o.show() : Promise.reject(new Error('SDK unavailable')); }));
+document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', ()=>{ const o=window.Adsgram?.init({blockId:"22900"}); return o?.show ? o.show() : Promise.reject(new Error('SDK unavailable')); }));
+document.getElementById('btn-ad3').addEventListener('click', ()=>runAdMission('ad3','btn-ad3', showMoneytagAd));
 document.getElementById('btn-ad4').addEventListener('click', ()=>runAdMission('ad4','btn-ad4', showGigaAd));
 
 // ── TASKS ──
@@ -2224,9 +2259,12 @@ document.getElementById('btn-history').addEventListener('click', async()=>{
 function _renderHistory(list, c){
     if(!list.length){ c.innerHTML='<div class="empty-state"><i class="fas fa-inbox"></i><p style="color:#94a3b8;">No withdraw history yet.</p></div>'; return; }
     c.innerHTML = list.map(d=>{
-            const statusColor = d.status==='success'||d.status==='completed' ? '#4ade80' : '#fbbf24';
-            const statusBg   = d.status==='success'||d.status==='completed' ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)';
-            const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${d.status||'pending'}</span>`;
+            const isSuccess   = d.status==='success'||d.status==='completed'||d.status==='approved';
+            const isRejected  = d.status==='rejected';
+            const statusColor = isSuccess ? '#4ade80' : isRejected ? '#f87171' : '#fbbf24';
+            const statusBg    = isSuccess ? 'rgba(74,222,128,0.1)' : isRejected ? 'rgba(248,113,113,0.1)' : 'rgba(251,191,36,0.1)';
+            const statusLabel = isSuccess ? 'completed' : isRejected ? 'rejected' : 'pending';
+            const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${statusLabel}</span>`;
             const methodLabel = d.method === 'binance' ? 'Binance' : 'Tonkeeper';
             const tp = d.diamondAmount || 0;
             // Calculate conversion from TP (10K TP = $1 = 0.5 TON)
