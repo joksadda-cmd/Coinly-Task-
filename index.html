@@ -1156,21 +1156,16 @@ async function adWrapper(btnId, sdkCall, successCb){
                 await sdkCall();
                 adShown = true;
             }catch(adErr){
-                // Adsgram rejects on skip — check if it's a real skip or completion
                 const msg = (adErr?.message||adErr?.type||'').toLowerCase();
-                if(msg.includes('skip') || msg.includes('close') || msg.includes('dismiss')){
-                    showAlert('Skipped','Watch the full ad to earn.','error');
+                if(msg.includes('skip')||msg.includes('close')||msg.includes('dismiss')||msg.includes('full ad')||msg.includes('early')){
+                    showAlert('Skipped','Watch the full ad to earn reward.','error');
                 } else {
-                    // Ad showed but SDK threw non-skip error — still reward
+                    // Non-skip SDK error — still reward (SDK bug, not user action)
                     adShown = true;
                 }
             }
-        } else if(window.show_10135525){
-            await window.show_10135525();
-            await new Promise(r=>setTimeout(r,5000));
-            adShown = true;
         } else {
-            showAlert('Skipped','Ad unavailable right now.','error');
+            showAlert('Unavailable','Ad not available right now.','error');
         }
         if(adShown) await successCb();
     }catch(e){
@@ -1576,45 +1571,47 @@ const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
 // Sync on page unload
 window.addEventListener('beforeunload', flushAdSync);
 
-// ── MONETAG — 6 second minimum watch timer ──
+// ── MONETAG — 6 second minimum, reject on early close ──
 const showMoneytagAd = () => new Promise((resolve, reject) => {
     if(!window.show_10135525){
         reject(new Error('Monetag SDK not loaded'));
         return;
     }
-    let adStarted = false;
+
     let timerDone = false;
     let adDone    = false;
+    let rejected  = false;
 
-    // Start 6 second timer when ad begins
-    const startTimer = () => {
-        if(adStarted) return;
-        adStarted = true;
-        setTimeout(() => {
-            timerDone = true;
-            if(adDone) resolve(); // both done → reward
-        }, 6000);
+    const tryResolve = () => {
+        if(!rejected && timerDone && adDone) resolve();
+    };
+    const doReject = (reason) => {
+        if(!rejected){ rejected = true; reject(new Error(reason)); }
     };
 
-    // Call SDK
+    // 6 second mandatory timer
+    const timer = setTimeout(() => {
+        timerDone = true;
+        tryResolve();
+    }, 6000);
+
     try {
         const p = window.show_10135525();
-        startTimer(); // start timer immediately
         Promise.resolve(p).then(() => {
             adDone = true;
-            if(timerDone) resolve(); // timer already done → reward
-            // else wait for timer
-        }).catch(() => {
-            adDone = true;
-            if(timerDone) resolve();
+            tryResolve();
+        }).catch((err) => {
+            // Ad was closed/skipped before completing
+            clearTimeout(timer);
+            doReject('Watch the full ad to earn reward.');
         });
     } catch(e) {
-        startTimer();
-        setTimeout(() => { adDone = true; if(timerDone) resolve(); }, 100);
+        clearTimeout(timer);
+        doReject('Monetag ad unavailable.');
     }
 });
 
-// ── GIGAPUB — preloaded + 6 second minimum watch ──
+// ── GIGAPUB — preloaded + 6 second minimum, reject on early close ──
 let _gigaPubReady = false;
 (function preloadGigaPub(){
     if(typeof window.showGiga === 'function'){ _gigaPubReady = true; return; }
@@ -1625,24 +1622,48 @@ let _gigaPubReady = false;
     document.head.appendChild(s);
 })();
 
-const showGigaAd = async() => {
-    // Wait for SDK if not ready
+const showGigaAd = () => new Promise(async (resolve, reject) => {
+    // Wait for SDK
     if(typeof window.showGiga !== 'function'){
-        await new Promise((resolve, reject) => {
-            let attempts = 0;
-            const check = setInterval(()=>{
-                attempts++;
-                if(typeof window.showGiga === 'function'){ clearInterval(check); resolve(); }
-                else if(attempts >= 25){ clearInterval(check); reject(new Error('GigaPub SDK not loaded')); }
-            }, 200);
-        });
+        try {
+            await new Promise((res, rej) => {
+                let attempts = 0;
+                const check = setInterval(()=>{
+                    attempts++;
+                    if(typeof window.showGiga === 'function'){ clearInterval(check); res(); }
+                    else if(attempts >= 25){ clearInterval(check); rej(new Error('GigaPub SDK not loaded')); }
+                }, 200);
+            });
+        } catch(e){ reject(e); return; }
     }
-    // Show ad + enforce 6 second minimum
-    await Promise.all([
-        window.showGiga(),
-        new Promise(r => setTimeout(r, 6000)) // 6s minimum
-    ]);
-};
+
+    let adDone    = false;
+    let timerDone = false;
+    let rejected  = false;
+
+    const tryResolve = () => {
+        if(!rejected && timerDone && adDone) resolve();
+    };
+    const doReject = (reason) => {
+        if(!rejected){ rejected = true; reject(new Error(reason)); }
+    };
+
+    // 6 second mandatory timer
+    const timer = setTimeout(() => {
+        timerDone = true;
+        tryResolve();
+    }, 6000);
+
+    try {
+        await window.showGiga();
+        adDone = true;
+        tryResolve();
+    } catch(e) {
+        // showGiga rejected — user closed ad early
+        clearTimeout(timer);
+        doReject('Watch the full ad to earn reward.');
+    }
+});
 
 document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', ()=>{ const o=window.Adsgram?.init({blockId:"int-22897"}); return o?.show ? o.show() : Promise.reject(new Error('SDK unavailable')); }));
 document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', ()=>{ const o=window.Adsgram?.init({blockId:"22900"}); return o?.show ? o.show() : Promise.reject(new Error('SDK unavailable')); }));
@@ -1762,7 +1783,7 @@ document.getElementById('task-list-container').addEventListener('click', async e
             if((cat==='telegram_channel'||cat==='telegram_group') && channel && channel.trim()){
                 const res=await fetch(`${API_BASE}/checkMember?userId=${currentUser.id}&channel=${encodeURIComponent(channel)}`);
                 const d=await res.json();
-                if(d.joined||d.ok||d.isMember) ok=true;
+                if(d.joined===true||d.isMember===true) ok=true;
                 else{ showAlert('Notice','Join first, then verify!','error'); b.innerText='VERIFY'; b.disabled=false; b.style.background=''; b.style.color='var(--primary)'; b.style.borderColor='var(--primary)'; return; }
             } else {
                 await new Promise(r=>setTimeout(r,2000)); ok=true;
