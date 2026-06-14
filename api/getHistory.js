@@ -1,7 +1,6 @@
 // api/getHistory.js
-// Withdraw history — server-side fetch
-// Fix: removed orderBy to avoid composite index requirement
-// Sorting is done in JS after fetch
+// Withdraw history — returns pending + completed + rejected withdrawals
+// Sorted newest first in JS (no Firestore composite index needed)
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
@@ -29,36 +28,32 @@ export default async function handler(req, res) {
 
     try {
         // No orderBy — avoids composite index requirement
-        // We sort in JS after fetching
         const snap = await db.collection('withdrawals')
             .where('userId', '==', String(userId))
-            .limit(30)
+            .limit(50)
             .get();
 
         const history = [];
         snap.forEach(d => {
             const data = d.data();
-            // Include pending, success, completed — exclude failed/rejected
-            if (data.status === 'pending' || data.status === 'success' || data.status === 'completed') {
-                history.push({
-                    id:            d.id,
-                    method:        data.method || 'tonkeeper',
-                    status:        data.status || 'pending',
-                    diamondAmount: data.diamondAmount || 0,
-                    tonAmount:     data.tonAmount || 0,
-                    // Convert Firestore timestamp to milliseconds for sorting
-                    _ts:           data.createdAt ? data.createdAt.toMillis() : 0,
-                    date:          data.createdAt
-                        ? data.createdAt.toDate().toLocaleDateString('en-GB')
-                        : '',
-                });
-            }
+            // Include all statuses so user can see full history
+            history.push({
+                id:            d.id,
+                method:        data.method || 'tonkeeper',
+                status:        data.status || 'pending',
+                diamondAmount: data.diamondAmount || 0,
+                tonAmount:     data.tonAmount || 0,
+                details:       data.details || '',
+                adminNote:     data.adminNote || '',
+                _ts:           data.createdAt ? data.createdAt.toMillis() : 0,
+                date:          data.createdAt
+                    ? data.createdAt.toDate().toLocaleDateString('en-GB')
+                    : '',
+            });
         });
 
-        // Sort newest first in JS (no Firestore index needed)
+        // Sort newest first
         history.sort((a, b) => b._ts - a._ts);
-
-        // Remove internal sort field before sending
         history.forEach(h => delete h._ts);
 
         return res.status(200).json({ success: true, history });
