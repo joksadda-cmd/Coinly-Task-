@@ -61,11 +61,9 @@ export default async function handler(req, res) {
             const uid = String(wd.userId);
             const tp  = wd.diamondAmount || 0;
             const methodLabel = wd.method === 'binance' ? 'Binance USDT' : 'Tonkeeper TON';
-            const currIcon    = wd.method === 'binance' ? '$' : '';
-            const currLabel   = wd.method === 'binance' ? 'USDT' : 'TON';
             const converted   = wd.method === 'binance'
-                ? `$${(tp * 0.0001).toFixed(3)} USDT`
-                : `${(tp * 0.00005).toFixed(4)} TON`;
+                ? `$${(tp * 0.00005).toFixed(3)} USDT`
+                : `${(tp * 0.000025).toFixed(4)} TON`;
 
             if (action === 'approve') {
                 await wRef.update({
@@ -73,7 +71,6 @@ export default async function handler(req, res) {
                     approvedAt: FieldValue.serverTimestamp(),
                     adminNote:  adminNote || '',
                 });
-
                 await tgMsg(uid,
                     `✅ <b>Withdrawal Successfully Sent!</b>\n\n` +
                     `🎉 Your withdrawal has been processed!\n\n` +
@@ -85,32 +82,49 @@ export default async function handler(req, res) {
                     `🆔 Request ID: <code>${withdrawId}</code>`,
                     miniAppBtn
                 );
-
                 return res.status(200).json({ success: true, action: 'approved', withdrawId });
             }
 
             if (action === 'reject') {
-                // Refund TP back to user
+                const isWithdrawBan = req.body.withdrawBan === true;
                 const uRef = db.collection('users').doc(uid);
+
                 await db.runTransaction(async (t) => {
-                    t.update(uRef, { diamondBalance: FieldValue.increment(tp) });
+                    t.update(uRef, {
+                        diamondBalance: FieldValue.increment(tp),
+                        ...(isWithdrawBan ? { withdrawBanned: true } : {})
+                    });
                     t.update(wRef, {
                         status:     'rejected',
                         rejectedAt: FieldValue.serverTimestamp(),
                         adminNote:  adminNote || '',
+                        ...(isWithdrawBan ? { withdrawBanned: true } : {})
                     });
                 });
 
-                await tgMsg(uid,
-                    `❌ <b>Withdrawal Rejected</b>\n\n` +
-                    `Your withdrawal request has been rejected.\n\n` +
-                    `💎 <b>${tp} TP</b> has been refunded to your balance.\n` +
-                    `📋 Reason: ${adminNote || 'Please contact support.'}\n\n` +
-                    `You can try withdrawing again. 🔄`,
-                    miniAppBtn
-                );
+                if(isWithdrawBan){
+                    await tgMsg(uid,
+                        `🚫 <b>Withdraw Access Permanently Banned</b>\n\n` +
+                        `Your withdrawal request has been rejected.\n\n` +
+                        `💎 <b>${tp} TP</b> has been refunded to your balance.\n\n` +
+                        `⛔ <b>Your account has been permanently banned from withdrawals</b> due to suspicious activity.\n` +
+                        `📋 Reason: ${adminNote}\n\n` +
+                        `You can still earn TP by completing tasks & watching ads.\n` +
+                        `If you believe this is a mistake, contact support.`,
+                        miniAppBtn
+                    );
+                } else {
+                    await tgMsg(uid,
+                        `❌ <b>Withdrawal Rejected</b>\n\n` +
+                        `Your withdrawal request has been rejected.\n\n` +
+                        `💎 <b>${tp} TP</b> has been refunded to your balance.\n` +
+                        `📋 Reason: ${adminNote || 'Please contact support.'}\n\n` +
+                        `You can try withdrawing again. 🔄`,
+                        miniAppBtn
+                    );
+                }
 
-                return res.status(200).json({ success: true, action: 'rejected', withdrawId, refunded: tp });
+                return res.status(200).json({ success: true, action: 'rejected', withdrawId, refunded: tp, withdrawBanned: isWithdrawBan });
             }
 
             return res.status(400).json({ error: 'Invalid action for withdraw' });
@@ -214,4 +228,4 @@ export default async function handler(req, res) {
         console.error('[approveDeposit]', e.message);
         return res.status(500).json({ error: e.message });
     }
-}
+                                             }
