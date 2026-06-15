@@ -1,8 +1,6 @@
 // api/notifyDeposit.js
-// Currency: TP (Task Points) — 10K TP = $1 = 0.5 TON
-// Withdrawal: daily 1x limit | Tonkeeper min 300 TP | Binance min 1000 TP
-// Requirements: 10 tasks completed + 10 ads watched in last 24 hours
-// Address lock: same wallet address can only be used by one userId
+// Currency: TP (Task Points) — 20K TP = $1 = 0.5 TON
+// Withdrawal: daily 1x limit | Tonkeeper min 1000 TP | Binance min 2000 TP
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -21,14 +19,10 @@ const BOT      = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
 
 // TP rate constants
-const TP_TO_TON = 0.00005;   // 10000 TP = 0.5 TON
-const TP_TO_USD = 0.0001;    // 10000 TP = $1
+const TP_TO_TON = 0.000025;  // 20000 TP = 0.5 TON
+const TP_TO_USD = 0.00005;   // 20000 TP = $1
 
-const MIN_WITHDRAW = { tonkeeper: 500, binance: 1000 };
-
-// Withdraw requirements
-const WITHDRAW_MIN_TASKS    = 10;   // must have completed at least 10 tasks total
-const WITHDRAW_MIN_ADS_24H  = 10;   // must watch 10 ads in last 24 hours
+const MIN_WITHDRAW = { tonkeeper: 1000, binance: 2000 };
 
 const TODAY_DHAKA = () =>
     new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
@@ -101,34 +95,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: false, error: `Minimum ${minAmt} TP required for ${method}.` });
         }
 
-        // ── Address lock check — before transaction ──
-        // Check if this address is already registered to a different userId
-        try {
-            const addrSnap = await db.collection('withdrawAddresses').doc(
-                Buffer.from(address).toString('base64').replace(/[/+=]/g, '_').slice(0, 100)
-            ).get();
-
-            if (addrSnap.exists) {
-                const registeredUid = addrSnap.data().userId;
-                if (registeredUid && registeredUid !== uid) {
-                    // This address belongs to someone else — block it
-                    await tgMsg(ADMIN_ID,
-                        `🚨 <b>Address Reuse Blocked</b>\n` +
-                        `Attempted: ${uid} (@${username || 'N/A'})\n` +
-                        `Address already registered to: <code>${registeredUid}</code>\n` +
-                        `Address: <code>${address}</code>`
-                    );
-                    return res.status(200).json({
-                        success: false,
-                        error: 'This wallet address is already linked to another account. Each address can only be used by one account.'
-                    });
-                }
-            }
-        } catch(e) {
-            console.warn('[address-check]', e.message);
-            // Don't block on read error — proceed
-        }
-
         try {
             let newBalance = 0, withdrawId = '';
             await db.runTransaction(async (t) => {
@@ -137,42 +103,30 @@ export default async function handler(req, res) {
                 if (!uSnap.exists) throw new Error('User not found');
                 const user = uSnap.data();
 
-                if (user.isBanned) throw new Error('Account is banned.');
-
                 if ((user.diamondBalance || 0) < amt) throw new Error('Insufficient TP balance');
+
+                // ── Withdraw ban check ──
+                if (user.withdrawBanned) {
+                    throw new Error('Your account has been permanently banned from withdrawals.');
+                }
 
                 // ── Daily 1x withdraw limit ──
                 if (user.lastWithdrawDate === today) {
                     throw new Error('You can only withdraw once per day. Try again tomorrow.');
                 }
 
-                // ── SERVER-SIDE: Minimum 10 tasks completed ──
-                const completedTasks = (user.completedTasks || []).length;
-                if (completedTasks < WITHDRAW_MIN_TASKS) {
-                    throw new Error(`Complete at least ${WITHDRAW_MIN_TASKS} tasks to withdraw. You have done: ${completedTasks}/${WITHDRAW_MIN_TASKS}`);
-                }
-
-                // ── SERVER-SIDE: 10 ads watched in last 24 hours ──
-                // Ad counts reset daily (lastResetDate). We compare today's watched counts.
-                const isNewDay = user.lastResetDate !== today;
-                const ad1 = isNewDay ? 0 : (user.adsWatchedAd1 || 0);
-                const ad2 = isNewDay ? 0 : (user.adsWatchedAd2 || 0);
-                const ad3 = isNewDay ? 0 : (user.adsWatchedAd3 || 0);
-                const ad4 = isNewDay ? 0 : (user.adsWatchedAd4 || 0);
-                const totalAdsToday = ad1 + ad2 + ad3 + ad4;
-
-                if (totalAdsToday < WITHDRAW_MIN_ADS_24H) {
-                    const remaining = WITHDRAW_MIN_ADS_24H - totalAdsToday;
-                    throw new Error(`Watch ${remaining} more ads today to unlock withdrawal. (${totalAdsToday}/${WITHDRAW_MIN_ADS_24H} ads watched today)`);
-                }
-
                 newBalance = (user.diamondBalance || 0) - amt;
+                // Calculate conversion server-side — never trust client tonAmount
+                const serverTonAmount = method === 'binance'
+                    ? parseFloat((amt * TP_TO_USD).toFixed(4))
+                    : parseFloat((amt * TP_TO_TON).toFixed(6));
+
                 const wRef = db.collection('withdrawals').doc();
                 withdrawId = wRef.id;
                 t.set(wRef, {
                     userId: uid, username: username||'', firstName: firstName||'',
                     method: method||'tonkeeper', details: address,
-                    diamondAmount: amt, tonAmount: parseFloat(tonAmount)||0,
+                    diamondAmount: amt, tonAmount: serverTonAmount,
                     status: 'pending', createdAt: FieldValue.serverTimestamp(),
                 });
                 const newAdsCount = (user.adsWatchedAd1||0)+(user.adsWatchedAd2||0)+
@@ -182,29 +136,20 @@ export default async function handler(req, res) {
                     lastWithdrawDate:      today,
                     _lastWithdrawAdsCount: newAdsCount,
                 });
-
-                // ── Register address → userId mapping (inside transaction) ──
-                const addrKey = Buffer.from(address).toString('base64').replace(/[/+=]/g, '_').slice(0, 100);
-                const addrRef = db.collection('withdrawAddresses').doc(addrKey);
-                t.set(addrRef, { userId: uid, address, method, registeredAt: FieldValue.serverTimestamp() }, { merge: true });
             });
-
-            const currLabel   = method === 'binance' ? 'USDT' : 'TON';
-            const currIcon    = method === 'binance' ? '$'    : '';
-            const methodLabel = method === 'binance' ? 'Binance' : 'Tonkeeper';
 
             await tgMsg(ADMIN_ID,
                 `🔴 <b>Withdrawal Request</b>\n` +
                 `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-                `💎 ${amt} TP → ${currIcon}${tonAmount} ${currLabel}\n` +
-                `📬 ${methodLabel}: <code>${address}</code>\n` +
+                `💎 ${amt} TP → ${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}\n` +
+                `📬 ${method==='binance'?'Binance':'Tonkeeper'}: <code>${address}</code>\n` +
                 `🆔 ID: <code>${withdrawId}</code>`
             );
             await tgMsg(uid,
                 `✅ <b>Withdrawal Request Received!</b>\n\n` +
                 `💎 <b>${amt} TP</b> deducted from your balance.\n` +
-                `💰 You will receive: <b>${currIcon}${tonAmount} ${currLabel}</b>\n` +
-                `📬 Method: <b>${methodLabel}</b>\n` +
+                `💰 You will receive: <b>${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}</b>\n` +
+                `📬 Method: <b>${method==='binance'?'Binance':'Tonkeeper'}</b>\n` +
                 `📮 Address: <code>${address}</code>\n\n` +
                 `⏱️ Processing time: <b>1–24 hours</b>\n` +
                 `🆔 Request ID: <code>${withdrawId}</code>\n\n` +
@@ -349,4 +294,4 @@ export default async function handler(req, res) {
     } catch(e) {
         return res.status(500).json({ error: e.message });
     }
-                }
+                        }
