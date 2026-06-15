@@ -95,7 +95,33 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: false, error: `Minimum ${minAmt} TP required for ${method}.` });
         }
 
+        // ── Address lock check — 30 days per account ──
         try {
+            const key      = Buffer.from(address).toString('base64').replace(/[/+=]/g, '_').slice(0, 100);
+            const addrSnap = await db.collection('withdrawAddresses').doc(key).get();
+            if (addrSnap.exists) {
+                const lockData      = addrSnap.data();
+                const registeredUid = lockData.userId;
+                const lockedUntilMs = lockData.lockedUntil?._seconds
+                    ? lockData.lockedUntil._seconds * 1000
+                    : (lockData.lockedUntilMs || 0);
+
+                if (registeredUid && registeredUid !== uid && lockedUntilMs > Date.now()) {
+                    const daysLeft = Math.ceil((lockedUntilMs - Date.now()) / (1000*60*60*24));
+                    await tgMsg(ADMIN_ID,
+                        `🚨 <b>Address Reuse Blocked</b>\n` +
+                        `User: ${uid} (@${username||'N/A'})\n` +
+                        `Address locked to: <code>${registeredUid}</code>\n` +
+                        `Lock expires in: ${daysLeft} days\n` +
+                        `Address: <code>${address}</code>`
+                    );
+                    return res.status(200).json({
+                        success: false,
+                        error: `⚠️ This wallet address is linked to another account.\n\nEach wallet address can only be used by one account. This address is locked for ${daysLeft} more day(s).`
+                    });
+                }
+            }
+        } catch(e) { console.warn('[address-check]', e.message); }
             let newBalance = 0, withdrawId = '';
             await db.runTransaction(async (t) => {
                 const uRef  = db.collection('users').doc(uid);
@@ -136,6 +162,18 @@ export default async function handler(req, res) {
                     lastWithdrawDate:      today,
                     _lastWithdrawAdsCount: newAdsCount,
                 });
+
+                // ── Lock wallet address to this userId for 30 days ──
+                const addrKey = Buffer.from(address).toString('base64').replace(/[/+=]/g, '_').slice(0, 100);
+                const lockedUntilMs = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 days
+                t.set(db.collection('withdrawAddresses').doc(addrKey), {
+                    userId:         uid,
+                    address,
+                    method,
+                    lockedUntilMs,
+                    lockedUntil:    new Date(lockedUntilMs),
+                    registeredAt:   FieldValue.serverTimestamp(),
+                }, { merge: true });
             });
 
             await tgMsg(ADMIN_ID,
@@ -294,4 +332,4 @@ export default async function handler(req, res) {
     } catch(e) {
         return res.status(500).json({ error: e.message });
     }
-                        }
+}
