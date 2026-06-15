@@ -418,7 +418,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div style="text-align:right;">
                 <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;color:rgba(255,255,255,0.8);">Today's Max</div>
                 <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fff;opacity:0.9;">+400 TP</div>
-                <div style="font-size:0.65rem;color:rgba(255,255,255,0.6);margin-top:2px;">≈ $0.04 USDT</div>
             </div>
         </div>
         <div style="height:1px;background:rgba(255,255,255,0.2);margin-bottom:10px;"></div>
@@ -603,35 +602,38 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             ✅ Min 10 tasks completed<br>
             ✅ Watch 10 ads today<br>
             ✅ Max 1 withdrawal per day<br>
-            💎 Min: Tonkeeper 500 TP | Binance 1000 TP
+            💎 Min: Tonkeeper 1000 TP | Binance 2000 TP
         </div>
-        <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:#22d3ee;margin-bottom:14px;" id="wd-balance">0 TP</div>
+        <div style="text-align:center;margin-bottom:14px;">
+            <div style="font-family:var(--mono);font-size:1.5rem;font-weight:800;color:#22d3ee;" id="wd-balance">0 TP</div>
+            <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;" id="wd-balance-usdt">≈ $0.000 USDT</div>
+        </div>
 
         <!-- Method tabs — 2 methods only -->
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:16px;">
             <div class="wd-method-tab active" data-method="tonkeeper" style="padding:10px 6px;border-radius:13px;border:1.5px solid #6366f1;background:rgba(99,102,241,0.15);text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-gem" style="font-size:1.1rem;color:#818cf8;display:block;margin-bottom:3px;"></i>
                 <div style="font-weight:800;font-size:0.75rem;color:#e2e8f0;">Tonkeeper</div>
-                <div style="font-size:0.62rem;color:#94a3b8;">Min 500 TP</div>
+                <div style="font-size:0.62rem;color:#94a3b8;">Min 1000 TP</div>
             </div>
             <div class="wd-method-tab" data-method="binance" style="padding:10px 6px;border-radius:13px;border:1.5px solid #3d3d70;background:#1a1a35;text-align:center;cursor:pointer;transition:0.2s;">
                 <i class="fas fa-university" style="font-size:1.1rem;color:#94a3b8;display:block;margin-bottom:3px;" id="wd-binance-icon"></i>
                 <div style="font-weight:800;font-size:0.75rem;color:#e2e8f0;">Binance UID</div>
-                <div style="font-size:0.62rem;color:#94a3b8;">Min 1000 TP</div>
+                <div style="font-size:0.62rem;color:#94a3b8;">Min 2000 TP</div>
             </div>
         </div>
 
         <div id="wd-tonkeeper-fields">
             <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">TON Wallet Address</label>
             <input type="text" class="input-field" id="wd-address-ton" placeholder="UQ... or EQ... wallet address">
-            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">TP Amount <span style="color:#94a3b8;">(Min 500)</span></label>
-            <input type="number" class="input-field" id="wd-amount-ton" placeholder="e.g. 500" min="500">
+            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">TP Amount <span style="color:#94a3b8;">(Min 1000)</span></label>
+            <input type="number" class="input-field" id="wd-amount-ton" placeholder="e.g. 1000" min="1000">
         </div>
         <div id="wd-binance-fields" style="display:none;">
             <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">Binance UID</label>
             <input type="text" class="input-field" id="wd-address-bnb" placeholder="Your Binance UID (numbers only)">
-            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">TP Amount <span style="color:#94a3b8;">(Min 1000)</span></label>
-            <input type="number" class="input-field" id="wd-amount-bnb" placeholder="e.g. 1000" min="1000">
+            <label style="font-size:0.75rem;font-weight:700;color:#cbd5e1;display:block;margin-bottom:5px;">TP Amount <span style="color:#94a3b8;">(Min 2000)</span></label>
+            <input type="number" class="input-field" id="wd-amount-bnb" placeholder="e.g. 2000" min="2000">
         </div>
         <div id="wd-bkash-fields" style="display:none;">
             <input type="text" class="input-field" id="wd-address-bkash" placeholder="01XXXXXXXXX" style="display:none;">
@@ -644,20 +646,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <button class="btn btn-outline btn-full close-modal">Cancel</button>
             <button class="btn btn-primary btn-full" id="wd-submit"><i class="fas fa-paper-plane"></i> Withdraw</button>
         </div>
-        <div style="background:rgba(16,185,129,0.08);border:1.5px solid rgba(16,185,129,0.3);border-radius:12px;padding:10px 14px;margin-top:12px;">
-            <div style="font-size:0.7rem;font-weight:800;color:#4ade80;margin-bottom:6px;text-align:center;">💱 Exchange Rates</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:center;">
-                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 4px;border:1px solid rgba(16,185,129,0.2);">
-                    <div style="font-size:0.62rem;color:#94a3b8;margin-bottom:2px;">Tonkeeper</div>
-                    <div style="font-weight:800;font-size:0.72rem;color:#4ade80;">10K TP = 0.5 TON</div>
-                </div>
-                <div style="background:rgba(255,255,255,0.05);border-radius:8px;padding:6px 4px;border:1px solid rgba(16,185,129,0.2);">
-                    <div style="font-size:0.62rem;color:#94a3b8;margin-bottom:2px;">Binance</div>
-                    <div style="font-weight:800;font-size:0.72rem;color:#4ade80;">10K TP = $1 USDT</div>
-                </div>
-            </div>
-            <div style="font-size:0.65rem;color:#94a3b8;text-align:center;margin-top:6px;">⏱️ Processing: 1–24 hours · Max 1 withdraw/day</div>
-        </div>
+        <div style="font-size:0.65rem;color:#94a3b8;text-align:center;margin-top:10px;">⏱️ Processing: 1–24 hours · Max 1 withdraw/day</div>
     </div>
 </div>
 
@@ -1102,13 +1091,13 @@ async function initTonConnect(){
 const DEPOSIT_WALLET = "UQBPuFaTHpooYMbMS2oQ1UMLFGemDZvxs8Zmenl4FR3AF4y8";
 
 // ── CONSTANTS ──
-const TP_TO_TON           = 0.00005;   // 10000 TP = 0.5 TON
-const TP_TO_USD           = 0.0001;    // 10000 TP = $1 USDT
+const TP_TO_TON           = 0.000025;  // 20000 TP = 0.5 TON
+const TP_TO_USD           = 0.00005;   // 20000 TP = $1 USDT
 const DIAMOND_TO_TON      = TP_TO_TON;
 const DIAMOND_TO_USD      = TP_TO_USD;
 const DIAMOND_TO_BDT      = 0;
-const MIN_WITHDRAW_TONKEEPER = 500;
-const MIN_WITHDRAW_BINANCE   = 1000;
+const MIN_WITHDRAW_TONKEEPER = 1000;
+const MIN_WITHDRAW_BINANCE   = 2000;
 const MIN_WITHDRAW_BKASH     = 99999;
 const WITHDRAW_MIN_TASKS     = 10;
 const WITHDRAW_ADS_REQUIRED  = 10;
@@ -1117,7 +1106,7 @@ const WITHDRAW_ADS_REQUIRED  = 10;
 const TASK_REWARD_DIAMOND  = 10;
 const REFER_REWARD_DIAMOND = 100;
 const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10};
+const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10}; // synced with claimAd.js
 const AD_DIAMOND_REWARDS = {ad1:10, ad2:20, ad3:10, ad4:10};
 
 // ── TASK PACKAGES ──
@@ -1494,7 +1483,12 @@ function updateUI(){
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
     try{ document.getElementById('ads-bal-usdt').innerText = '≈ $' + (diamond * DIAMOND_TO_USD).toFixed(3) + ' USDT'; }catch(e){}
     updateLootbox();
-    try{ document.getElementById('wd-balance').innerText = `${Math.floor(diamond)} TP`; }catch(e){}
+    try{
+        const wdDiamond = currentUser.diamondBalance || 0;
+        document.getElementById('wd-balance').innerText = `${Math.floor(wdDiamond)} TP`;
+        const wdUsdt = document.getElementById('wd-balance-usdt');
+        if(wdUsdt) wdUsdt.innerText = `≈ $${(wdDiamond * DIAMOND_TO_USD).toFixed(3)} USDT`;
+    }catch(e){}
     try{ document.getElementById('ct-balance').innerText = diamond.toFixed(2); }catch(e){}
 
     // refer
@@ -2074,11 +2068,11 @@ function calcWdPreview(){
         preview.style.display='block';
         if(wdMethod==='binance'){
             const usd = (a * DIAMOND_TO_USD).toFixed(3);
-            preview.innerHTML=`<div style="font-size:0.75rem;color:#94a3b8;margin-bottom:3px;">10,000 TP = $1.00 USDT</div>You receive: <b style="color:#f0b90b;">$${usd} USDT</b>`;
+            preview.innerHTML=`You will receive: <b style="color:#f0b90b;">$${usd} USDT</b>`;
         } else {
             const ton = (a * DIAMOND_TO_TON).toFixed(4);
             const usd = (a * DIAMOND_TO_USD).toFixed(3);
-            preview.innerHTML=`<div style="font-size:0.75rem;color:#94a3b8;margin-bottom:3px;">10,000 TP = 0.5 TON</div>You receive: <b style="color:#818cf8;">${ton} TON</b> <span style="color:#94a3b8;font-size:0.78rem;">(≈ $${usd})</span>`;
+            preview.innerHTML=`You will receive: <b style="color:#818cf8;">${ton} TON</b> <span style="color:#94a3b8;font-size:0.78rem;">(≈ $${usd})</span>`;
         }
     } else { preview.style.display='none'; }
 }
@@ -2087,6 +2081,12 @@ document.getElementById('wd-amount-bnb').addEventListener('input',calcWdPreview)
 
 document.getElementById('wd-submit').addEventListener('click', async()=>{
     if(isSubmitting) return;
+
+    // ── Withdraw ban check ──
+    if(currentUser.withdrawBanned){
+        return showAlert('🚫 Banned','Your account has been permanently banned from withdrawals due to suspicious activity. Contact support if you believe this is a mistake.','error');
+    }
+
     let amtElId, addrElId, minAmt, addrLabel;
     if(wdMethod==='binance'){ amtElId='wd-amount-bnb'; addrElId='wd-address-bnb'; minAmt=MIN_WITHDRAW_BINANCE; addrLabel='Binance UID'; }
     else { amtElId='wd-amount-ton'; addrElId='wd-address-ton'; minAmt=MIN_WITHDRAW_TONKEEPER; addrLabel='TON wallet address'; }
@@ -2112,13 +2112,12 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
     // Total ads watched today
     const totalAds = (currentUser.adsWatchedAd1||0)+(currentUser.adsWatchedAd2||0)+
                      (currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
-    // If daily reset happened, _lastWithdrawAdsCount resets to 0 too
-    const lastWdAds = Math.min(currentUser._lastWithdrawAdsCount||0, totalAds);
-    const adsThisWithdraw = Math.max(0, totalAds - lastWdAds);
+    // Use today's total ads directly — server also checks this
+    const adsThisWithdraw = totalAds;
     if(adsThisWithdraw < WITHDRAW_ADS_REQUIRED){
         const remaining = WITHDRAW_ADS_REQUIRED - adsThisWithdraw;
         return showAlert('Not Eligible',
-            `Watch ${remaining} more ads to unlock withdrawal.\n(${adsThisWithdraw}/${WITHDRAW_ADS_REQUIRED} ads watched)`,
+            `Watch ${remaining} more ads today to unlock withdrawal.\n(${adsThisWithdraw}/${WITHDRAW_ADS_REQUIRED} ads watched today)`,
             'error');
     }
     isSubmitting=true;
@@ -2137,11 +2136,7 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
                 method:        wdMethod,
                 address:       addr,
                 diamondAmount: amt,
-                tonAmount: wdMethod==='bkash'
-                    ? parseFloat((amt*DIAMOND_TO_BDT).toFixed(2))
-                    : wdMethod==='binance'
-                        ? parseFloat((amt*DIAMOND_TO_USD).toFixed(2))
-                        : parseFloat((amt*DIAMOND_TO_TON).toFixed(4)),
+                // tonAmount calculated server-side from diamondAmount for security
                 tasksDone:     (currentUser.completedTasks||[]).length,
             })
         });
@@ -2288,7 +2283,7 @@ function _renderHistory(list, c){
             const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${statusLabel}</span>`;
             const methodLabel = d.method === 'binance' ? 'Binance' : 'Tonkeeper';
             const tp = d.diamondAmount || 0;
-            // Calculate conversion from TP (10K TP = $1 = 0.5 TON)
+            // Calculate conversion from TP (20K TP = $1 = 0.5 TON)
             let convLine = '';
             if(d.method === 'binance'){
                 const usd = (tp * 0.0001).toFixed(3);
@@ -2316,8 +2311,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
     const tasksDone = (currentUser.completedTasks||[]).length;
     const totalAds  = (currentUser.adsWatchedAd1||0)+(currentUser.adsWatchedAd2||0)+
                       (currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
-    const lastWdAds2 = Math.min(currentUser._lastWithdrawAdsCount||0, totalAds);
-    const adsForWd  = Math.max(0, totalAds - lastWdAds2);
+    const adsForWd  = totalAds; // today's total ads
     const today = getToday();
     const alreadyWithdrawnToday = currentUser.lastWithdrawDate === today;
     const info = document.getElementById('wd-eligibility-info');
@@ -2330,7 +2324,7 @@ document.getElementById('btn-withdraw').addEventListener('click',()=>{
             `${t_ok ?'✅':'❌'} Tasks: ${tasksDone}/${WITHDRAW_MIN_TASKS}<br>` +
             `${ad_ok?'✅':'❌'} Ads watched: ${adsForWd}/${WITHDRAW_ADS_REQUIRED}<br>` +
             `${wd_ok?'✅':'❌'} Daily limit: ${wd_ok?'Available':'Already withdrew today'}<br>` +
-            `💎 Min: Tonkeeper 500 TP | Binance 1000 TP`;
+            `💎 Min: Tonkeeper 1000 TP | Binance 2000 TP`;
         const allOk = t_ok && ad_ok && wd_ok;
         info.style.background = allOk ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)';
         info.style.borderColor = allOk ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)';
@@ -2758,7 +2752,7 @@ const LANG_STRINGS = {
         wnT3: "🎲 Dice Game",
         wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win TP based on outcome: Under 7, Lucky 7, or Over 7.",
         wnT4: "💸 Withdraw",
-        wnT4d: "Need min 10 tasks + 10 ads today + 1x per day. Tonkeeper (500 TP=0.025 TON) · Binance (1000 TP=$0.10 USDT). Rate: 10K TP=$1.",
+        wnT4d: "Need min 10 tasks + 10 ads today + 1x per day. Tonkeeper (1000 TP=0.025 TON) · Binance (2000 TP=$0.10 USDT). Rate: 20K TP=$1.",
         wnT5: "👥 Refer & Earn",
         wnT5d: "Refer friends and earn +10 💎 when they complete 10 tasks.",
         wnT6: "➕ Create a Task",
