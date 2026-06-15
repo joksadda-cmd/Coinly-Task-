@@ -1,6 +1,6 @@
-// api/approveDeposit.js
-// Handles: deposit approve/reject + withdraw approve/reject
-// TP Currency: 10K TP = $1 = 0.5 TON
+// api/notifyDeposit.js
+// Currency: TP (Task Points) — 20K TP = $1 = 0.5 TON
+// Withdrawal: daily 1x limit | Tonkeeper min 1000 TP | Binance min 2000 TP
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -14,28 +14,55 @@ if (!getApps().length) {
         }),
     });
 }
-const db  = getFirestore();
-const BOT = process.env.BOT_TOKEN;
-const APP_URL = process.env.APP_URL || 'https://coinly-task.vercel.app';
+const db       = getFirestore();
+const BOT      = process.env.BOT_TOKEN;
+const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
 
-async function tgMsg(chatId, text, extra = {}) {
+// TP rate constants
+const TP_TO_TON = 0.000025;  // 20000 TP = 0.5 TON
+const TP_TO_USD = 0.00005;   // 20000 TP = $1
+
+const MIN_WITHDRAW = { tonkeeper: 1000, binance: 2000 };
+
+const TODAY_DHAKA = () =>
+    new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
+
+async function tgMsg(chatId, text) {
     if (!BOT || !chatId) return;
     try {
         await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML', ...extra })
+            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML' })
         });
     } catch(e) { console.warn('[tgMsg]', e.message); }
 }
 
-const miniAppBtn = {
-    reply_markup: {
-        inline_keyboard: [[
-            { text: '🚀 Open Coinly Task', web_app: { url: APP_URL } }
-        ]]
+async function checkTonTransaction(userId, expectedTon) {
+    try {
+        const wallet = process.env.DEPOSIT_WALLET;
+        const apiKey = process.env.TON_API_KEY;
+        if (!wallet || !apiKey) return null;
+        const url = `https://toncenter.com/api/v2/getTransactions?address=${wallet}&limit=20&api_key=${apiKey}`;
+        const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+        if (!response.ok) return null;
+        const data = await response.json();
+        if (!data.ok || !Array.isArray(data.result)) return null;
+        const nanoExpected = Math.floor(parseFloat(expectedTon) * 1e9);
+        const tenMinAgo    = Math.floor(Date.now() / 1000) - 600;
+        return data.result.find(tx => {
+            const msg = tx.in_msg;
+            if (!msg) return false;
+            const comment   = (msg.message || msg.comment || '').trim();
+            const value     = parseInt(msg.value || 0);
+            const timestamp = tx.utime || 0;
+            return comment === String(userId) && value >= nanoExpected && timestamp >= tenMinAgo;
+        }) || null;
+    } catch(e) {
+        console.warn('[checkTonTransaction]', e.message);
+        return null;
     }
-};
+}
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -44,188 +71,227 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { depositId, withdrawId, action, adminNote, warningCount, permBan } = req.body || {};
+    const body = req.body || {};
+    const type = body.type || 'deposit';
 
-    // ════════════════════════════════════════════
-    // WITHDRAW APPROVE / REJECT
-    // ════════════════════════════════════════════
-    if (withdrawId) {
-        if (!action) return res.status(400).json({ error: 'action required' });
+    // ════════════════════════════════════
+    // WITHDRAWAL — TP currency, daily 1x
+    // ════════════════════════════════════
+    if (type === 'withdrawal') {
+        const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
+        if (!userId || !diamondAmount || !address) {
+            return res.status(400).json({ error: 'Missing fields' });
+        }
+        if (method === 'bkash') {
+            return res.status(400).json({ success: false, error: 'bKash withdrawals are no longer supported.' });
+        }
+
+        const amt     = parseFloat(diamondAmount);
+        const uid     = String(userId);
+        const today   = TODAY_DHAKA();
+        const minAmt  = MIN_WITHDRAW[method] || 300;
+
+        if (isNaN(amt) || amt < minAmt) {
+            return res.status(200).json({ success: false, error: `Minimum ${minAmt} TP required for ${method}.` });
+        }
 
         try {
-            const wRef  = db.collection('withdrawals').doc(String(withdrawId));
-            const wSnap = await wRef.get();
-            if (!wSnap.exists) return res.status(404).json({ error: 'Withdrawal not found' });
+            let newBalance = 0, withdrawId = '';
+            await db.runTransaction(async (t) => {
+                const uRef  = db.collection('users').doc(uid);
+                const uSnap = await t.get(uRef);
+                if (!uSnap.exists) throw new Error('User not found');
+                const user = uSnap.data();
 
-            const wd  = wSnap.data();
-            const uid = String(wd.userId);
-            const tp  = wd.diamondAmount || 0;
-            const methodLabel = wd.method === 'binance' ? 'Binance USDT' : 'Tonkeeper TON';
-            const converted   = wd.method === 'binance'
-                ? `$${(tp * 0.00005).toFixed(3)} USDT`
-                : `${(tp * 0.000025).toFixed(4)} TON`;
+                if ((user.diamondBalance || 0) < amt) throw new Error('Insufficient TP balance');
 
-            if (action === 'approve') {
-                await wRef.update({
-                    status:     'completed',
-                    approvedAt: FieldValue.serverTimestamp(),
-                    adminNote:  adminNote || '',
-                });
-                await tgMsg(uid,
-                    `✅ <b>Withdrawal Successfully Sent!</b>\n\n` +
-                    `🎉 Your withdrawal has been processed!\n\n` +
-                    `💎 <b>${tp} TP</b> withdrawn\n` +
-                    `💰 <b>Amount sent: ${converted}</b>\n` +
-                    `📬 Method: <b>${methodLabel}</b>\n` +
-                    `📮 Address: <code>${wd.details || 'N/A'}</code>\n\n` +
-                    `⏱️ It may take a few minutes to reflect in your wallet.\n` +
-                    `🆔 Request ID: <code>${withdrawId}</code>`,
-                    miniAppBtn
-                );
-                return res.status(200).json({ success: true, action: 'approved', withdrawId });
-            }
-
-            if (action === 'reject') {
-                const isWithdrawBan = req.body.withdrawBan === true;
-                const uRef = db.collection('users').doc(uid);
-
-                await db.runTransaction(async (t) => {
-                    t.update(uRef, {
-                        diamondBalance: FieldValue.increment(tp),
-                        ...(isWithdrawBan ? { withdrawBanned: true } : {})
-                    });
-                    t.update(wRef, {
-                        status:     'rejected',
-                        rejectedAt: FieldValue.serverTimestamp(),
-                        adminNote:  adminNote || '',
-                        ...(isWithdrawBan ? { withdrawBanned: true } : {})
-                    });
-                });
-
-                if(isWithdrawBan){
-                    await tgMsg(uid,
-                        `🚫 <b>Withdraw Access Permanently Banned</b>\n\n` +
-                        `Your withdrawal request has been rejected.\n\n` +
-                        `💎 <b>${tp} TP</b> has been refunded to your balance.\n\n` +
-                        `⛔ <b>Your account has been permanently banned from withdrawals</b> due to suspicious activity.\n` +
-                        `📋 Reason: ${adminNote}\n\n` +
-                        `You can still earn TP by completing tasks & watching ads.\n` +
-                        `If you believe this is a mistake, contact support.`,
-                        miniAppBtn
-                    );
-                } else {
-                    await tgMsg(uid,
-                        `❌ <b>Withdrawal Rejected</b>\n\n` +
-                        `Your withdrawal request has been rejected.\n\n` +
-                        `💎 <b>${tp} TP</b> has been refunded to your balance.\n` +
-                        `📋 Reason: ${adminNote || 'Please contact support.'}\n\n` +
-                        `You can try withdrawing again. 🔄`,
-                        miniAppBtn
-                    );
+                // ── Withdraw ban check ──
+                if (user.withdrawBanned) {
+                    throw new Error('Your account has been permanently banned from withdrawals.');
                 }
 
-                return res.status(200).json({ success: true, action: 'rejected', withdrawId, refunded: tp, withdrawBanned: isWithdrawBan });
-            }
+                // ── Daily 1x withdraw limit ──
+                if (user.lastWithdrawDate === today) {
+                    throw new Error('You can only withdraw once per day. Try again tomorrow.');
+                }
 
-            return res.status(400).json({ error: 'Invalid action for withdraw' });
+                newBalance = (user.diamondBalance || 0) - amt;
+                // Calculate conversion server-side — never trust client tonAmount
+                const serverTonAmount = method === 'binance'
+                    ? parseFloat((amt * TP_TO_USD).toFixed(4))
+                    : parseFloat((amt * TP_TO_TON).toFixed(6));
 
+                const wRef = db.collection('withdrawals').doc();
+                withdrawId = wRef.id;
+                t.set(wRef, {
+                    userId: uid, username: username||'', firstName: firstName||'',
+                    method: method||'tonkeeper', details: address,
+                    diamondAmount: amt, tonAmount: serverTonAmount,
+                    status: 'pending', createdAt: FieldValue.serverTimestamp(),
+                });
+                const newAdsCount = (user.adsWatchedAd1||0)+(user.adsWatchedAd2||0)+
+                    (user.adsWatchedAd3||0)+(user.adsWatchedAd4||0);
+                t.update(uRef, {
+                    diamondBalance:        FieldValue.increment(-amt),
+                    lastWithdrawDate:      today,
+                    _lastWithdrawAdsCount: newAdsCount,
+                });
+            });
+
+            await tgMsg(ADMIN_ID,
+                `🔴 <b>Withdrawal Request</b>\n` +
+                `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
+                `💎 ${amt} TP → ${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}\n` +
+                `📬 ${method==='binance'?'Binance':'Tonkeeper'}: <code>${address}</code>\n` +
+                `🆔 ID: <code>${withdrawId}</code>`
+            );
+            await tgMsg(uid,
+                `✅ <b>Withdrawal Request Received!</b>\n\n` +
+                `💎 <b>${amt} TP</b> deducted from your balance.\n` +
+                `💰 You will receive: <b>${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}</b>\n` +
+                `📬 Method: <b>${method==='binance'?'Binance':'Tonkeeper'}</b>\n` +
+                `📮 Address: <code>${address}</code>\n\n` +
+                `⏱️ Processing time: <b>1–24 hours</b>\n` +
+                `🆔 Request ID: <code>${withdrawId}</code>\n\n` +
+                `You will receive another notification when completed. 🚀`
+            );
+            return res.status(200).json({ success: true, newBalance, withdrawId });
         } catch(e) {
-            console.error('[approveDeposit withdraw]', e.message);
+            return res.status(200).json({ success: false, error: e.message });
+        }
+    }
+
+    // ════════════════════════════════════
+    // BROADCAST
+    // ════════════════════════════════════
+    if (type === 'broadcast') {
+        const { message, adminKey } = body;
+        if (adminKey !== process.env.FIREBASE_PROJECT_ID) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+        if (!message) return res.status(400).json({ error: 'message required' });
+        try {
+            const usersSnap = await db.collection('users').select('id').limit(500).get();
+            let sent = 0, failed = 0;
+            const promises = [];
+            usersSnap.forEach(d => {
+                promises.push(
+                    tgMsg(d.id, `📢 <b>Announcement</b>\n\n${message}`)
+                        .then(()=>sent++).catch(()=>failed++)
+                );
+            });
+            await Promise.allSettled(promises);
+            return res.status(200).json({ success: true, sent, failed });
+        } catch(e) {
             return res.status(500).json({ error: e.message });
         }
     }
 
-    // ════════════════════════════════════════════
-    // DEPOSIT APPROVE / REJECT
-    // ════════════════════════════════════════════
-    if (!depositId || !action) return res.status(400).json({ error: 'depositId and action required' });
+    // ════════════════════════════════════
+    // DEPOSIT (with TON auto-verify)
+    // ════════════════════════════════════
+    const { userId, username, firstName, tonAmount, expectedDiamond, memo, taskTitle } = body;
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const uid = String(userId);
 
-    try {
-        const depRef  = db.collection('deposits').doc(depositId);
-        const depSnap = await depRef.get();
-        if (!depSnap.exists) return res.status(404).json({ error: 'Deposit not found' });
+    if (type === 'deposit' || type === 'task_payment') {
+        try {
+            const uSnap = await db.collection('users').doc(uid).get();
+            if (uSnap.exists) {
+                const ud = uSnap.data();
+                if (ud.isBanned) return res.status(403).json({ success: false, banned: true, error: 'Account is banned.' });
+                if (type === 'deposit' && ud.depositBanned) {
+                    await tgMsg(ADMIN_ID, `🚨 Deposit ban bypass: ${uid}`);
+                    return res.status(403).json({ success: false, depositBanned: true, error: 'Deposit access disabled.' });
+                }
+            }
+        } catch(e) { console.warn('[ban-check]', e.message); }
+    }
 
-        const dep = depSnap.data();
-        const uid = String(dep.userId);
-        const ton = dep.tonAmount || 0;
-
-        if (dep.status === 'auto_approved' && action === 'approve') {
-            return res.status(200).json({
-                success: false,
-                alreadyApproved: true,
-                message: 'Already auto-approved via blockchain verification.'
-            });
-        }
-
-        if (action === 'approve') {
-            await db.runTransaction(async (t) => {
-                const uRef = db.collection('users').doc(uid);
-                t.update(uRef, { tonBalance: FieldValue.increment(ton) });
-                t.update(depRef, {
-                    status:        'approved',
-                    approvedAt:    FieldValue.serverTimestamp(),
-                    manualApproval: true,
+    if (type === 'deposit') {
+        const ton = parseFloat(tonAmount) || 0;
+        if (ton <= 0) return res.status(400).json({ error: 'Invalid TON amount' });
+        const matchedTx = await checkTonTransaction(uid, ton);
+        if (matchedTx) {
+            try {
+                const tpAmount = parseInt(expectedDiamond) || Math.floor(ton / TP_TO_TON);
+                await db.runTransaction(async (t) => {
+                    const uRef   = db.collection('users').doc(uid);
+                    const depRef = db.collection('deposits').doc();
+                    t.set(depRef, {
+                        userId: uid, username: username||'', firstName: firstName||'',
+                        tonAmount: ton, expectedDiamond: tpAmount, memo: memo||uid,
+                        status: 'auto_approved', autoVerified: true,
+                        txHash: matchedTx.transaction_id?.hash || '',
+                        createdAt: FieldValue.serverTimestamp(),
+                        approvedAt: FieldValue.serverTimestamp(),
+                    });
+                    t.update(uRef, { tonBalance: FieldValue.increment(ton), pendingDeposit: false });
                 });
-            });
-
-            await tgMsg(uid,
-                `🎉 <b>Deposit Approved!</b>\n\n` +
-                `✅ Your deposit of <b>${ton} TON</b> has been verified.\n` +
-                `💰 <b>${ton} TON</b> added to your TON balance!\n\n` +
-                `💎 Earn TP by completing tasks & watching ads.`,
-                miniAppBtn
-            );
-
-            return res.status(200).json({ success: true, action: 'approved', ton });
+                await tgMsg(uid, `✅ <b>Deposit Auto-Verified!</b>\n\n💰 <b>${ton} TON</b> added to your balance! 🚀`);
+                await tgMsg(ADMIN_ID, `✅ Auto-Approved: ${uid} · ${ton} TON`);
+                return res.status(200).json({ success: true, autoApproved: true, ton });
+            } catch(e) { console.error('[auto-approve]', e.message); }
         }
-
-        if (action === 'reject') {
-            const warns    = parseInt(warningCount) || 1;
-            const isBanned = permBan === true;
-
-            const uRef = db.collection('users').doc(uid);
-            if (isBanned) {
-                await uRef.update({ depositBanned: true, depositWarnings: 3 });
-            } else {
-                await uRef.update({ depositWarnings: warns });
-            }
-
-            await depRef.update({
-                status:     'rejected',
-                rejectedAt: FieldValue.serverTimestamp(),
-                adminNote:  adminNote || '',
-                warns, permBan: isBanned,
+        try {
+            const tpAmount = parseInt(expectedDiamond) || Math.floor(ton / TP_TO_TON);
+            const depRef = await db.collection('deposits').add({
+                userId: uid, username: username||'', firstName: firstName||'',
+                tonAmount: ton, expectedDiamond: tpAmount, memo: memo||uid,
+                status: 'pending', autoVerified: false,
+                createdAt: FieldValue.serverTimestamp(),
             });
+            await tgMsg(ADMIN_ID, `🟡 Deposit Pending: ${uid} · ${ton} TON · ID: ${depRef.id}`);
+            await tgMsg(uid, `⏳ <b>Deposit Under Review</b>\n\n💰 ${ton} TON received.\nAdmin will review within 1–6 hours.`);
+            return res.status(200).json({ success: true, autoApproved: false, depositId: depRef.id });
+        } catch(e) { return res.status(500).json({ error: e.message }); }
+    }
 
-            let userMsg = '';
-            if (isBanned) {
-                userMsg =
-                    `🚫 <b>Deposit Section Permanently Disabled</b>\n\n` +
-                    `Your deposit of <b>${ton} TON</b> has been rejected.\n\n` +
-                    `⛔ 3rd violation — deposit section permanently disabled.\n` +
-                    `Contact support if you believe this is a mistake.`;
-            } else if (warns >= 2) {
-                userMsg =
-                    `🚨 <b>Deposit Rejected — FINAL WARNING (${warns}/3)</b>\n\n` +
-                    `Your deposit of <b>${ton} TON</b> has been rejected.\n\n` +
-                    `⚠️ One more fake request = permanent ban.\n` +
-                    `Reason: ${adminNote || 'Payment not received or invalid.'}`;
-            } else {
-                userMsg =
-                    `⚠️ <b>Deposit Rejected — Warning ${warns}/3</b>\n\n` +
-                    `Your deposit of <b>${ton} TON</b> has been rejected.\n` +
-                    `🔴 ${3 - warns} more violation(s) = permanent ban.\n\n` +
-                    `Reason: ${adminNote || 'Payment not received or invalid.'}`;
+    // ════════════════════════════════════
+    // TASK PAYMENT / TASK CREATE
+    // ════════════════════════════════════
+    try {
+        const collection_name = type === 'task_payment' ? 'task_payments'
+                              : type === 'task_create'  ? 'tasks' : 'deposits';
+        const docData = {
+            userId: uid, username: username||'', firstName: firstName||'',
+            status: type === 'task_create' ? 'pending_approval' : 'pending',
+            type: type||'deposit', createdAt: FieldValue.serverTimestamp(),
+        };
+        if (type === 'task_create') {
+            const { title, url, category, channelId, rewardDiamond, maxCompletions, tonCost, packageLabel, createdBy } = body;
+            Object.assign(docData, {
+                title: title||'', url: url||'', category: category||'social',
+                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||10,
+                maxCompletions: parseInt(maxCompletions)||100, completionCount: 0,
+                isApproved: false, tonCost: parseFloat(tonCost)||0,
+                packageLabel: packageLabel||'', createdBy: createdBy||uid,
+            });
+            const tonCostVal = parseFloat(body.tonCost)||0;
+            if (tonCostVal > 0) {
+                try {
+                    const uRef  = db.collection('users').doc(uid);
+                    const uSnap = await uRef.get();
+                    if (uSnap.exists) {
+                        if ((uSnap.data().tonBalance||0) < tonCostVal)
+                            return res.status(200).json({ success: false, error: 'Insufficient TON balance' });
+                        await uRef.update({ tonBalance: FieldValue.increment(-tonCostVal) });
+                    }
+                } catch(e) { console.warn('[task deduct]', e.message); }
             }
-
-            await tgMsg(uid, userMsg, miniAppBtn);
-            return res.status(200).json({ success: true, action: 'rejected', warns, isBanned });
+        } else {
+            Object.assign(docData, {
+                tonAmount: parseFloat(tonAmount)||0, expectedDiamond: parseInt(expectedDiamond)||0,
+                memo: memo||uid, ...(taskTitle ? { taskTitle } : {}),
+            });
         }
-
-        return res.status(400).json({ error: 'Invalid action' });
-
+        const docRef = await db.collection(collection_name).add(docData);
+        await tgMsg(ADMIN_ID,
+            `${type==='task_payment'?'🟡 Task Payment':'🟢 Deposit Request'}\n` +
+            `👤 ${firstName||''} [${uid}] · 💰 ${tonAmount} TON\n🆔 ${docRef.id}`
+        );
+        return res.status(200).json({ success: true, depositId: docRef.id });
     } catch(e) {
-        console.error('[approveDeposit]', e.message);
         return res.status(500).json({ error: e.message });
     }
-                                             }
+                                    }
