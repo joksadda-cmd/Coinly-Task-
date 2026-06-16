@@ -489,7 +489,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="font-size:2.8rem;">🎁</div>
         </div>
-        <!-- Progress bar to 15💎 -->
+        <!-- Progress bar to 150 TP -->
         <div style="margin-bottom:10px;">
             <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
                 <span id="lootbox-progress-text">0 / 150 TP to claim</span>
@@ -672,11 +672,12 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div class="refer-stat-box"><div class="refer-stat-val" id="ref-valid">0</div><div class="refer-stat-label">Valid Refs</div></div>
             <div class="refer-stat-box"><div class="refer-stat-val" id="ref-earned">0</div><div class="refer-stat-label">💎 Earned</div></div>
         </div>
-        <div class="info-box" style="margin-bottom:14px;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border-color:#86efac;">
-            🎁 Refer reward: <b style="color:#059669;">+100 TP</b> <span style="color:var(--text-muted);font-size:0.75em;">≈ $0.01 USDT</span><br>
-            ✅ Valid when: friend completes <b>10 tasks</b><br>
-            
-            <span style="font-size:0.72rem;color:var(--text-muted);">Refer diamonds go to Lootbox · Claim anytime once you reach 15💎</span>
+        <div class="info-box" style="margin-bottom:14px;background:rgba(99,102,241,0.08);border-color:rgba(99,102,241,0.3);text-align:left;line-height:2;">
+            <div style="font-weight:800;color:#818cf8;margin-bottom:6px;">🎁 3-Step Refer Rewards</div>
+            <div>🥇 <b style="color:#4ade80;">+50 TP</b> — Friend joins bot, channel & community</div>
+            <div>🥈 <b style="color:#fbbf24;">+80 TP</b> — Friend completes 10 tasks</div>
+            <div>🥉 <b style="color:#f87171;">+100 TP</b> — Friend watches 20 ads</div>
+            <div style="margin-top:6px;font-size:0.72rem;color:#94a3b8;">Total per referral: <b style="color:#a78bfa;">230 TP</b> · Paid directly to balance</div>
         </div>
         <input type="text" class="input-field" id="invite-link" readonly placeholder="Loading...">
         <div style="display:flex;gap:8px;">
@@ -779,7 +780,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#f59e0b;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">💸</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#92400e;" data-i18n="wnT4">💸 Withdraw</div>
-                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Need min 10 tasks + 10 ads + 1x per day. Tonkeeper (50💎=0.5TON) · Binance (100💎=$1 USDT).</div>
+                    <div style="font-size:0.76rem;color:#d97706;margin-top:3px;line-height:1.5;" data-i18n="wnT4d">Need min 10 tasks + 10 ads today + 1x per day. Tonkeeper (1000 TP=0.025 TON) · Binance (2000 TP=$0.10 USDT). Rate: 20K TP=$1.</div>
                 </div>
             </div>
             <!-- Refer -->
@@ -787,7 +788,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">👥</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#065f46;" data-i18n="wnT5">👥 Refer & Earn</div>
-                    <div style="font-size:0.76rem;color:#059669;margin-top:3px;line-height:1.5;" data-i18n="wnT5d">Refer friends and earn +10 💎 when they complete 10 tasks. Tap Refer & Earn in the Wallet card.</div>
+                    <div style="font-size:0.76rem;color:#059669;margin-top:3px;line-height:1.5;" data-i18n="wnT5d">Refer friends and earn TP in 3 steps: +50 TP when they join, +80 TP when they complete 10 tasks, +100 TP when they watch 20 ads. Tap Refer & Earn in the Wallet card.</div>
                 </div>
             </div>
             <!-- Create Task -->
@@ -1104,7 +1105,7 @@ const WITHDRAW_ADS_REQUIRED  = 10;
 
 
 const TASK_REWARD_DIAMOND  = 10;
-const REFER_REWARD_DIAMOND = 100;
+// 3-step refer rewards: Step1=50, Step2=80, Step3=100 (handled server-side in claimRefer.js)
 const REFER_VALID_TASKS = 10;
 const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10}; // synced with claimAd.js
 const AD_DIAMOND_REWARDS = {ad1:10, ad2:20, ad3:10, ad4:10};
@@ -1146,10 +1147,12 @@ async function adWrapper(btnId, sdkCall, successCb){
                 adShown = true;
             }catch(adErr){
                 const msg = (adErr?.message||adErr?.type||'').toLowerCase();
-                if(msg.includes('skip')||msg.includes('close')||msg.includes('dismiss')||msg.includes('full ad')||msg.includes('early')){
+                if(msg.includes('click_required')){
+                    showAlert('Click Required','You must click the ad to earn reward. Watch and click! 👆','error');
+                } else if(msg.includes('skip')||msg.includes('close')||msg.includes('dismiss')||msg.includes('full ad')||msg.includes('early')){
                     showAlert('Skipped','Watch the full ad to earn reward.','error');
                 } else {
-                    // Non-skip SDK error — still reward (SDK bug, not user action)
+                    // Non-skip SDK error — still reward
                     adShown = true;
                 }
             }
@@ -1244,11 +1247,20 @@ async function rollDice(){
     rollBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading Ad...';
     _diceRolling = true;
 
-    // Show AdsGram Special ad before roll
+    // Show AdsGram Special ad before roll — click mandatory
     try{
-        const adObj = window.Adsgram?.init({blockId:'35170'});
-        if(adObj?.show) await adObj.show().catch(()=>{});
-    }catch(e){}
+        await makeAdsgramCall('35170')();
+    }catch(adErr){
+        const msg = (adErr?.message||'').toLowerCase();
+        if(msg.includes('click_required')){
+            showAlert('Click Required','You must click the ad to roll dice! 👆','error');
+            rollBtn.disabled = false;
+            rollBtn.innerHTML = '<i class="fas fa-dice"></i> Roll Dice';
+            _diceRolling = false;
+            return;
+        }
+        // Other SDK errors — allow roll anyway
+    }
 
     rollBtn.innerHTML = '<i class="fas fa-dice"></i> Rolling...';
 
@@ -1551,6 +1563,7 @@ const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
 
     updateUI(); updateLootbox();
     showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
+    checkValidRef(); // check if friend hit 20-ads milestone (step 3 refer reward)
 
     // Batch sync: write every 5 ads OR after 10s idle
     clearTimeout(_adSyncTimer);
@@ -1659,8 +1672,32 @@ const showGigaAd = () => new Promise(async (resolve, reject) => {
     }
 });
 
-document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', ()=>{ const o=window.Adsgram?.init({blockId:"int-35169"}); return o?.show ? o.show() : Promise.reject(new Error('SDK unavailable')); }));
-document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', ()=>{ const o=window.Adsgram?.init({blockId:"35170"}); return o?.show ? o.show() : Promise.reject(new Error('SDK unavailable')); }));
+// ── ADSGRAM — click mandatory (CTR system) ──
+// User must click the ad for reward. Skip/close without click = no reward.
+const makeAdsgramCall = (blockId) => () => new Promise((resolve, reject) => {
+    const adObj = window.Adsgram?.init({ blockId, onError: (e) => reject(e) });
+    if (!adObj?.show) { reject(new Error('AdsGram SDK unavailable')); return; }
+    adObj.show().then(result => {
+        // AdsGram result: { done: true } means user clicked and completed
+        // done: false or undefined means skipped without click
+        if (result && result.done === true) {
+            resolve();
+        } else {
+            reject(new Error('click_required'));
+        }
+    }).catch(err => {
+        const msg = (err?.message || err?.type || '').toLowerCase();
+        if(msg.includes('click_required') || msg.includes('skip') || msg.includes('close') || msg.includes('dismiss')){
+            reject(new Error('click_required'));
+        } else {
+            // SDK error (not user skip) — still reward
+            resolve();
+        }
+    });
+});
+
+document.getElementById('btn-ad1').addEventListener('click', ()=>runAdMission('ad1','btn-ad1', makeAdsgramCall('int-35169')));
+document.getElementById('btn-ad2').addEventListener('click', ()=>runAdMission('ad2','btn-ad2', makeAdsgramCall('35170')));
 document.getElementById('btn-ad3').addEventListener('click', ()=>runAdMission('ad3','btn-ad3', showMoneytagAd));
 document.getElementById('btn-ad4').addEventListener('click', ()=>runAdMission('ad4','btn-ad4', showGigaAd));
 
@@ -1822,27 +1859,47 @@ document.querySelectorAll('.platform-pill').forEach(p=>p.addEventListener('click
     } else { fetchTasks(filter); }
 }));
 
-// ── VALID REFER CHECK (API-secured) ──
+// ── 3-STEP REFER REWARD CHECK ──
 async function checkValidRef(){
-    if(!currentUser.referredBy || currentUser.isValidatedRef) return;
+    if(!currentUser.referredBy) return;
+
     const completedCount = (currentUser.completedTasks||[]).length;
-    if(completedCount >= REFER_VALID_TASKS){
+    const totalAds = (currentUser.adsWatchedAd1||0)+(currentUser.adsWatchedAd2||0)+
+                     (currentUser.adsWatchedAd3||0)+(currentUser.adsWatchedAd4||0);
+
+    // Step 2: 10 tasks completed, not yet claimed
+    if(completedCount >= REFER_VALID_TASKS && !currentUser.referStep2Claimed && !currentUser.isValidatedRef){
         try{
             const res = await fetch(`${API_BASE}/claimRefer`, {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id })
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ userId: currentUser.id, step: 2 })
             });
             const data = await res.json();
             if(data.success && !data.alreadyClaimed){
-                currentUser.isValidatedRef = true;
-                // Update local balance with actual reward from server
-                const reward = data.reward || 10;
-                currentUser.diamondBalance = (currentUser.diamondBalance||0) + reward;
+                currentUser.referStep2Claimed = true;
+                currentUser.isValidatedRef    = true;
+                currentUser.diamondBalance    = (currentUser.diamondBalance||0) + (data.reward||50);
                 try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                 updateUI();
             }
-        }catch(e){ console.warn('[checkValidRef]', e); }
+        }catch(e){ console.warn('[checkValidRef step2]', e); }
+    }
+
+    // Step 3: 20 ads watched, not yet claimed
+    if(totalAds >= 20 && !currentUser.referStep3Claimed){
+        try{
+            const res = await fetch(`${API_BASE}/claimRefer`, {
+                method: 'POST', headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ userId: currentUser.id, step: 3 })
+            });
+            const data = await res.json();
+            if(data.success && !data.alreadyClaimed){
+                currentUser.referStep3Claimed = true;
+                currentUser.diamondBalance    = (currentUser.diamondBalance||0) + (data.reward||100);
+                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
+                updateUI();
+            }
+        }catch(e){ console.warn('[checkValidRef step3]', e); }
     }
 }
 
@@ -2194,27 +2251,25 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
         const previewReward = valData.reward;
         btn.innerHTML = '<i class="fas fa-play"></i> Watch Ad to Claim...';
 
-        // ── Step 2: Show ad (mandatory to receive reward) ──
+        // ── Step 2: Show ad (mandatory) — random Monetag or GigaPub ──
         let adWatched = false;
         try{
-            // AdsGram Special (blockId 35170)
-            const adObj = window.Adsgram?.init({blockId: '35170'});
-            if(adObj?.show){
-                await adObj.show();
-                adWatched = true;
+            // Randomly pick Monetag or GigaPub (no AdsGram for promo)
+            const useMonetag = Math.random() < 0.5;
+            if(useMonetag && window.show_10135525){
+                await showMoneytagAd();
             } else {
-                // Fallback to GigaPub
                 await showGigaAd();
-                adWatched = true;
             }
+            adWatched = true;
         } catch(adErr){
             const errMsg = (adErr?.message || adErr?.type || '').toLowerCase();
-            if(errMsg.includes('skip') || errMsg.includes('close') || errMsg.includes('dismiss')){
+            if(errMsg.includes('skip') || errMsg.includes('close') || errMsg.includes('dismiss') || errMsg.includes('full ad')){
                 showAlert('⚠️ Skipped', 'Watch the full ad to claim your reward.', 'error');
                 btn.disabled = false; btn.innerHTML = 'Redeem Now';
                 return;
             }
-            // Non-skip SDK error — treat as watched
+            // Non-skip error — treat as watched
             adWatched = true;
         }
 
@@ -2283,14 +2338,14 @@ function _renderHistory(list, c){
             const badge = `<span style="background:${statusBg};color:${statusColor};font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;border:1px solid ${statusColor};">${statusLabel}</span>`;
             const methodLabel = d.method === 'binance' ? 'Binance' : 'Tonkeeper';
             const tp = d.diamondAmount || 0;
-            // Calculate conversion from TP (20K TP = $1 = 0.5 TON)
+            // Calculate conversion from TP using live rate constants (20K TP = $1 = 0.5 TON)
             let convLine = '';
             if(d.method === 'binance'){
-                const usd = (tp * 0.0001).toFixed(3);
+                const usd = (tp * DIAMOND_TO_USD).toFixed(3);
                 convLine = `<div style="font-size:0.68rem;color:#94a3b8;margin-top:1px;">≈ $${usd} USDT</div>`;
             } else {
-                const ton = (tp * 0.00005).toFixed(4);
-                const usd = (tp * 0.0001).toFixed(3);
+                const ton = (tp * DIAMOND_TO_TON).toFixed(4);
+                const usd = (tp * DIAMOND_TO_USD).toFixed(3);
                 convLine = `<div style="font-size:0.68rem;color:#94a3b8;margin-top:1px;">≈ ${ton} TON ($${usd})</div>`;
             }
             return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1.5px solid rgba(99,102,241,0.15);font-size:0.83rem;gap:8px;">
@@ -2754,7 +2809,7 @@ const LANG_STRINGS = {
         wnT4: "💸 Withdraw",
         wnT4d: "Need min 10 tasks + 10 ads today + 1x per day. Tonkeeper (1000 TP=0.025 TON) · Binance (2000 TP=$0.10 USDT). Rate: 20K TP=$1.",
         wnT5: "👥 Refer & Earn",
-        wnT5d: "Refer friends and earn +10 💎 when they complete 10 tasks.",
+        wnT5d: "Refer friends and earn TP in 3 steps: +50 TP when they join, +80 TP when they complete 10 tasks, +100 TP when they watch 20 ads.",
         wnT6: "➕ Create a Task",
         wnT6d: "Promote your channel/group. Buy a TON package, admin approves, then it goes live.",
         wnBtn: "🚀 Got it — Let's Start!",
