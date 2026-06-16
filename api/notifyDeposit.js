@@ -117,7 +117,7 @@ export default async function handler(req, res) {
                     );
                     return res.status(200).json({
                         success: false,
-                        error: `⚠️ This wallet address is linked to another account.\n\nEach wallet address can only be used by one account. This address is locked for ${daysLeft} more day(s).`
+                        error: `🚫 This wallet address is already in use by another account.\n\nOne wallet address can only receive payments for ONE account. You cannot withdraw to the same wallet from two different accounts.\n\nThis address will remain locked for ${daysLeft} more day(s). Please use a different wallet address.`
                     });
                 }
             }
@@ -332,4 +332,4 @@ export default async function handler(req, res) {
     } catch(e) {
         return res.status(500).json({ error: e.message });
     }
-}
+                    }
