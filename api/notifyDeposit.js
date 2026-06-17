@@ -122,7 +122,10 @@ export default async function handler(req, res) {
                 }
             }
         } catch(e) { console.warn('[address-check]', e.message); }
-            let newBalance = 0, withdrawId = '';
+
+        // ── Main withdrawal transaction — wrapped in its own try-catch ──
+        try {
+            let newBalance = 0, withdrawId = '', serverTonAmount = 0;
             await db.runTransaction(async (t) => {
                 const uRef  = db.collection('users').doc(uid);
                 const uSnap = await t.get(uRef);
@@ -143,7 +146,7 @@ export default async function handler(req, res) {
 
                 newBalance = (user.diamondBalance || 0) - amt;
                 // Calculate conversion server-side — never trust client tonAmount
-                const serverTonAmount = method === 'binance'
+                serverTonAmount = method === 'binance'
                     ? parseFloat((amt * TP_TO_USD).toFixed(4))
                     : parseFloat((amt * TP_TO_TON).toFixed(6));
 
@@ -176,25 +179,32 @@ export default async function handler(req, res) {
                 }, { merge: true });
             });
 
-            await tgMsg(ADMIN_ID,
-                `🔴 <b>Withdrawal Request</b>\n` +
-                `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
-                `💎 ${amt} TP → ${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}\n` +
-                `📬 ${method==='binance'?'Binance':'Tonkeeper'}: <code>${address}</code>\n` +
-                `🆔 ID: <code>${withdrawId}</code>`
-            );
-            await tgMsg(uid,
-                `✅ <b>Withdrawal Request Received!</b>\n\n` +
-                `💎 <b>${amt} TP</b> deducted from your balance.\n` +
-                `💰 You will receive: <b>${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}</b>\n` +
-                `📬 Method: <b>${method==='binance'?'Binance':'Tonkeeper'}</b>\n` +
-                `📮 Address: <code>${address}</code>\n\n` +
-                `⏱️ Processing time: <b>1–24 hours</b>\n` +
-                `🆔 Request ID: <code>${withdrawId}</code>\n\n` +
-                `You will receive another notification when completed. 🚀`
-            );
+            // ── Notifications — wrapped separately so a Telegram failure never breaks the response ──
+            try {
+                await tgMsg(ADMIN_ID,
+                    `🔴 <b>Withdrawal Request</b>\n` +
+                    `👤 ${firstName||''} (@${username||'N/A'}) [<code>${uid}</code>]\n` +
+                    `💎 ${amt} TP → ${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}\n` +
+                    `📬 ${method==='binance'?'Binance':'Tonkeeper'}: <code>${address}</code>\n` +
+                    `🆔 ID: <code>${withdrawId}</code>`
+                );
+                await tgMsg(uid,
+                    `✅ <b>Withdrawal Request Received!</b>\n\n` +
+                    `💎 <b>${amt} TP</b> deducted from your balance.\n` +
+                    `💰 You will receive: <b>${method==='binance'?'$':''}${serverTonAmount} ${method==='binance'?'USDT':'TON'}</b>\n` +
+                    `📬 Method: <b>${method==='binance'?'Binance':'Tonkeeper'}</b>\n` +
+                    `📮 Address: <code>${address}</code>\n\n` +
+                    `⏱️ Processing time: <b>1–24 hours</b>\n` +
+                    `🆔 Request ID: <code>${withdrawId}</code>\n\n` +
+                    `You will receive another notification when completed. 🚀`
+                );
+            } catch(notifyErr) {
+                console.warn('[withdraw-notify]', notifyErr.message);
+            }
+
             return res.status(200).json({ success: true, newBalance, withdrawId });
         } catch(e) {
+            console.error('[withdraw]', e.message);
             return res.status(200).json({ success: false, error: e.message });
         }
     }
@@ -332,4 +342,4 @@ export default async function handler(req, res) {
     } catch(e) {
         return res.status(500).json({ error: e.message });
     }
-                    }
+               }
