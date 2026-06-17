@@ -417,7 +417,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="text-align:right;">
                 <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;color:rgba(255,255,255,0.8);">Today's Max</div>
-                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fff;opacity:0.9;">+400 TP</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fff;opacity:0.9;">+600 TP</div>
             </div>
         </div>
         <div style="height:1px;background:rgba(255,255,255,0.2);margin-bottom:10px;"></div>
@@ -426,25 +426,25 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 
     <h2 class="sec-title" style="color:#059669;"><i class="fas fa-play-circle" style="color:#10b981;"></i> Watch Ads & Earn TP</h2>
 
-    <!-- AdsGram Special: 1 diamond / 10 limit -->
+    <!-- AdsGram Special: 30 TP / 5 limit -->
     <div class="task-card" style="border-color:#92400e;background:linear-gradient(135deg,#2d1a00 0%,#1a1200 100%);">
         <div class="t-icon" style="background:rgba(245,158,11,0.15);border-color:rgba(245,158,11,0.4);color:#fbbf24;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-star"></i></div>
         <div class="t-info">
             <div class="t-name" style="display:flex;align-items:center;gap:6px;">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:20px;">2× REWARD</span></div>
             <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
-                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +20 TP per view</span>
+                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +30 TP per view</span>
             </div>
             <div class="t-limit" id="limit-ad2" style="margin-top:4px;">0/5 today</div>
         </div>
         <button class="btn btn-gold" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad2">Watch</button>
     </div>
 
-    <!-- AdsGram Daily: 0.5 diamond / 10 limit -->
+    <!-- AdsGram Daily: 15 TP / 10 limit -->
     <div class="task-card">
         <div class="t-icon" style="width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-film"></i></div>
         <div class="t-info">
             <div class="t-name">AdsGram Daily</div>
-            <div style="margin-top:4px;"><span class="reward-pill"><i class="fas fa-gem"></i> +10 TP per view</span></div>
+            <div style="margin-top:4px;"><span class="reward-pill"><i class="fas fa-gem"></i> +15 TP per view</span></div>
             <div class="t-limit" id="limit-ad1" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn btn-primary" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad1">Watch</button>
@@ -455,7 +455,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
             <div class="t-name">Monetag Ad</div>
-            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +10 TP per view</span></div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +15 TP per view</span></div>
             <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn btn-accent" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad3">Watch</button>
@@ -466,7 +466,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-icon" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-photo-video"></i></div>
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
-            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +10 TP per view</span></div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +15 TP per view</span></div>
             <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.3);" id="btn-ad4">Watch</button>
@@ -1108,7 +1108,7 @@ const TASK_REWARD_DIAMOND  = 10;
 // 3-step refer rewards: Step1=50, Step2=80, Step3=100 (handled server-side in claimRefer.js)
 const REFER_VALID_TASKS = 10;
 const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10}; // synced with claimAd.js
-const AD_DIAMOND_REWARDS = {ad1:10, ad2:20, ad3:10, ad4:10};
+const AD_DIAMOND_REWARDS = {ad1:15, ad2:30, ad3:15, ad4:15}; // synced with claimAd.js
 
 // ── TASK PACKAGES ──
 const TASK_PACKAGES = [
@@ -2193,11 +2193,20 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
                 method:        wdMethod,
                 address:       addr,
                 diamondAmount: amt,
-                // tonAmount calculated server-side from diamondAmount for security
                 tasksDone:     (currentUser.completedTasks||[]).length,
             })
         });
-        const wData = await wRes.json();
+
+        let wData;
+        try{
+            wData = await wRes.json();
+        }catch(parseErr){
+            // Server returned non-JSON (HTML error page, timeout, etc)
+            showAlert('Server Error', `The server is temporarily unavailable (status ${wRes.status}). Please try again in a moment. If this persists, contact support.`, 'error');
+            isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw';
+            return;
+        }
+
         if(wData.success){
             currentUser.diamondBalance = wData.newBalance ?? (currentUser.diamondBalance - amt);
             currentUser.lastWithdrawDate = getToday();
@@ -2217,7 +2226,10 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
         } else {
             showAlert('Error', wData.error||'Withdrawal failed. Try again.','error');
         }
-    }catch(e){ showAlert('Error','Server error. Try again.','error'); console.error(e); }
+    }catch(e){
+        showAlert('Connection Error','Could not reach the server. Check your internet connection and try again.','error');
+        console.error('[withdraw]', e);
+    }
     finally{ isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw'; }
 });
 
