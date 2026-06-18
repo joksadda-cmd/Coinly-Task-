@@ -1,6 +1,9 @@
 // api/init.js
 // User init + data return — TP (Task Points) currency
-// Fix: tonBalance: 0 added for new users
+// Deposit flow removed — no more pendingDeposit check against the
+// (now unused) deposits collection. TON system fully removed —
+// tonBalance no longer exists for new users (claimPromo.js no longer
+// writes to it either, see updated claimPromo.js).
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -47,7 +50,6 @@ export default async function handler(req, res) {
             const newUser = {
                 diamondBalance: 0,
                 lootboxBalance: 0,
-                tonBalance:     0,
                 completedTasks: [],
                 createdTasks:   [],
                 totalInvites:         0,
@@ -81,9 +83,7 @@ export default async function handler(req, res) {
         // ── Existing user ──
         const userData = userSnap.data();
 
-        // Backfill tonBalance if missing (old users)
         const updates = {};
-        if (userData.tonBalance === undefined) updates.tonBalance = 0;
 
         if (!userData._broadcastRegistered) {
             registerUserIdForBroadcast(uid);
@@ -104,17 +104,7 @@ export default async function handler(req, res) {
 
         const finalUser = { ...userData, ...updates, id: uid };
 
-        // Check pending deposit
-        let pendingDeposit = false;
-        try {
-            const depSnap = await db.collection('deposits')
-                .where('userId', '==', uid)
-                .where('status',  '==', 'pending')
-                .limit(1).get();
-            pendingDeposit = !depSnap.empty;
-        } catch(e) {}
-
-        return res.status(200).json({ success: true, isNew: false, user: finalUser, pendingDeposit });
+        return res.status(200).json({ success: true, isNew: false, user: finalUser });
 
     } catch (e) {
         console.error('[init]', e.message);
