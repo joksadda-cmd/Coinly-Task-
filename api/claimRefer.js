@@ -4,9 +4,17 @@
 // Step 2: Friend completes 10 tasks → +80 TP
 // Step 3: Friend watches 20 ads total → +100 TP
 // All rewards go directly to diamondBalance (not lootbox)
+//
+// SECURITY: same gap as claimAd.js/claimTask.js had — nothing verified the caller
+// actually was the Telegram user for this userId, so any step could be triggered
+// directly with an arbitrary userId/step combo. initData verification added; the
+// rest of the validation logic (10-tasks-in-24hr window, 20-ads-total check,
+// one-time-claimed flags) is unchanged — that part was already server-validated
+// against stored data, not client-trusted.
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import crypto from "crypto";
 
 if (!getApps().length) {
     initializeApp({
@@ -28,6 +36,38 @@ const REFER_MIN_TASKS    = 10;
 const REFER_MIN_ADS      = 20;
 const REFER_WINDOW_HR    = 24;   // tasks must be within 24hr for step 2
 const TP_TO_USD          = 0.00005; // 20K TP = $1
+
+const INITDATA_MAX_AGE_SEC = 3600;
+
+function verifyTelegramInitData(initData) {
+    if (!initData || !BOT) return null;
+    try {
+        const params = new URLSearchParams(initData);
+        const hash = params.get('hash');
+        if (!hash) return null;
+        params.delete('hash');
+
+        const pairs = [];
+        for (const key of [...params.keys()].sort()) {
+            pairs.push(`${key}=${params.get(key)}`);
+        }
+        const dataCheckString = pairs.join('\n');
+
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT).digest();
+        const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+        if (computedHash !== hash) return null;
+
+        const authDate = parseInt(params.get('auth_date') || '0', 10);
+        if (!authDate || (Date.now() / 1000 - authDate) > INITDATA_MAX_AGE_SEC) return null;
+
+        const user = JSON.parse(params.get('user') || 'null');
+        if (!user || !user.id) return null;
+
+        return String(user.id);
+    } catch (e) {
+        return null;
+    }
+}
 
 const miniAppBtn = {
     reply_markup: {
@@ -55,8 +95,13 @@ export default async function handler(req, res) {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { userId, step } = req.body || {};
+    const { userId, step, initData } = req.body || {};
     if (!userId) return res.status(400).json({ error: 'userId required' });
+
+    const verifiedId = verifyTelegramInitData(initData);
+    if (!verifiedId || verifiedId !== String(userId)) {
+        return res.status(401).json({ error: 'unauthorized' });
+    }
 
     const uid      = String(userId);
     const stepNum  = parseInt(step) || 2; // default step 2 (backward compat)
@@ -238,4 +283,4 @@ export default async function handler(req, res) {
         console.error('[claimRefer]', e.message);
         return res.status(500).json({ error: e.message });
     }
-    }
+                                    }
