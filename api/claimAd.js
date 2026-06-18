@@ -2,7 +2,7 @@
 // Currency: TP (Task Points) — 20K TP = $1 = 0.5 TON
 // Rewards: ad1(AdsGram Daily)=10TP, ad2(AdsGram Special)=20TP, ad3(Monetag)=10TP, ad4(Giga)=10TP
 // Dice: under/over=30TP, lucky7=50TP
-// Lootbox min: 150 TP | Dice cooldown: 4hr server-side
+// Lootbox min: 300 TP | Dice cooldown: 4hr server-side
 //
 // ANTI-FAKE-CLAIM DESIGN (replaces the old "batch count" trust model for ads/dice):
 // 1. Frontend calls { startAd: { adType } } BEFORE showing the ad SDK. Server checks
@@ -81,7 +81,7 @@ const AD_LIMITS  = { ad1:10, ad2:5,  ad3:10, ad4:10 };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
-const LOOTBOX_MIN_CLAIM  = 150;
+const LOOTBOX_MIN_CLAIM  = 300;
 const LOOTBOX_DAILY_MAX  = 2;
 const DICE_COOLDOWN_MS   = 4 * 60 * 60 * 1000; // 4 hours
 const DICE_VALID_REWARDS = new Set([30, 50]);    // only under/over=30, lucky=50
@@ -282,4 +282,4 @@ export default async function handler(req, res) {
     }
 
     return res.status(400).json({ error: 'Invalid request' });
-                    }
+                          }
