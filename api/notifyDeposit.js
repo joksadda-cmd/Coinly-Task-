@@ -1,6 +1,9 @@
 // api/notifyDeposit.js
 // Currency: TP (Task Points) — 20K TP = $1 = 0.5 TON
 // Withdrawal: daily 1x limit | Tonkeeper min 1000 TP | Binance min 2000 TP
+//
+// Deposit / task_payment / task_create removed — tasks are now created
+// manually via the admin panel, there is no user-facing TON deposit flow.
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -38,32 +41,6 @@ async function tgMsg(chatId, text) {
     } catch(e) { console.warn('[tgMsg]', e.message); }
 }
 
-async function checkTonTransaction(userId, expectedTon) {
-    try {
-        const wallet = process.env.DEPOSIT_WALLET;
-        const apiKey = process.env.TON_API_KEY;
-        if (!wallet || !apiKey) return null;
-        const url = `https://toncenter.com/api/v2/getTransactions?address=${wallet}&limit=20&api_key=${apiKey}`;
-        const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        if (!response.ok) return null;
-        const data = await response.json();
-        if (!data.ok || !Array.isArray(data.result)) return null;
-        const nanoExpected = Math.floor(parseFloat(expectedTon) * 1e9);
-        const tenMinAgo    = Math.floor(Date.now() / 1000) - 600;
-        return data.result.find(tx => {
-            const msg = tx.in_msg;
-            if (!msg) return false;
-            const comment   = (msg.message || msg.comment || '').trim();
-            const value     = parseInt(msg.value || 0);
-            const timestamp = tx.utime || 0;
-            return comment === String(userId) && value >= nanoExpected && timestamp >= tenMinAgo;
-        }) || null;
-    } catch(e) {
-        console.warn('[checkTonTransaction]', e.message);
-        return null;
-    }
-}
-
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -72,13 +49,13 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const body = req.body || {};
-    const type = body.type || 'deposit';
+    const type = body.type;
 
     // ════════════════════════════════════
     // WITHDRAWAL — TP currency, daily 1x
     // ════════════════════════════════════
     if (type === 'withdrawal') {
-        const { userId, username, firstName, method, address, diamondAmount, tonAmount } = body;
+        const { userId, username, firstName, method, address, diamondAmount } = body;
         if (!userId || !diamondAmount || !address) {
             return res.status(400).json({ error: 'Missing fields' });
         }
@@ -235,111 +212,6 @@ export default async function handler(req, res) {
         }
     }
 
-    // ════════════════════════════════════
-    // DEPOSIT (with TON auto-verify)
-    // ════════════════════════════════════
-    const { userId, username, firstName, tonAmount, expectedDiamond, memo, taskTitle } = body;
-    if (!userId) return res.status(400).json({ error: 'userId required' });
-    const uid = String(userId);
-
-    if (type === 'deposit' || type === 'task_payment') {
-        try {
-            const uSnap = await db.collection('users').doc(uid).get();
-            if (uSnap.exists) {
-                const ud = uSnap.data();
-                if (ud.isBanned) return res.status(403).json({ success: false, banned: true, error: 'Account is banned.' });
-                if (type === 'deposit' && ud.depositBanned) {
-                    await tgMsg(ADMIN_ID, `🚨 Deposit ban bypass: ${uid}`);
-                    return res.status(403).json({ success: false, depositBanned: true, error: 'Deposit access disabled.' });
-                }
-            }
-        } catch(e) { console.warn('[ban-check]', e.message); }
-    }
-
-    if (type === 'deposit') {
-        const ton = parseFloat(tonAmount) || 0;
-        if (ton <= 0) return res.status(400).json({ error: 'Invalid TON amount' });
-        const matchedTx = await checkTonTransaction(uid, ton);
-        if (matchedTx) {
-            try {
-                const tpAmount = parseInt(expectedDiamond) || Math.floor(ton / TP_TO_TON);
-                await db.runTransaction(async (t) => {
-                    const uRef   = db.collection('users').doc(uid);
-                    const depRef = db.collection('deposits').doc();
-                    t.set(depRef, {
-                        userId: uid, username: username||'', firstName: firstName||'',
-                        tonAmount: ton, expectedDiamond: tpAmount, memo: memo||uid,
-                        status: 'auto_approved', autoVerified: true,
-                        txHash: matchedTx.transaction_id?.hash || '',
-                        createdAt: FieldValue.serverTimestamp(),
-                        approvedAt: FieldValue.serverTimestamp(),
-                    });
-                    t.update(uRef, { tonBalance: FieldValue.increment(ton), pendingDeposit: false });
-                });
-                await tgMsg(uid, `✅ <b>Deposit Auto-Verified!</b>\n\n💰 <b>${ton} TON</b> added to your balance! 🚀`);
-                await tgMsg(ADMIN_ID, `✅ Auto-Approved: ${uid} · ${ton} TON`);
-                return res.status(200).json({ success: true, autoApproved: true, ton });
-            } catch(e) { console.error('[auto-approve]', e.message); }
-        }
-        try {
-            const tpAmount = parseInt(expectedDiamond) || Math.floor(ton / TP_TO_TON);
-            const depRef = await db.collection('deposits').add({
-                userId: uid, username: username||'', firstName: firstName||'',
-                tonAmount: ton, expectedDiamond: tpAmount, memo: memo||uid,
-                status: 'pending', autoVerified: false,
-                createdAt: FieldValue.serverTimestamp(),
-            });
-            await tgMsg(ADMIN_ID, `🟡 Deposit Pending: ${uid} · ${ton} TON · ID: ${depRef.id}`);
-            await tgMsg(uid, `⏳ <b>Deposit Under Review</b>\n\n💰 ${ton} TON received.\nAdmin will review within 1–6 hours.`);
-            return res.status(200).json({ success: true, autoApproved: false, depositId: depRef.id });
-        } catch(e) { return res.status(500).json({ error: e.message }); }
-    }
-
-    // ════════════════════════════════════
-    // TASK PAYMENT / TASK CREATE
-    // ════════════════════════════════════
-    try {
-        const collection_name = type === 'task_payment' ? 'task_payments'
-                              : type === 'task_create'  ? 'tasks' : 'deposits';
-        const docData = {
-            userId: uid, username: username||'', firstName: firstName||'',
-            status: type === 'task_create' ? 'pending_approval' : 'pending',
-            type: type||'deposit', createdAt: FieldValue.serverTimestamp(),
-        };
-        if (type === 'task_create') {
-            const { title, url, category, channelId, rewardDiamond, maxCompletions, tonCost, packageLabel, createdBy } = body;
-            Object.assign(docData, {
-                title: title||'', url: url||'', category: category||'social',
-                channelId: channelId||'', rewardDiamond: parseFloat(rewardDiamond)||10,
-                maxCompletions: parseInt(maxCompletions)||100, completionCount: 0,
-                isApproved: false, tonCost: parseFloat(tonCost)||0,
-                packageLabel: packageLabel||'', createdBy: createdBy||uid,
-            });
-            const tonCostVal = parseFloat(body.tonCost)||0;
-            if (tonCostVal > 0) {
-                try {
-                    const uRef  = db.collection('users').doc(uid);
-                    const uSnap = await uRef.get();
-                    if (uSnap.exists) {
-                        if ((uSnap.data().tonBalance||0) < tonCostVal)
-                            return res.status(200).json({ success: false, error: 'Insufficient TON balance' });
-                        await uRef.update({ tonBalance: FieldValue.increment(-tonCostVal) });
-                    }
-                } catch(e) { console.warn('[task deduct]', e.message); }
-            }
-        } else {
-            Object.assign(docData, {
-                tonAmount: parseFloat(tonAmount)||0, expectedDiamond: parseInt(expectedDiamond)||0,
-                memo: memo||uid, ...(taskTitle ? { taskTitle } : {}),
-            });
-        }
-        const docRef = await db.collection(collection_name).add(docData);
-        await tgMsg(ADMIN_ID,
-            `${type==='task_payment'?'🟡 Task Payment':'🟢 Deposit Request'}\n` +
-            `👤 ${firstName||''} [${uid}] · 💰 ${tonAmount} TON\n🆔 ${docRef.id}`
-        );
-        return res.status(200).json({ success: true, depositId: docRef.id });
-    } catch(e) {
-        return res.status(500).json({ error: e.message });
-    }
-               }
+    // Deposit / task_payment / task_create no longer exist on this endpoint.
+    return res.status(400).json({ error: 'Invalid request type' });
+                                         }
