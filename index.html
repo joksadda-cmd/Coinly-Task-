@@ -17,6 +17,8 @@
             if(e.ctrlKey&&e.keyCode=='U'.charCodeAt(0)) return false;
         }
     </script>
+    <!-- TON Connect -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <!-- ADS SDKs -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
@@ -208,6 +210,24 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 /* DIVIDER */
 .divider{height:1px;background:var(--border);margin:14px 0;}
 
+/* NAVIGATION OPTIONS */
+.dep-pkg-btn {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-section);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: 0.2s;
+}
+.dep-pkg-btn.active {
+    background: #1e1b4b;
+    border-color: #6366f1 !important;
+    color: #a5b4fc;
+}
+
 /* PLATFORM FILTER */
 .platform-row{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px;}
 .platform-pill{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:0.76rem;font-weight:700;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);color:var(--text-sub);cursor:pointer;transition:0.2s;white-space:nowrap;}
@@ -318,12 +338,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                     <div class="user-id-pill" id="uid-display" style="background:rgba(0,0,0,0.3);border:1px solid rgba(99,102,241,0.25);"><i class="fas fa-hashtag" style="color:#6366f1;"></i> ID: <span style="color:#818cf8;">...</span> <i class="fas fa-copy" style="font-size:0.6rem;opacity:0.6;"></i></div>
                 </div>
             </div>
-            <!-- TON badge -->
-            <div style="text-align:right;">
-                <div style="font-size:0.6rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">TON</div>
-                <div style="font-family:var(--mono);font-size:0.82rem;font-weight:700;color:#22d3ee;" id="bal-ton">0.0000</div>
-            </div>
-        </div>
 
         <!-- Diamond balance — hero number -->
         <div style="text-align:center;padding:16px 0 14px;border-top:1px solid rgba(99,102,241,0.15);border-bottom:1px solid rgba(99,102,241,0.15);margin-bottom:14px;">
@@ -353,6 +367,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <i class="fas fa-user-plus"></i> <span data-i18n="btnRefer">Refer & Earn</span>
             </button>
         </div>
+        <!-- TON Connect hidden -->
+        <div id="ton-connect-btn" style="display:none;"></div>
     </div>
 
     <!-- Task List -->
@@ -444,7 +460,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <span style="font-size:1.3rem;">🎁</span>
             <div style="font-weight:800;font-size:1rem;">Lootbox</div>
         </div>
-        <div style="font-size:0.72rem;color:rgba(255,255,255,0.65);margin-bottom:14px;line-height:1.6;">Ad earnings are stored here. Collect <b style="color:#fbbf24;">min 150 TP</b> then claim to main balance. Max <b style="color:#fbbf24;">2x per day</b>.</div>
+        <div style="font-size:0.72rem;color:rgba(255,255,255,0.65);margin-bottom:14px;line-height:1.6;">Ad earnings are stored here. Collect <b style="color:#fbbf24;">min 300 TP</b> then claim to main balance. Max <b style="color:#fbbf24;">2x per day</b>.</div>
         <!-- Balance display -->
         <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:14px 16px;margin-bottom:10px;">
             <div>
@@ -454,10 +470,10 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="font-size:2.8rem;">🎁</div>
         </div>
-        <!-- Progress bar to 150 TP -->
+        <!-- Progress bar to 300 TP -->
         <div style="margin-bottom:10px;">
             <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:rgba(255,255,255,0.5);margin-bottom:4px;">
-                <span id="lootbox-progress-text">0 / 150 TP to claim</span>
+                <span id="lootbox-progress-text">0 / 300 TP to claim</span>
                 <span id="lootbox-claims-left" style="color:#fbbf24;"></span>
             </div>
             <div style="background:rgba(255,255,255,0.1);border-radius:99px;height:6px;overflow:hidden;">
@@ -729,7 +745,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
                 <div style="width:38px;height:38px;border-radius:10px;background:#059669;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.1rem;">▶️</div>
                 <div>
                     <div style="font-weight:800;font-size:0.88rem;color:#065f46;" data-i18n="wnT2">🎬 Earn Section (Ads)</div>
-                    <div style="font-size:0.76rem;color:#16a34a;margin-top:3px;line-height:1.5;" data-i18n="wnT2d">Watch ads daily to earn TP. Earnings go to Lootbox. Collect 150 TP minimum then claim to main balance (2x per day).</div>
+                    <div style="font-size:0.76rem;color:#16a34a;margin-top:3px;line-height:1.5;" data-i18n="wnT2d">Watch ads daily to earn TP. Earnings go to Lootbox. Collect 300 TP minimum then claim to main balance (2x per day).</div>
                 </div>
             </div>
             <!-- Dice -->
@@ -772,6 +788,16 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
     </div>
 </div>
 
+<!-- ALERT MODAL -->
+<div class="modal-bg" id="modal-alert">
+    <div class="modal-box" style="max-width:290px;">
+        <i id="alert-icon" class="fas fa-info-circle" style="font-size:2.2rem;color:var(--primary);margin-bottom:12px;display:block;"></i>
+        <div id="alert-title" class="modal-title" style="margin-bottom:6px;">Notice</div>
+        <p id="alert-msg" style="font-size:0.85rem;color:var(--text-sub);margin-bottom:16px;"></p>
+        <button class="btn btn-primary btn-full close-modal">OK</button>
+    </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════ -->
 <!--                   FIREBASE + APP LOGIC                    -->
 <!-- ══════════════════════════════════════════════════════════ -->
@@ -794,8 +820,24 @@ const app = initializeApp(firebaseConfig);
 getAnalytics(app);
 const db = getFirestore(app);
 const tg = window.Telegram.WebApp;
-const TG_INIT_DATA = tg.initData || ''; // sent with every claim call so the backend can verify it's really this user
 const API_BASE = "https://coinly-task.vercel.app/api";
+
+// ── TON CONNECT ──
+let tonConnectUI = null;
+let connectedWallet = null;
+
+async function initTonConnect(){
+    try{
+        tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://raw.githubusercontent.com/joksadda-cmd/Coinly-Task-/main/Tonconnect manifest.json',
+            buttonRootId: 'ton-connect-btn'
+        });
+        tonConnectUI.onStatusChange(wallet=>{
+            connectedWallet = wallet;
+            if(wallet){ updateUI(); }
+        });
+    }catch(e){ console.log('TON Connect init failed:', e); }
+}
 
 // ── CONSTANTS ──
 const TP_TO_TON           = 0.000025;  // 20000 TP = 0.5 TON
@@ -814,8 +856,7 @@ const TASK_REWARD_DIAMOND  = 10;
 // 3-step refer rewards: Step1=50, Step2=80, Step3=100 (handled server-side in claimRefer.js)
 const REFER_VALID_TASKS = 10;
 const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10}; // synced with claimAd.js
-const AD_DIAMOND_REWARDS = {ad1:10, ad2:20, ad3:10, ad4:10}; // synced with claimAd.js
-const AD_MIN_GAP_MS = 7000; // 7s between ads, mirrors server-side MIN_AD_GAP_MS in claimAd.js
+const AD_DIAMOND_REWARDS = {ad1:15, ad2:30, ad3:15, ad4:15}; // synced with claimAd.js
 
 let currentUser = null, isAdRunning = false, isSubmitting = false;
 
@@ -829,6 +870,54 @@ function showAlert(title, msg, type='info'){
     document.getElementById('modal-alert').classList.add('show');
 }
 function getToday(){return new Date().toLocaleDateString('en-US',{timeZone:'Asia/Dhaka'});}
+
+// ── 7-SECOND COOLDOWN between any two ad watches ──
+const AD_COOLDOWN_MS = 7000;
+let _lastAdWatchTime = 0;
+
+async function adWrapper(btnId, sdkCall, successCb){
+    if(isAdRunning) return showAlert('Warning','Ad already running.','error');
+
+    const sinceLastAd = Date.now() - _lastAdWatchTime;
+    if(sinceLastAd < AD_COOLDOWN_MS){
+        const waitSec = Math.ceil((AD_COOLDOWN_MS - sinceLastAd)/1000);
+        return showAlert('Please Wait',`Wait ${waitSec}s before watching the next ad. ⏱️`,'error');
+    }
+
+    const btn = document.getElementById(btnId); if(!btn) return;
+    const orig = btn.innerHTML; isAdRunning = true; btn.disabled = true;
+    btn.innerHTML = '<div class="loader-spin" style="width:16px;height:16px;border-width:2px;"></div>';
+    try{
+        let adShown = false;
+        if(sdkCall){
+            try{
+                await sdkCall();
+                adShown = true; // only reaches here if sdkCall explicitly resolved (no throw)
+            }catch(adErr){
+                const msg = (adErr?.message||adErr?.type||'').toLowerCase();
+                if(msg.includes('click_required')){
+                    showAlert('Click Required','You must click the ad to earn reward. Watch and click! 👆','error');
+                } else if(msg.includes('skip')||msg.includes('close')||msg.includes('dismiss')||msg.includes('full ad')||msg.includes('early')){
+                    showAlert('Skipped','Watch the full ad to earn reward.','error');
+                } else {
+                    // Ad failed to load/play (network, no fill, SDK crash, etc) — NEVER reward
+                    showAlert('Ad Unavailable','The ad could not be loaded. No reward given. Try again shortly.','error');
+                }
+                // adShown stays false — no reward path below executes
+            }
+        } else {
+            showAlert('Unavailable','Ad not available right now.','error');
+        }
+        if(adShown){
+            _lastAdWatchTime = Date.now(); // start cooldown only on successful, rewarded ad
+            await successCb();
+        }
+    }catch(e){
+        console.error('[adWrapper]', e);
+        showAlert('Error','Something went wrong. Try again.','error');
+    }
+    finally{ isAdRunning = false; btn.innerHTML = orig; btn.disabled = false; }
+}
 
 // ══════════════════════════════
 // ── DICE GAME LOGIC ──
@@ -910,36 +999,20 @@ async function rollDice(){
     rollBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading Ad...';
     _diceRolling = true;
 
-    // 1) Ask server for a one-time token before showing the ad — server re-checks
-    // the cooldown too, so the localStorage timer above is just for the UI countdown.
-    let diceToken;
-    try{
-        const startRes = await fetch(`${API_BASE}/claimAd`,{
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ userId:currentUser.id, initData:TG_INIT_DATA, startAd:{ adType:'dice' } })
-        });
-        const startData = await startRes.json();
-        if(!startData.success) throw new Error(startData.error || 'Cannot roll right now.');
-        diceToken = startData.token;
-    }catch(e){
-        showAlert('Unavailable', e.message || 'Try again in a moment.', 'error');
-        rollBtn.disabled = false;
-        rollBtn.innerHTML = '<i class="fas fa-dice"></i> Roll Dice';
-        _diceRolling = false;
-        return;
-    }
-
-    // 2) Show AdsGram Special ad before roll — must genuinely complete, no fail-open
+    // Show AdsGram Special ad before roll — click + completion mandatory, NEVER skip on error
     try{
         await makeAdsgramCall('35170')();
     }catch(adErr){
         const msg = (adErr?.message||'').toLowerCase();
-        if(msg.includes('click_required')) showAlert('Click Required','You must click the ad to roll dice! 👆','error');
-        else showAlert('Skipped','Watch the full ad to roll dice.','error');
         rollBtn.disabled = false;
         rollBtn.innerHTML = '<i class="fas fa-dice"></i> Roll Dice';
         _diceRolling = false;
-        return; // diceToken simply expires unused — no harm
+        if(msg.includes('click_required')){
+            showAlert('Click Required','You must click the ad to roll dice! 👆','error');
+        } else {
+            showAlert('Ad Unavailable','The ad could not be loaded. Try again shortly.','error');
+        }
+        return; // ad failed/skipped → no roll, no reward
     }
 
     rollBtn.innerHTML = '<i class="fas fa-dice"></i> Rolling...';
@@ -961,41 +1034,36 @@ async function rollDice(){
         else { msg=`⬆️ Over 7 (${out.sum}) +${out.reward} 💎`; color='#16a34a'; }
         if(resEl){ resEl.innerText=msg; resEl.style.color=color; }
 
-        // Credit via claimAd API — redeems the token, server validates everything
-        let credited = false;
+        // Credit via claimAd API
         try{
             const res = await fetch(`${API_BASE}/claimAd`,{
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ userId:currentUser.id, initData:TG_INIT_DATA, claimAd:{ adType:'dice', token:diceToken, diceReward:out.reward } })
+                body: JSON.stringify({userId:currentUser.id, batch:{diceReward:out.reward}})
             });
             const data = await res.json();
-            if(data.success){
-                credited = true;
-                currentUser.diamondBalance = (currentUser.diamondBalance||0) + (data.reward ?? out.reward);
+            if(data.success !== false){
+                currentUser.diamondBalance = (currentUser.diamondBalance||0) + out.reward;
                 try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                 updateUI();
                 showAlert('🎲 Result!', msg, 'success');
-            } else {
-                showAlert('Failed', data.error || 'Could not credit reward.', 'error');
             }
         }catch(e){ console.warn('[dice]',e); }
 
-        // Save local stats/cooldown display only if the server actually credited the reward
-        if(credited){
-            setDiceLastRoll();
-            const s = getDiceStats();
-            s.r++; s.e = parseFloat(s.e||0) + out.reward;
-            saveDiceStats(s.r, s.e);
+        // Save
+        setDiceLastRoll();
+        const s = getDiceStats();
+        s.r++; s.e = parseFloat(s.e||0) + out.reward;
+        saveDiceStats(s.r, s.e);
 
-            _diceHistory.unshift({sum:out.sum, reward:out.reward, type:out.type, t:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
-            if(_diceHistory.length>5) _diceHistory.pop();
-            const histEl = document.getElementById('dice-history');
-            if(histEl) histEl.innerHTML = _diceHistory.map(h=>{
-                const ic = h.type==='lucky'?'⭐':h.type==='under'?'⬇️':'⬆️';
-                const cl = h.type==='lucky'?'#d97706':h.type==='under'?'#7c3aed':'#16a34a';
-                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.75rem;"><span>${ic} Sum: <b>${h.sum}</b></span><span style="color:${cl};font-weight:700;">+${h.reward} 💎</span><span style="color:var(--text-muted);">${h.t}</span></div>`;
-            }).join('');
-        }
+        // History
+        _diceHistory.unshift({sum:out.sum, reward:out.reward, type:out.type, t:new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})});
+        if(_diceHistory.length>5) _diceHistory.pop();
+        const histEl = document.getElementById('dice-history');
+        if(histEl) histEl.innerHTML = _diceHistory.map(h=>{
+            const ic = h.type==='lucky'?'⭐':h.type==='under'?'⬇️':'⬆️';
+            const cl = h.type==='lucky'?'#d97706':h.type==='under'?'#7c3aed':'#16a34a';
+            return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.75rem;"><span>${ic} Sum: <b>${h.sum}</b></span><span style="color:${cl};font-weight:700;">+${h.reward} 💎</span><span style="color:var(--text-muted);">${h.t}</span></div>`;
+        }).join('');
 
         updateDiceUI();
         _diceRolling = false;
@@ -1022,8 +1090,6 @@ async function initApp(){
             const cu = JSON.parse(localStorage.getItem(`coinly_u_${uid}`)||'{}');
             if(cu && cu.id){
                 currentUser = cu;
-                if(localStorage.getItem(`coinly_pendingDep_${uid}`)==='1') currentUser._pendingDeposit=true;
-                if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
                 if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;padding:20px;"><div style="font-size:3rem;">🚫</div><h3>Account banned.</h3></div>';
                 updateUI(); checkLootboxTransfer(); checkCommunityJoin(); fetchTasks('all');
                 return;
@@ -1055,23 +1121,15 @@ async function initApp(){
 
     if(apiData?.user){
         currentUser = { id: uid, ...apiData.user };
-        if(apiData.pendingDeposit) currentUser._pendingDeposit = true;
-        if(localStorage.getItem(`coinly_pendingDep_${uid}`) === '1') currentUser._pendingDeposit = true;
-        if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
-        if(!apiData.pendingDeposit && localStorage.getItem(`coinly_pendingDep_${uid}`)){
-            localStorage.removeItem(`coinly_pendingDep_${uid}`);
-            currentUser._pendingDeposit = false;
-        }
         try{
-            const tc={...currentUser}; delete tc._pendingDeposit; delete tc._pendingTask;
-            localStorage.setItem(`coinly_u_${uid}`,JSON.stringify(tc));
+            localStorage.setItem(`coinly_u_${uid}`,JSON.stringify(currentUser));
             localStorage.setItem(`coinly_t_${uid}`,String(Date.now()));
         }catch(e){}
     } else {
         // API failed — build minimal currentUser from Telegram data
         currentUser = {
             id: uid,
-            diamondBalance: 0, tonBalance: 0, completedTasks: [], lootboxBalance: 0,
+            diamondBalance: 0, completedTasks: [], lootboxBalance: 0,
             totalInvites: 0, validReferrals: 0, referralDiamondEarned: 0,
             telegramUsername: u.username||'', firstName: u.firstName||'',
             adsWatchedAd1:0, adsWatchedAd2:0, adsWatchedAd3:0, adsWatchedAd4:0,
@@ -1094,7 +1152,7 @@ async function initApp(){
         // Sync reset via claimAd batch (no direct updateDoc)
         fetch(`${API_BASE}/claimAd`,{
             method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({userId:uid, initData:TG_INIT_DATA, batch:{_resetOnly:true}})
+            body: JSON.stringify({userId:uid, batch:{_resetOnly:true}})
         }).catch(()=>{});
     }
 
@@ -1171,11 +1229,9 @@ function updateUI(){
         if(uidSpan) uidSpan.innerText = currentUser.id || tg?.initDataUnsafe?.user?.id || '---';
     }catch(e){}
     const diamond = parseFloat(currentUser.diamondBalance||0);
-    const tonBal  = parseFloat(currentUser.tonBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
     const usdtEl = document.getElementById('bal-usdt');
     if(usdtEl) usdtEl.innerText = `≈ $${(diamond * DIAMOND_TO_USD).toFixed(3)} USDT`;
-    document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
     try{ document.getElementById('ads-bal-usdt').innerText = '≈ $' + (diamond * DIAMOND_TO_USD).toFixed(3) + ' USDT'; }catch(e){}
@@ -1214,89 +1270,54 @@ function updateUI(){
 }
 
 // ── ADS → Batch write (local first, sync every 5 ads) ──
-let _lastAdWatchMs = 0;
+let _adPendingSync = {}; // { adType: count }
+let _adSyncTimer   = null;
 
-function applyAdGapCooldown(){
-    const remaining = AD_MIN_GAP_MS - (Date.now() - _lastAdWatchMs);
-    if(remaining <= 0) return;
-    ['btn-ad1','btn-ad2','btn-ad3','btn-ad4'].forEach(id=>{
-        const b = document.getElementById(id);
-        if(b) b.disabled = true;
-    });
-    setTimeout(()=>{
-        ['btn-ad1','btn-ad2','btn-ad3','btn-ad4'].forEach(id=>{
-            const b = document.getElementById(id);
-            if(b) b.disabled = false;
-        });
-    }, remaining);
-}
-
-async function runAdMission(type, btnId, sdk){
-    if(isAdRunning) return showAlert('Warning','Ad already running.','error');
-    const btn = document.getElementById(btnId); if(!btn) return;
-    const orig = btn.innerHTML; isAdRunning = true; btn.disabled = true;
-    btn.innerHTML = '<div class="loader-spin" style="width:16px;height:16px;border-width:2px;"></div>';
-
+async function flushAdSync(){
+    if(!Object.keys(_adPendingSync).length) return;
+    const toSync = {..._adPendingSync};
+    _adPendingSync = {};
     try{
-        // 1) Ask server for permission + a one-time token BEFORE showing the ad.
-        // Server checks the daily limit, dice/ad cooldowns, and the 7s gap itself —
-        // this call is the real gate, not just a UI nicety.
-        let token;
-        try{
-            const startRes = await fetch(`${API_BASE}/claimAd`, {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id, initData: TG_INIT_DATA, startAd: { adType: type } })
-            });
-            const startData = await startRes.json();
-            if(!startData.success) throw new Error(startData.error || 'Cannot start ad right now.');
-            token = startData.token;
-        }catch(e){
-            showAlert('Unavailable', e.message || 'Try again in a moment.', 'error');
-            return;
-        }
-
-        // 2) Show the actual ad — only a genuine SDK completion counts, no fail-open
-        if(!sdk){ showAlert('Unavailable','Ad not available right now.','error'); return; }
-        try{
-            await sdk();
-        }catch(adErr){
-            const msg = (adErr?.message||adErr?.type||'').toLowerCase();
-            if(msg.includes('click_required')) showAlert('Click Required','You must click the ad to earn reward. Watch and click! 👆','error');
-            else showAlert('Skipped','Watch the full ad to earn reward.','error');
-            return; // token simply expires unused — no harm
-        }
-
-        // 3) Ad genuinely completed — redeem the token, server computes the reward
-        try{
-            const res = await fetch(`${API_BASE}/claimAd`, {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id, initData: TG_INIT_DATA, claimAd: { adType: type, token } })
-            });
-            const data = await res.json();
-            if(data.success){
-                const reward   = data.reward ?? AD_DIAMOND_REWARDS[type];
-                const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
-                currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
-                currentUser[fieldKey] = (currentUser[fieldKey]||0) + 1;
-                _lastAdWatchMs = Date.now();
-                updateUI(); updateLootbox();
-                showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
-                checkValidRef(); // check if friend hit 20-ads milestone (step 3 refer reward)
-                applyAdGapCooldown();
-            } else {
-                showAlert('Failed', data.error || 'Could not credit reward, try again.', 'error');
-            }
-        }catch(e){
-            showAlert('Error','Network error while claiming reward. Contact support if balance looks wrong.','error');
-        }
-    }catch(e){
-        console.error('[runAdMission]', e);
-        showAlert('Error','Something went wrong. Try again.','error');
-    }finally{
-        isAdRunning = false; btn.innerHTML = orig; btn.disabled = false;
-        applyAdGapCooldown();
-    }
+        await fetch(`${API_BASE}/claimAd`, {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ userId: currentUser.id, batch: toSync })
+        });
+    }catch(e){ console.warn('[adSync]', e.message); }
 }
+
+const runAdMission = (type, btnId, sdk) => adWrapper(btnId, sdk, async()=>{
+    const reward   = AD_DIAMOND_REWARDS[type];
+    const fieldKey = `adsWatched${type.charAt(0).toUpperCase()+type.slice(1)}`;
+    const limit    = AD_LIMITS[type]||10;
+    const current  = currentUser[fieldKey]||0;
+
+    if(current >= limit){
+        showAlert('Limit Reached',`Daily limit reached for this ad.`,'error');
+        return;
+    }
+
+    // Local update immediately (no wait)
+    currentUser.lootboxBalance = (currentUser.lootboxBalance||0) + reward;
+    currentUser[fieldKey] = current + 1;
+    _adPendingSync[type] = (_adPendingSync[type]||0) + 1;
+
+    updateUI(); updateLootbox();
+    showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
+    checkValidRef(); // check if friend hit 20-ads milestone (step 3 refer reward)
+
+    // Batch sync: write every 5 ads OR after 10s idle
+    clearTimeout(_adSyncTimer);
+    const totalPending = Object.values(_adPendingSync).reduce((a,b)=>a+b,0);
+    if(totalPending >= 5){
+        await flushAdSync();
+    } else {
+        _adSyncTimer = setTimeout(flushAdSync, 10000);
+    }
+});
+
+// Sync on page unload
+window.addEventListener('beforeunload', flushAdSync);
 
 // ── MONETAG — 6 second minimum, reject on early close ──
 const showMoneytagAd = () => new Promise((resolve, reject) => {
@@ -1393,23 +1414,41 @@ const showGigaAd = () => new Promise(async (resolve, reject) => {
 });
 
 // ── ADSGRAM — click mandatory (CTR system) ──
-// User must click the ad for reward. Any skip, close, or SDK error = no reward.
-// (Previously: an SDK error that wasn't recognized as a skip fell through to
-// resolve() anyway — that's the bug that let rewards through with no ad shown.)
+// User must click the ad for reward. Skip/close without click = no reward.
+// ── ADSGRAM — strict click-required, NO reward on any failure/error/skip ──
 const makeAdsgramCall = (blockId) => () => new Promise((resolve, reject) => {
-    const adObj = window.Adsgram?.init({ blockId, onError: (e) => reject(e) });
-    if (!adObj?.show) { reject(new Error('AdsGram SDK unavailable')); return; }
+    let settled = false;
+    let adObj;
+    try{
+        adObj = window.Adsgram?.init({
+            blockId,
+            onError: (e) => {
+                if(settled) return; settled = true;
+                reject(new Error('ad_failed')); // no fill / network error → never reward
+            }
+        });
+    }catch(e){
+        reject(new Error('ad_failed')); return;
+    }
+    if (!adObj?.show) { reject(new Error('ad_failed')); return; }
+
     adObj.show().then(result => {
-        // AdsGram result: { done: true } means user clicked and completed
-        // done: false or undefined means skipped without click
+        if(settled) return; settled = true;
+        // ONLY reward if AdsGram explicitly confirms completion+click
         if (result && result.done === true) {
             resolve();
         } else {
             reject(new Error('click_required'));
         }
-    }).catch(() => {
-        // Any SDK error — network issue, no inventory, skip, close — fails closed.
-        reject(new Error('ad_failed'));
+    }).catch(err => {
+        if(settled) return; settled = true;
+        // ANY error/skip/close/reject from AdsGram = NO reward, ever.
+        const msg = (err?.message || err?.type || '').toLowerCase();
+        if(msg.includes('click') || msg.includes('skip') || msg.includes('close') || msg.includes('dismiss')){
+            reject(new Error('click_required'));
+        } else {
+            reject(new Error('ad_failed')); // unknown error → still no reward
+        }
     });
 });
 
@@ -1489,7 +1528,7 @@ document.getElementById('task-list-container').addEventListener('click', async e
                 const claimRes = await fetch(`${API_BASE}/claimTask`, {
                     method: 'POST',
                     headers: {'Content-Type':'application/json'},
-                    body: JSON.stringify({ userId: currentUser.id, initData: TG_INIT_DATA, taskId: id })
+                    body: JSON.stringify({ userId: currentUser.id, taskId: id })
                 });
                 const claimData = await claimRes.json();
                 if(claimData.ok){
@@ -1519,7 +1558,7 @@ document.querySelectorAll('.platform-pill').forEach(p=>p.addEventListener('click
     p.classList.add('active');
     const filter = p.dataset.filter;
     taskFilter = filter;
-    if(_tasksCache && filter !== 'my_tasks'){
+    if(_tasksCache){
         _renderTasks(_tasksCache, filter, document.getElementById('task-list-container'));
     } else { fetchTasks(filter); }
 }));
@@ -1537,7 +1576,7 @@ async function checkValidRef(){
         try{
             const res = await fetch(`${API_BASE}/claimRefer`, {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id, initData: TG_INIT_DATA, step: 2 })
+                body: JSON.stringify({ userId: currentUser.id, step: 2 })
             });
             const data = await res.json();
             if(data.success && !data.alreadyClaimed){
@@ -1555,7 +1594,7 @@ async function checkValidRef(){
         try{
             const res = await fetch(`${API_BASE}/claimRefer`, {
                 method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id, initData: TG_INIT_DATA, step: 3 })
+                body: JSON.stringify({ userId: currentUser.id, step: 3 })
             });
             const data = await res.json();
             if(data.success && !data.alreadyClaimed){
@@ -1609,9 +1648,14 @@ document.getElementById('wd-amount-bnb').addEventListener('input',calcWdPreview)
 
 document.getElementById('wd-submit').addEventListener('click', async()=>{
     if(isSubmitting) return;
+    isSubmitting = true; // set IMMEDIATELY — before any validation — to block double-click race conditions
+
+    const btn = document.getElementById('wd-submit');
+    const resetBtn = () => { isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw'; };
 
     // ── Withdraw ban check ──
     if(currentUser.withdrawBanned){
+        resetBtn();
         return showAlert('🚫 Banned','Your account has been permanently banned from withdrawals due to suspicious activity. Contact support if you believe this is a mistake.','error');
     }
 
@@ -1620,19 +1664,21 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
     else { amtElId='wd-amount-ton'; addrElId='wd-address-ton'; minAmt=MIN_WITHDRAW_TONKEEPER; addrLabel='TON wallet address'; }
     const amt=parseFloat(document.getElementById(amtElId).value);
     const addr=document.getElementById(addrElId).value.trim();
-    if(!addr) return showAlert('Error',`Enter your ${addrLabel}.`,'error');
-    if(isNaN(amt)||amt<minAmt) return showAlert('Notice',`Minimum ${minAmt} TP required.`,'error');
-    if((currentUser.diamondBalance||0)<amt) return showAlert('Error','Insufficient TP balance.','error');
+    if(!addr){ resetBtn(); return showAlert('Error',`Enter your ${addrLabel}.`,'error'); }
+    if(isNaN(amt)||amt<minAmt){ resetBtn(); return showAlert('Notice',`Minimum ${minAmt} TP required.`,'error'); }
+    if((currentUser.diamondBalance||0)<amt){ resetBtn(); return showAlert('Error','Insufficient TP balance.','error'); }
 
     // ── Daily 1x withdraw limit ──
     const today = getToday();
     if(currentUser.lastWithdrawDate === today){
+        resetBtn();
         return showAlert('Daily Limit','You can only withdraw once per day. Come back tomorrow! 📅','error');
     }
 
     // ── Eligibility checks ──
     const tasksDone = (currentUser.completedTasks||[]).length;
     if(tasksDone < WITHDRAW_MIN_TASKS){
+        resetBtn();
         return showAlert('Not Eligible',
             `Complete at least ${WITHDRAW_MIN_TASKS} tasks to withdraw.\nYou have done: ${tasksDone}/${WITHDRAW_MIN_TASKS}`,
             'error');
@@ -1644,12 +1690,11 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
     const adsThisWithdraw = totalAds;
     if(adsThisWithdraw < WITHDRAW_ADS_REQUIRED){
         const remaining = WITHDRAW_ADS_REQUIRED - adsThisWithdraw;
+        resetBtn();
         return showAlert('Not Eligible',
             `Watch ${remaining} more ads today to unlock withdrawal.\n(${adsThisWithdraw}/${WITHDRAW_ADS_REQUIRED} ads watched today)`,
             'error');
     }
-    isSubmitting=true;
-    const btn=document.getElementById('wd-submit');
     btn.disabled=true; btn.innerHTML='<div class="loader-spin" style="margin:0;width:15px;height:15px;border-width:2px;"></div>';
     try{
         // processWithdraw API — server-side balance deduct + save + user notification
@@ -1674,7 +1719,7 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
         }catch(parseErr){
             // Server returned non-JSON (HTML error page, timeout, etc)
             showAlert('Server Error', `The server is temporarily unavailable (status ${wRes.status}). Please try again in a moment. If this persists, contact support.`, 'error');
-            isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw';
+            resetBtn();
             return;
         }
 
@@ -1701,7 +1746,7 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
         showAlert('Connection Error','Could not reach the server. Check your internet connection and try again.','error');
         console.error('[withdraw]', e);
     }
-    finally{ isSubmitting=false; btn.disabled=false; btn.innerHTML='<i class="fas fa-paper-plane"></i> Withdraw'; }
+    finally{ resetBtn(); }
 });
 
 // ── PROMO (API-secured — no client-side Firestore write) ──
@@ -1772,7 +1817,8 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
         const claimData = await claimRes.json();
 
         if(claimData.success){
-            currentUser.diamondBalance = (currentUser.diamondBalance||0) + claimData.reward;
+            const field = claimData.rewardType === 'ton' ? 'tonBalance' : 'diamondBalance';
+            currentUser[field] = (currentUser[field]||0) + claimData.reward;
             updateUI();
             document.getElementById('promo-input').value = '';
             document.getElementById('modal-promo').classList.remove('show');
@@ -1908,7 +1954,6 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
     }
 }));
 
-
 // ── LOOTBOX SYSTEM ──
 function updateLootbox(){
     if(!currentUser) return;
@@ -1916,8 +1961,8 @@ function updateLootbox(){
     const el  = document.getElementById('lootbox-balance');
     if(el) el.innerText = lb.toFixed(0);
 
-    // Progress bar toward 150 TP
-    const MIN = 150;
+    // Progress bar toward 300 TP
+    const MIN = 300;
     const pct = Math.min(100, (lb / MIN) * 100);
     const bar = document.getElementById('lootbox-progress-bar');
     const ptxt = document.getElementById('lootbox-progress-text');
@@ -1969,7 +2014,7 @@ async function checkLootboxTransfer(){
         ['ad1','ad2','ad3','ad4'].forEach(k=>localStorage.setItem(`coinly_${k}_${currentUser.id}`,0));
         updateUI(); updateLootbox();
         fetch(`${API_BASE}/claimAd`,{method:'POST',headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({userId:currentUser.id,initData:TG_INIT_DATA,batch:{_resetOnly:true}})}).catch(()=>{});
+            body:JSON.stringify({userId:currentUser.id,batch:{_resetOnly:true}})}).catch(()=>{});
     }
 }
 
@@ -1977,7 +2022,7 @@ async function checkLootboxTransfer(){
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-lootbox-claim')?.addEventListener('click', async () => {
         const lb = parseFloat(currentUser?.lootboxBalance||0);
-        if(lb < 150) return;
+        if(lb < 300) return;
         const btn = document.getElementById('btn-lootbox-claim');
         btn.disabled = true;
         btn.innerHTML = '<div class="loader-spin" style="margin:0 auto;width:16px;height:16px;border-width:2px;"></div>';
@@ -2059,7 +2104,7 @@ const LANG_STRINGS = {
         wnT1: "📋 Tasks Section",
         wnT1d: "Complete tasks to earn TP. Tap GO → Join → VERIFY → get +10 TP. More tasks = more TP.",
         wnT2: "🎬 Earn Section (Ads)",
-        wnT2d: "Watch ads daily to earn TP. Earnings go to Lootbox first. Collect 150 TP minimum then claim to main balance (2x per day).",
+        wnT2d: "Watch ads daily to earn TP. Earnings go to Lootbox first. Collect 300 TP minimum then claim to main balance (2x per day).",
         wnT3: "🎲 Dice Game",
         wnT3d: "Roll dice every 4 hours. Watch 1 ad per roll. Win TP based on outcome: Under 7, Lucky 7, or Over 7.",
         wnT4: "💸 Withdraw",
@@ -2102,6 +2147,7 @@ document.getElementById('btn-whats-new-close')?.addEventListener('click', () => 
     if(currentUser) localStorage.setItem(`coinly_wn_${currentUser.id}`, '1');
 });
 
+initTonConnect();
 initApp();
 // Safety fallback — hide splash after 8 seconds no matter what
 setTimeout(hideSplash, 8000);
