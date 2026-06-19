@@ -304,9 +304,10 @@ body.theme-light .btn-outline{
 /* TON ROW */
 .ton-sub-row{background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:0.78rem;color:rgba(255,255,255,0.85);}
 .ton-sub-row span{font-family:var(--mono);font-weight:700;}
+@keyframes tickerScroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 </style>
 </head>
-<body class="theme-light">
+<body>
 
 <!-- ══ SPLASH LOADING SCREEN ══ -->
 <div id="splash-screen" style="
@@ -370,85 +371,138 @@ body.theme-light .btn-outline{
 <header class="app-header">
     <div class="brand"><i class="fas fa-bolt"></i> Coinly<span class="t">Task</span></div>
     <div class="head-actions">
-
-        <div class="icon-btn" id="btn-promo" title="Promo Code"><i class="fas fa-ticket-alt"></i></div>
         <div class="icon-btn" id="btn-history" title="History"><i class="fas fa-clock-rotate-left"></i></div>
         <!-- Hidden triggers for modal compatibility -->
         <div id="btn-refer" style="display:none;"></div>
         <div id="btn-withdraw" style="display:none;"></div>
+        <div id="btn-promo" style="display:none;"></div>
     </div>
 </header>
 
 <main class="container">
 
-<!-- ══ TASKS SECTION ══ -->
+<!-- ══ HOME / TASKS SECTION ══ -->
 <section id="sec-tasks" class="content-section active">
 
-    <!-- Balance Card — Clean Minimal Light -->
-    <div class="balance-card">
-        <!-- Background glow -->
-        <div class="bc-glow-1"></div>
-        <div class="bc-glow-2"></div>
-
+    <!-- ── Hero balance banner (matches Dice purple style) ── -->
+    <div style="background:linear-gradient(135deg,#1e0a4a 0%,#3b0764 40%,#6d28d9 80%,#a855f7 100%);padding:22px 18px 26px;border-radius:0 0 24px 24px;margin-bottom:14px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(168,85,247,0.25) 0%,transparent 70%);pointer-events:none;"></div>
         <!-- User row -->
-        <div class="bc-user-row">
-            <div class="bc-user-left">
-                <div class="bc-avatar">
-                    <i class="fas fa-user-astronaut"></i>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:42px;height:42px;border-radius:14px;background:rgba(168,85,247,0.25);border:1.5px solid rgba(168,85,247,0.5);display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+                    <i class="fas fa-user-astronaut" style="color:#c4b5fd;"></i>
                 </div>
                 <div>
-                    <div class="bc-wallet-label" data-i18n="wallet">My Wallet</div>
-                    <div class="user-id-pill bc-uid-pill" id="uid-display"><i class="fas fa-hashtag"></i> ID: <span class="bc-uid-val">...</span> <i class="fas fa-copy" style="font-size:0.6rem;opacity:0.6;"></i></div>
+                    <div style="font-weight:800;font-size:0.9rem;color:#f1f5f9;margin-bottom:3px;">My Wallet</div>
+                    <div class="user-id-pill" id="uid-display" style="background:rgba(0,0,0,0.25);border:1px solid rgba(168,85,247,0.3);color:rgba(255,255,255,0.85);font-size:0.7rem;cursor:pointer;">
+                        <i class="fas fa-hashtag" style="color:#a78bfa;"></i> ID: <span id="uid-val">...</span> <i class="fas fa-copy" style="font-size:0.55rem;opacity:0.6;"></i>
+                    </div>
                 </div>
             </div>
-            <!-- TON badge -->
-            <div class="bc-ton-box">
-                <div class="bc-ton-label">TON</div>
-                <div class="bc-ton-val" id="bal-ton">0.0000</div>
+            <div style="text-align:right;">
+                <div style="font-size:0.58rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Tasks Done</div>
+                <div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:#fbbf24;" id="tasks-done-count">0</div>
             </div>
         </div>
-
-        <!-- Diamond balance — hero number -->
-        <div class="bc-hero">
-            <div class="bc-hero-label">Total TP Balance</div>
-            <div class="bc-hero-val" id="bal-diamond">0</div>
-            <div class="bc-hero-usd" id="bal-usdt">≈ $0.00 USDT</div>
-        </div>
-
-        <!-- Stats row -->
-        <div class="bc-stats">
-            <div class="bc-stat-box bc-stat-tp">
-                <div class="bc-stat-label">💎 TP</div>
-                <div class="bc-stat-val" id="bal-diamond-2">0</div>
-            </div>
-            <div class="bc-stat-box bc-stat-tasks">
-                <div class="bc-stat-label">⭐ Tasks Done</div>
-                <div class="bc-stat-val" id="tasks-done-count">0</div>
-            </div>
-        </div>
-
-        <!-- Action buttons -->
-        <div class="bc-actions">
-            <button id="btn-withdraw-inline" class="btn bc-btn-withdraw">
-                <i class="fas fa-arrow-up-from-bracket"></i> <span data-i18n="btnWithdraw">Withdraw</span>
-            </button>
-            <button id="btn-refer-inline" class="btn bc-btn-refer">
-                <i class="fas fa-user-plus"></i> <span data-i18n="btnRefer">Refer & Earn</span>
-            </button>
+        <!-- TP balance hero -->
+        <div style="text-align:center;margin-bottom:4px;">
+            <div style="font-size:0.62rem;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px;">Total TP Balance</div>
+            <div style="font-family:var(--mono);font-size:2.8rem;font-weight:800;color:#fff;letter-spacing:-1px;line-height:1;" id="bal-diamond">0</div>
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-top:5px;" id="bal-usdt">≈ $0.00 USDT</div>
         </div>
     </div>
 
-    <!-- Task List -->
-    <div>
-        <h2 class="sec-title"><i class="fas fa-clipboard-check"></i> <span data-i18n="availTasks">Available Tasks</span></h2>
-        <div class="platform-row">
-            <div class="platform-pill active" data-filter="all" data-i18n="filterAll">All</div>
-            <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> <span data-i18n="filterChannel">Channel</span></div>
-            <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> <span data-i18n="filterGroup">Group</span></div>
-            <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> <span data-i18n="filterBot">Bot</span></div>
-            <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> <span data-i18n="filterSocial">Social</span></div>
+    <div style="padding:0 2px;">
+
+        <!-- ── 4 Quick Action Cards ── -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+
+            <!-- 1. Refer -->
+            <div id="home-refer-card" style="background:#1a1a35;border:1.5px solid rgba(16,185,129,0.35);border-radius:18px;padding:16px 14px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 2px 12px rgba(0,0,0,0.3);"
+                 onclick="document.getElementById('btn-refer').click()">
+                <div style="width:38px;height:38px;border-radius:12px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:10px;">
+                    <i class="fas fa-user-plus" style="color:#4ade80;"></i>
+                </div>
+                <div style="font-weight:800;font-size:0.82rem;color:#f1f5f9;margin-bottom:2px;">Refer & Earn</div>
+                <div style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Invite friends<br>earn TP rewards</div>
+                <div style="margin-top:8px;font-size:0.65rem;font-weight:700;color:#4ade80;background:rgba(16,185,129,0.1);padding:3px 8px;border-radius:20px;display:inline-block;">+50~230 TP</div>
+            </div>
+
+            <!-- 2. Promo Code -->
+            <div style="background:#1a1a35;border:1.5px solid rgba(245,158,11,0.35);border-radius:18px;padding:16px 14px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 2px 12px rgba(0,0,0,0.3);"
+                 onclick="document.getElementById('btn-promo').click()">
+                <div style="width:38px;height:38px;border-radius:12px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:10px;">
+                    <i class="fas fa-ticket-alt" style="color:#fbbf24;"></i>
+                </div>
+                <div style="font-weight:800;font-size:0.82rem;color:#f1f5f9;margin-bottom:2px;">Promo Code</div>
+                <div style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Redeem a code<br>for bonus TP</div>
+                <div style="margin-top:8px;font-size:0.65rem;font-weight:700;color:#fbbf24;background:rgba(245,158,11,0.1);padding:3px 8px;border-radius:20px;display:inline-block;">Bonus TP</div>
+            </div>
+
+            <!-- 3. Withdraw -->
+            <div style="background:#1a1a35;border:1.5px solid rgba(239,68,68,0.35);border-radius:18px;padding:16px 14px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 2px 12px rgba(0,0,0,0.3);"
+                 onclick="document.getElementById('btn-withdraw').click()">
+                <div style="width:38px;height:38px;border-radius:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:10px;">
+                    <i class="fas fa-arrow-up-from-bracket" style="color:#f87171;"></i>
+                </div>
+                <div style="font-weight:800;font-size:0.82rem;color:#f1f5f9;margin-bottom:2px;">Withdraw</div>
+                <div style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Cash out your<br>TP earnings</div>
+                <div style="margin-top:8px;font-size:0.65rem;font-weight:700;color:#f87171;background:rgba(239,68,68,0.1);padding:3px 8px;border-radius:20px;display:inline-block;">Min 1000 TP</div>
+            </div>
+
+            <!-- 4. Tasks -->
+            <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.35);border-radius:18px;padding:16px 14px;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 2px 12px rgba(0,0,0,0.3);"
+                 id="home-tasks-card">
+                <div style="width:38px;height:38px;border-radius:12px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);display:flex;align-items:center;justify-content:center;font-size:1.1rem;margin-bottom:10px;">
+                    <i class="fas fa-clipboard-check" style="color:#818cf8;"></i>
+                </div>
+                <div style="font-weight:800;font-size:0.82rem;color:#f1f5f9;margin-bottom:2px;">Tasks</div>
+                <div style="font-size:0.68rem;color:#94a3b8;line-height:1.4;">Complete tasks<br>earn 10 TP each</div>
+                <div style="margin-top:8px;font-size:0.65rem;font-weight:700;color:#818cf8;background:rgba(99,102,241,0.1);padding:3px 8px;border-radius:20px;display:inline-block;">+10 TP/task</div>
+            </div>
         </div>
-        <div id="task-list-container"></div>
+
+        <!-- ── Stats Row ── -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+            <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:14px;padding:12px 8px;text-align:center;">
+                <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:3px;">Total TP</div>
+                <div style="font-family:var(--mono);font-size:0.95rem;font-weight:800;color:#a78bfa;" id="bal-diamond-2">0</div>
+            </div>
+            <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:14px;padding:12px 8px;text-align:center;">
+                <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:3px;">Invites</div>
+                <div style="font-family:var(--mono);font-size:0.95rem;font-weight:800;color:#4ade80;" id="home-total-invites">0</div>
+            </div>
+            <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:14px;padding:12px 8px;text-align:center;">
+                <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:3px;">Ref Income</div>
+                <div style="font-family:var(--mono);font-size:0.95rem;font-weight:800;color:#fbbf24;" id="home-ref-earned">0</div>
+            </div>
+        </div>
+
+        <!-- ── Task List ── -->
+        <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.25);border-radius:18px;padding:14px;margin-bottom:14px;">
+            <div style="font-weight:800;font-size:0.85rem;color:#a78bfa;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+                <i class="fas fa-clipboard-check"></i> Available Tasks
+            </div>
+            <!-- Filter pills -->
+            <div class="platform-row" style="margin-bottom:12px;">
+                <div class="platform-pill active" data-filter="all">All</div>
+                <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> Channel</div>
+                <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
+                <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
+                <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
+            </div>
+            <div id="task-list-container"></div>
+        </div>
+
+        <!-- ── Recent Withdrawals (animated marquee) ── -->
+        <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:16px;padding:14px;margin-bottom:14px;overflow:hidden;">
+            <div style="font-weight:800;font-size:0.82rem;color:#cbd5e1;margin-bottom:10px;">💸 Recent Withdrawals</div>
+            <div style="overflow:hidden;position:relative;height:28px;">
+                <div id="withdraw-ticker" style="display:flex;gap:0;white-space:nowrap;animation:tickerScroll 18s linear infinite;"></div>
+            </div>
+        </div>
+
     </div>
 </section>
 
@@ -639,6 +693,16 @@ body.theme-light .btn-outline{
 </nav>
 
 <!-- ══ MODALS ══ -->
+
+<!-- ALERT MODAL — restored, this is used by showAlert() everywhere in the app -->
+<div class="modal-bg" id="modal-alert">
+    <div class="modal-box" style="max-width:290px;">
+        <i id="alert-icon" class="fas fa-info-circle" style="font-size:2.2rem;color:var(--primary);margin-bottom:12px;display:block;"></i>
+        <div id="alert-title" class="modal-title" style="margin-bottom:6px;">Notice</div>
+        <p id="alert-msg" style="font-size:0.85rem;color:var(--text-sub);margin-bottom:16px;white-space:pre-line;"></p>
+        <button class="btn btn-primary btn-full close-modal">OK</button>
+    </div>
+</div>
 
 <!-- WITHDRAW -->
 <div class="modal-bg" id="modal-withdraw">
@@ -1109,6 +1173,7 @@ async function initApp(){
                 if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
                 if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;padding:20px;"><div style="font-size:3rem;">🚫</div><h3>Account banned.</h3></div>';
                 updateUI(); checkLootboxTransfer(); checkCommunityJoin(); fetchTasks('all');
+        loadWithdrawTicker();
                 return;
             }
         }
@@ -1250,15 +1315,13 @@ function updateUI(){
     hideSplash(); // Always hide splash when UI updates
     if(!currentUser) return;
     try{
-        const uidSpan = document.querySelector('#uid-display span');
+        const uidSpan = document.getElementById('uid-val') || document.querySelector('#uid-display span');
         if(uidSpan) uidSpan.innerText = currentUser.id || tg?.initDataUnsafe?.user?.id || '---';
     }catch(e){}
     const diamond = parseFloat(currentUser.diamondBalance||0);
-    const tonBal  = parseFloat(currentUser.tonBalance||0);
     document.getElementById('bal-diamond').innerText = diamond.toFixed(2);
     const usdtEl = document.getElementById('bal-usdt');
     if(usdtEl) usdtEl.innerText = `≈ $${(diamond * DIAMOND_TO_USD).toFixed(3)} USDT`;
-    document.getElementById('bal-ton').innerText = tonBal.toFixed(4);
     try{ document.getElementById('tasks-done-count').innerText = (currentUser.completedTasks||[]).length; }catch(e){}
     try{ document.getElementById('ads-bal-diamond').innerText = diamond.toFixed(2); }catch(e){}
     try{ document.getElementById('ads-bal-usdt').innerText = '≈ $' + (diamond * DIAMOND_TO_USD).toFixed(3) + ' USDT'; }catch(e){}
@@ -1269,7 +1332,9 @@ function updateUI(){
         const wdUsdt = document.getElementById('wd-balance-usdt');
         if(wdUsdt) wdUsdt.innerText = `≈ $${(wdDiamond * DIAMOND_TO_USD).toFixed(3)} USDT`;
     }catch(e){}
-    try{ document.getElementById('ct-balance').innerText = diamond.toFixed(2); }catch(e){}
+    try{ document.getElementById('bal-diamond-2').innerText = Math.floor(diamond); }catch(e){}
+    try{ document.getElementById('home-total-invites').innerText = currentUser.totalInvites||0; }catch(e){}
+    try{ document.getElementById('home-ref-earned').innerText = currentUser.referralDiamondEarned||0; }catch(e){}
 
     // refer
     try{
@@ -1339,13 +1404,20 @@ async function runAdMission(type, btnId, sdk){
         }
 
         // 2) Show the actual ad — only a genuine SDK completion counts, no fail-open
-        if(!sdk){ showAlert('Unavailable','Ad not available right now.','error'); return; }
+        if(!sdk){ showAlert('Unavailable','Ad not available right now. Try again later.','error'); return; }
         try{
             await sdk();
         }catch(adErr){
             const msg = (adErr?.message||adErr?.type||'').toLowerCase();
-            if(msg.includes('click_required')) showAlert('Click Required','You must click the ad to earn reward. Watch and click! 👆','error');
-            else showAlert('Skipped','Watch the full ad to earn reward.','error');
+            if(msg.includes('click_required')){
+                showAlert(
+                    '👆 One Click Required',
+                    'Tap the ad once to earn your reward.\n\nWatch the ad → tap it once → press back. That\'s all! 🎯',
+                    'error'
+                );
+            } else {
+                showAlert('⚠️ Ad Not Completed','Watch the full ad to earn your reward. Try again.','error');
+            }
             return; // token simply expires unused — no harm
         }
 
@@ -1363,8 +1435,13 @@ async function runAdMission(type, btnId, sdk){
                 currentUser[fieldKey] = (currentUser[fieldKey]||0) + 1;
                 _lastAdWatchMs = Date.now();
                 updateUI(); updateLootbox();
-                showAlert('Earned!',`+${reward} 💎 Added to Lootbox!`,'success');
-                checkValidRef(); // check if friend hit 20-ads milestone (step 3 refer reward)
+                // ── Clear reward popup — user sees exactly what they earned ──
+                showAlert(
+                    '🎉 Reward Claimed!',
+                    `✅ +${reward} TP added to your Lootbox!\n\nKeep watching ads to fill up your Lootbox (300 TP min to claim).`,
+                    'success'
+                );
+                checkValidRef();
                 applyAdGapCooldown();
             } else {
                 showAlert('Failed', data.error || 'Could not credit reward, try again.', 'error');
@@ -2063,7 +2140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try{
             const res = await fetch(`${API_BASE}/claimAd`,{
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({ userId: currentUser.id, batch: { lootboxClaim: true } })
+                body: JSON.stringify({ userId: currentUser.id, initData: TG_INIT_DATA, batch: { lootboxClaim: true } })
             });
             const data = await res.json();
             if(data.success){
@@ -2185,14 +2262,36 @@ initApp();
 // Safety fallback — hide splash after 8 seconds no matter what
 setTimeout(hideSplash, 8000);
 
-// Inline withdraw button (in balance card)
-document.getElementById('btn-withdraw-inline')?.addEventListener('click',()=>{
-    document.getElementById('btn-withdraw').click();
+// Home → Tasks card smooth-scrolls to the task list
+document.getElementById('home-tasks-card')?.addEventListener('click', ()=>{
+    document.getElementById('task-list-container')?.scrollIntoView({behavior:'smooth', block:'start'});
 });
-// Inline refer button (in balance card)
-document.getElementById('btn-refer-inline')?.addEventListener('click',()=>{
-    document.getElementById('btn-refer').click();
-});
+
+// ── Recent Withdrawals Ticker ──
+async function loadWithdrawTicker(){
+    try{
+        const res  = await fetch(`${API_BASE}/getRecentWithdrawals`);
+        const data = await res.json();
+        const list = data.recent || [];
+        if(!list.length) return;
+        const ticker = document.getElementById('withdraw-ticker');
+        if(!ticker) return;
+        const makeItem = ({firstName, diamondAmount, method}) => {
+            const icon = method === 'binance' ? '💵' : '💎';
+            return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 16px 4px 0;font-size:0.75rem;color:#cbd5e1;white-space:nowrap;">
+                <span style="color:#4ade80;font-weight:700;">✔</span>
+                <span style="color:#f1f5f9;font-weight:600;">${firstName}</span>
+                withdrew
+                <span style="color:#fbbf24;font-weight:700;">${Math.floor(diamondAmount)} TP</span>
+                ${icon}
+                <span style="color:#334155;padding:0 8px;">•</span>
+            </span>`;
+        };
+        // Doubled HTML for seamless infinite scroll loop
+        const html = list.map(makeItem).join('');
+        ticker.innerHTML = html + html;
+    }catch(e){ console.warn('[ticker]', e); }
+}
 </script>
 
 </body>
