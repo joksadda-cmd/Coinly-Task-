@@ -1074,7 +1074,6 @@ async function rollDice(){
             if(data.success){
                 credited = true;
                 currentUser.diamondBalance = (currentUser.diamondBalance||0) + (data.reward ?? out.reward);
-                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                 updateUI();
                 showAlert('🎲 Result!', msg, 'success');
             } else {
@@ -1109,7 +1108,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 // ── INIT APP ──
-const INIT_CACHE_TTL = 5 * 60 * 1000;
 async function initApp(){
     if(!tg.initDataUnsafe?.user) return document.body.innerHTML='<h3 style="text-align:center;margin-top:50px;color:#333;font-family:Outfit,sans-serif;">Open in Telegram.</h3>';
     tg.ready(); tg.expand(); tg.setHeaderColor('#ffffff');
@@ -1117,24 +1115,13 @@ async function initApp(){
     const today = getToday();
     const sp = tg.initDataUnsafe.start_param;
 
-    // Session cache — skip API if app opened within 5 min
-    try{
-        const ct = parseInt(localStorage.getItem(`coinly_t_${uid}`)||'0');
-        if(Date.now()-ct < INIT_CACHE_TTL){
-            const cu = JSON.parse(localStorage.getItem(`coinly_u_${uid}`)||'{}');
-            if(cu && cu.id){
-                currentUser = cu;
-                if(localStorage.getItem(`coinly_pendingDep_${uid}`)==='1') currentUser._pendingDeposit=true;
-                if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
-                if(currentUser.isBanned) return document.body.innerHTML='<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Outfit,sans-serif;padding:20px;"><div style="font-size:3rem;">🚫</div><h3>Account banned.</h3></div>';
-                updateUI(); checkLootboxTransfer(); checkCommunityJoin(); fetchTasks('all');
-        loadWithdrawTicker();
-                return;
-            }
-        }
-    }catch(e){}
-
     // ── Load user via API ──
+    // NOTE: always fetched fresh on every app open — a previous 5-minute local
+    // cache here caused ad-watch counts to display stale values (e.g. showing
+    // "0/10" after closing and reopening within the cache window, even though
+    // the real Firestore count was higher). Ad-watch counts are tied directly
+    // to a reward system, so showing stale data here isn't an acceptable
+    // tradeoff for saving one lightweight API call per app open.
     let apiData = null;
     try{
         const res = await fetch(`${API_BASE}/init`, {
@@ -1158,18 +1145,6 @@ async function initApp(){
 
     if(apiData?.user){
         currentUser = { id: uid, ...apiData.user };
-        if(apiData.pendingDeposit) currentUser._pendingDeposit = true;
-        if(localStorage.getItem(`coinly_pendingDep_${uid}`) === '1') currentUser._pendingDeposit = true;
-        if(localStorage.getItem(`coinly_pendingTask_${uid}`)==='1') currentUser._pendingTask=true;
-        if(!apiData.pendingDeposit && localStorage.getItem(`coinly_pendingDep_${uid}`)){
-            localStorage.removeItem(`coinly_pendingDep_${uid}`);
-            currentUser._pendingDeposit = false;
-        }
-        try{
-            const tc={...currentUser}; delete tc._pendingDeposit; delete tc._pendingTask;
-            localStorage.setItem(`coinly_u_${uid}`,JSON.stringify(tc));
-            localStorage.setItem(`coinly_t_${uid}`,String(Date.now()));
-        }catch(e){}
     } else {
         // API failed — build minimal currentUser from Telegram data
         currentUser = {
@@ -1633,7 +1608,6 @@ document.getElementById('task-list-container').addEventListener('click', async e
                     if(!currentUser.completedTasks) currentUser.completedTasks=[];
                     currentUser.completedTasks.push(id);
                     _tasksCache = null; // invalidate so next fetch gets fresh list
-                    try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                     updateUI();
                     showAlert('Task Completed!',`+${earned} 💎 TP earned!`,'success');
                     b.parentElement.remove();
@@ -1679,7 +1653,6 @@ async function checkValidRef(){
                 currentUser.referStep2Claimed = true;
                 currentUser.isValidatedRef    = true;
                 currentUser.diamondBalance    = (currentUser.diamondBalance||0) + (data.reward||50);
-                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                 updateUI();
             }
         }catch(e){ console.warn('[checkValidRef step2]', e); }
@@ -1696,7 +1669,6 @@ async function checkValidRef(){
             if(data.success && !data.alreadyClaimed){
                 currentUser.referStep3Claimed = true;
                 currentUser.diamondBalance    = (currentUser.diamondBalance||0) + (data.reward||100);
-                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                 updateUI();
             }
         }catch(e){ console.warn('[checkValidRef step3]', e); }
@@ -1817,7 +1789,6 @@ document.getElementById('wd-submit').addEventListener('click', async()=>{
             currentUser.diamondBalance = wData.newBalance ?? (currentUser.diamondBalance - amt);
             currentUser.lastWithdrawDate = getToday();
             currentUser._lastWithdrawReferCount = currentUser.totalInvites || 0; // save refer snapshot
-            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
             _historyCache = null;
             updateUI();
             ['wd-amount-ton','wd-amount-bnb','wd-amount-bkash','wd-address-ton','wd-address-bnb','wd-address-bkash'].forEach(id=>{
@@ -1905,7 +1876,6 @@ document.getElementById('promo-submit').addEventListener('click', async()=>{
             document.getElementById('modal-promo').classList.remove('show');
             showAlert('🎉 Claimed!', `+${claimData.reward} 💎 TP added to your balance!`, 'success');
             // Cache clear
-            try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
         } else {
             // Edge case: code used between validate and claim (race condition)
             showAlert('❌ Claim Failed', claimData.error || 'Could not claim reward.', 'error');
@@ -2119,7 +2089,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentUser.lootboxBalance    = 0;
                 currentUser.lootboxClaimDate  = getToday();
                 currentUser.lootboxClaimCount = (currentUser.lootboxClaimCount||0) + 1;
-                try{ localStorage.removeItem(`coinly_u_${currentUser.id}`); localStorage.removeItem(`coinly_t_${currentUser.id}`); }catch(e){}
                 updateUI(); updateLootbox();
                 showAlert('🎁 Claimed!', `+${prev.toFixed(0)} TP added to main balance! (${data.claimsLeft} claim${data.claimsLeft!==1?'s':''} left today)`, 'success');
             } else {
