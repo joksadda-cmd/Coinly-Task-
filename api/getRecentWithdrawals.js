@@ -1,5 +1,7 @@
 // api/getRecentWithdrawals.js
-// Returns the last 10 approved withdrawals for the home screen live ticker.
+// Returns the last 10 completed (successfully paid out) withdrawals for the
+// home screen live ticker. Status 'completed' matches what approveDeposit.js
+// sets when an admin approves a withdrawal — not 'approved'.
 // Only firstName + amount + method are exposed — no userId, no wallet address.
 // Used for the "Recent Withdrawals" animated feed on the home section.
 
@@ -25,9 +27,9 @@ export default async function handler(req, res) {
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
     try {
-        // Fetch recent approved withdrawals — no composite index needed (filter in JS)
+        // Fetch recent completed withdrawals — no composite index needed (filter in JS)
         const snap = await db.collection('withdrawals')
-            .where('status', '==', 'approved')
+            .where('status', '==', 'completed')
             .limit(30)
             .get();
 
