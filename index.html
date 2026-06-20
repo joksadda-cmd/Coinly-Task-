@@ -73,59 +73,6 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);padding:65px 0 85px;min-height:100vh;-webkit-tap-highlight-color:transparent;overflow-x:hidden;}
 
-/* ══════════════════════════════════════════════════════════ */
-/* CLEAN MINIMAL LIGHT THEME — Home (header) + Task screen only */
-/* Toggled on body via JS when the Tasks tab is active (default).*/
-/* Ads/Dice sections + bottom nav stay on the original dark theme.*/
-/* ══════════════════════════════════════════════════════════ */
-body.theme-light{
-    --bg-page:#f8fafc;
-    --bg-card:#ffffff;
-    --bg-section:#f1f5f9;
-    --text-main:#0f172a;
-    --text-sub:#334155;
-    --text-muted:#64748b;
-    --border:#e2e8f0;
-    --border-mid:#cbd5e1;
-    --primary:#2563eb;
-    --primary-dark:#1d4ed8;
-    --primary-light:#eff6ff;
-    --primary-mid:#3b82f6;
-    --accent:#0891b2;
-    background:var(--bg-page);
-}
-body.theme-light .app-header{
-    background:#ffffff;
-    border-bottom:1px solid #e2e8f0;
-    box-shadow:0 2px 14px rgba(15,23,42,0.06);
-}
-body.theme-light .icon-btn{ background:#f1f5f9; }
-body.theme-light .sec-title{ color:#475569; }
-body.theme-light .task-card{
-    background:#ffffff;
-    border:1px solid #e2e8f0;
-    box-shadow:0 2px 10px rgba(15,23,42,0.05);
-}
-body.theme-light .t-name{ color:#0f172a; }
-body.theme-light .t-reward{ color:#4f46e5; }
-body.theme-light .platform-pill{
-    background:#f1f5f9;
-    border:1px solid #e2e8f0;
-    color:#475569;
-}
-body.theme-light .platform-pill.active,
-body.theme-light .platform-pill:hover{
-    background:#eff6ff;
-    color:#2563eb;
-    border-color:#bfdbfe;
-}
-body.theme-light .btn-outline{
-    background:#ffffff;
-    border:1.5px solid #2563eb;
-    color:#2563eb;
-    box-shadow:none;
-}
-
 /* ── Balance Card (Home) — only ever rendered inside the Tasks screen ── */
 .balance-card{background:#ffffff;border:1px solid #e2e8f0;border-radius:22px;padding:20px 18px;margin-bottom:14px;box-shadow:0 8px 28px rgba(15,23,42,0.07);position:relative;overflow:hidden;}
 .bc-glow-1{position:absolute;top:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(37,99,235,0.06) 0%,transparent 70%);pointer-events:none;}
@@ -479,22 +426,6 @@ body.theme-light .btn-outline{
             </div>
         </div>
 
-        <!-- ── Task List ── -->
-        <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.25);border-radius:18px;padding:14px;margin-bottom:14px;">
-            <div style="font-weight:800;font-size:0.85rem;color:#a78bfa;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-                <i class="fas fa-clipboard-check"></i> Available Tasks
-            </div>
-            <!-- Filter pills -->
-            <div class="platform-row" style="margin-bottom:12px;">
-                <div class="platform-pill active" data-filter="all">All</div>
-                <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> Channel</div>
-                <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
-                <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
-                <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
-            </div>
-            <div id="task-list-container"></div>
-        </div>
-
         <!-- ── Recent Withdrawals (animated marquee) ── -->
         <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:16px;padding:14px;margin-bottom:14px;overflow:hidden;">
             <div style="font-weight:800;font-size:0.82rem;color:#cbd5e1;margin-bottom:10px;">💸 Recent Withdrawals</div>
@@ -504,6 +435,29 @@ body.theme-light .btn-outline{
         </div>
 
     </div>
+</section>
+
+<!-- ══ DEDICATED TASKS SECTION (separate from Home) ══ -->
+<section id="sec-tasklist" class="content-section">
+
+    <!-- Purple banner header — same style family as Dice section -->
+    <div style="background:linear-gradient(135deg,#1e0a4a 0%,#3b0764 40%,#6d28d9 80%,#a855f7 100%);border-radius:20px;padding:20px 18px;margin-bottom:16px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:-30px;right:-30px;width:160px;height:160px;background:radial-gradient(circle,rgba(168,85,247,0.25) 0%,transparent 70%);pointer-events:none;"></div>
+        <div style="font-size:2.2rem;margin-bottom:6px;">📋</div>
+        <div style="font-weight:800;font-size:1.3rem;color:#fff;margin-bottom:4px;">Available Tasks</div>
+        <div style="font-size:0.78rem;color:rgba(255,255,255,0.75);">Complete tasks below • Earn TP instantly</div>
+    </div>
+
+    <!-- Filter pills -->
+    <div class="platform-row" style="margin-bottom:14px;">
+        <div class="platform-pill active" data-filter="all">All</div>
+        <div class="platform-pill" data-filter="telegram_channel"><i class="fab fa-telegram-plane"></i> Channel</div>
+        <div class="platform-pill" data-filter="telegram_group"><i class="fas fa-users"></i> Group</div>
+        <div class="platform-pill" data-filter="telegram_bot"><i class="fas fa-robot"></i> Bot</div>
+        <div class="platform-pill" data-filter="social"><i class="fas fa-play"></i> Social</div>
+    </div>
+
+    <div id="task-list-container"></div>
 </section>
 
 <!-- ══ ADS SECTION ══ -->
@@ -687,7 +641,8 @@ body.theme-light .btn-outline{
 
 <!-- Bottom Nav (2 items) -->
 <nav class="bottom-nav">
-    <div class="b-nav-item active" data-target="#sec-tasks"><i class="fas fa-clipboard-check"></i><span>Tasks</span></div>
+    <div class="b-nav-item active" data-target="#sec-tasks"><i class="fas fa-house"></i><span>Home</span></div>
+    <div class="b-nav-item" data-target="#sec-tasklist"><i class="fas fa-clipboard-check"></i><span>Tasks</span></div>
     <div class="b-nav-item" data-target="#sec-ads"><i class="fas fa-play-circle"></i><span>Earn</span></div>
     <div class="b-nav-item" data-target="#sec-dice"><i class="fas fa-dice" style="color:#a855f7;"></i><span>Dice</span></div>
 </nav>
@@ -1081,7 +1036,7 @@ async function rollDice(){
         await makeAdsgramCall('35170')();
     }catch(adErr){
         const msg = (adErr?.message||'').toLowerCase();
-        if(msg.includes('click_required')) showAlert('Click Required','You must click the ad to roll dice! 👆','error');
+        if(msg.includes('click_required')) showAlert('Ad Not Completed','Watch the full ad till the end to roll. Try again!','error');
         else showAlert('Skipped','Watch the full ad to roll dice.','error');
         rollBtn.disabled = false;
         rollBtn.innerHTML = '<i class="fas fa-dice"></i> Roll Dice';
@@ -1411,8 +1366,8 @@ async function runAdMission(type, btnId, sdk){
             const msg = (adErr?.message||adErr?.type||'').toLowerCase();
             if(msg.includes('click_required')){
                 showAlert(
-                    '👆 One Click Required',
-                    'Tap the ad once to earn your reward.\n\nWatch the ad → tap it once → press back. That\'s all! 🎯',
+                    '⚠️ Ad Not Completed',
+                    'Watch the full ad until it finishes on its own — closing early won\'t earn a reward. Try again!',
                     'error'
                 );
             } else {
@@ -1552,23 +1507,43 @@ const showGigaAd = () => new Promise(async (resolve, reject) => {
     }
 });
 
-// ── ADSGRAM — click mandatory (CTR system) ──
-// User must click the ad for reward. Any skip, close, or SDK error = no reward.
-// (Previously: an SDK error that wasn't recognized as a skip fell through to
-// resolve() anyway — that's the bug that let rewards through with no ad shown.)
+// ── ADSGRAM ──
+// Per AdsGram's documented API: show() resolves with {done:true} only if the
+// user watched the ad till the end; it rejects on skip/close/error. That alone
+// is the documented signal — AdsGram's SDK does NOT expose a "user clicked the
+// ad creative" field anywhere (no "clicked" property exists in their API). A
+// literal "must click the ad banner" requirement isn't something this SDK can
+// enforce, and forcing clicks specifically (vs. just watching) is treated as
+// invalid traffic / click fraud by virtually every ad network — doing that
+// could get this AdsGram account suspended, so this implementation does NOT
+// attempt it.
+//
+// What IS happening here: a minimum elapsed-time safeguard (same 6s pattern
+// already used for GigaPub below) on top of the done:true check. If you are
+// still seeing rewards on an instant skip/cross after this, the next step is
+// to open the in-app browser console (or use Eruda/remote debugging) right
+// after testing and check the "[AdsGram raw result]" log this prints — that
+// will show exactly what AdsGram's SDK is actually returning for your specific
+// block IDs, which is something only live testing on your end can reveal.
 const makeAdsgramCall = (blockId) => () => new Promise((resolve, reject) => {
-    const adObj = window.Adsgram?.init({ blockId, onError: (e) => reject(e) });
+    const adObj = window.Adsgram?.init({ blockId, onError: (e) => { console.warn('[AdsGram onError]', e); reject(e); } });
     if (!adObj?.show) { reject(new Error('AdsGram SDK unavailable')); return; }
+
+    const startedAt = Date.now();
+    const MIN_WATCH_MS = 6000; // mirrors GigaPub's 6s minimum below
+
     adObj.show().then(result => {
-        // AdsGram result: { done: true } means user clicked and completed
-        // done: false or undefined means skipped without click
-        if (result && result.done === true) {
+        console.log('[AdsGram raw result]', result, 'elapsed ms:', Date.now() - startedAt);
+        const watchedFull = result && result.done === true;
+        const elapsed     = Date.now() - startedAt;
+        if (watchedFull && elapsed >= MIN_WATCH_MS) {
             resolve();
         } else {
             reject(new Error('click_required'));
         }
-    }).catch(() => {
-        // Any SDK error — network issue, no inventory, skip, close — fails closed.
+    }).catch((e) => {
+        console.log('[AdsGram catch]', e, 'elapsed ms:', Date.now() - startedAt);
+        // Any rejection — skip, close, network issue, no inventory — fails closed.
         reject(new Error('ad_failed'));
     });
 });
@@ -2050,11 +2025,6 @@ document.querySelectorAll('.b-nav-item').forEach(l=>l.addEventListener('click',(
     l.classList.add('active');
     document.querySelector(l.dataset.target).classList.add('active');
     // Light theme only on Tasks (home) tab — Ads/Dice keep dark
-    if(l.dataset.target === '#sec-tasks'){
-        document.body.classList.add('theme-light');
-    } else {
-        document.body.classList.remove('theme-light');
-    }
     // Show Adexium banner when earn/ads tab is opened
     if(l.dataset.target === '#sec-ads'){
         try{ if(window._adexiumWidget?.show) window._adexiumWidget.show(); }catch(e){}
@@ -2262,9 +2232,9 @@ initApp();
 // Safety fallback — hide splash after 8 seconds no matter what
 setTimeout(hideSplash, 8000);
 
-// Home → Tasks card smooth-scrolls to the task list
+// Home → Tasks card switches to the dedicated Tasks tab
 document.getElementById('home-tasks-card')?.addEventListener('click', ()=>{
-    document.getElementById('task-list-container')?.scrollIntoView({behavior:'smooth', block:'start'});
+    document.querySelector('.b-nav-item[data-target="#sec-tasklist"]')?.click();
 });
 
 // ── Recent Withdrawals Ticker ──
