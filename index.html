@@ -488,7 +488,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-info">
             <div class="t-name" style="display:flex;align-items:center;gap:6px;">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:20px;">2× REWARD</span></div>
             <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
-                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +30 TP per view</span>
+                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +20 TP per view</span>
             </div>
             <div class="t-limit" id="limit-ad2" style="margin-top:4px;">0/5 today</div>
         </div>
@@ -500,29 +500,29 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-icon" style="width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-film"></i></div>
         <div class="t-info">
             <div class="t-name">AdsGram Daily</div>
-            <div style="margin-top:4px;"><span class="reward-pill"><i class="fas fa-gem"></i> +15 TP per view</span></div>
+            <div style="margin-top:4px;"><span class="reward-pill"><i class="fas fa-gem"></i> +10 TP per view</span></div>
             <div class="t-limit" id="limit-ad1" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn btn-primary" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad1">Watch</button>
     </div>
 
-    <!-- Monetag: 0.5 diamond / 25 limit -->
+    <!-- Monetag: 10 TP / 10 limit -->
     <div class="task-card">
         <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
             <div class="t-name">Monetag Ad</div>
-            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +15 TP per view</span></div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +10 TP per view</span></div>
             <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn btn-accent" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad3">Watch</button>
     </div>
 
-    <!-- Giga Pub: 0.5 diamond / 25 limit -->
+    <!-- Giga Pub: 10 TP / 10 limit -->
     <div class="task-card">
         <div class="t-icon" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-photo-video"></i></div>
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
-            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +15 TP per view</span></div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +10 TP per view</span></div>
             <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/10 today</div>
         </div>
         <button class="btn" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.3);" id="btn-ad4">Watch</button>
@@ -627,7 +627,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="background:#1a1a35;border-radius:14px;border:1.5px solid rgba(99,102,241,0.2);padding:14px;text-align:center;">
                 <div id="dice-total-earned" style="font-size:1.5rem;font-weight:800;color:#4ade80;">0.0</div>
-                <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;">💎 Earned</div>
+                <div style="font-size:0.72rem;color:#94a3b8;margin-top:2px;">💎 Earned (TP)</div>
             </div>
         </div>
 
@@ -1058,9 +1058,9 @@ async function rollDice(){
         if(diceEl) diceEl.innerText = DICE_EMOJI[out.d1-1] + ' ' + DICE_EMOJI[out.d2-1];
 
         let msg, color;
-        if(out.type==='lucky'){ msg=`⭐ Lucky 7! +${out.reward} 💎`; color='#d97706'; }
-        else if(out.type==='under'){ msg=`⬇️ Under 7 (${out.sum}) +${out.reward} 💎`; color='#7c3aed'; }
-        else { msg=`⬆️ Over 7 (${out.sum}) +${out.reward} 💎`; color='#16a34a'; }
+        if(out.type==='lucky'){ msg=`⭐ Lucky 7! +${out.reward} TP 💎`; color='#d97706'; }
+        else if(out.type==='under'){ msg=`⬇️ Under 7 (${out.sum}) +${out.reward} TP 💎`; color='#7c3aed'; }
+        else { msg=`⬆️ Over 7 (${out.sum}) +${out.reward} TP 💎`; color='#16a34a'; }
         if(resEl){ resEl.innerText=msg; resEl.style.color=color; }
 
         // Credit via claimAd API — redeems the token, server validates everything
@@ -1095,7 +1095,7 @@ async function rollDice(){
             if(histEl) histEl.innerHTML = _diceHistory.map(h=>{
                 const ic = h.type==='lucky'?'⭐':h.type==='under'?'⬇️':'⬆️';
                 const cl = h.type==='lucky'?'#d97706':h.type==='under'?'#7c3aed':'#16a34a';
-                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.75rem;"><span>${ic} Sum: <b>${h.sum}</b></span><span style="color:${cl};font-weight:700;">+${h.reward} 💎</span><span style="color:var(--text-muted);">${h.t}</span></div>`;
+                return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);font-size:0.75rem;"><span>${ic} Sum: <b>${h.sum}</b></span><span style="color:${cl};font-weight:700;">+${h.reward} TP 💎</span><span style="color:var(--text-muted);">${h.t}</span></div>`;
             }).join('');
         }
 
