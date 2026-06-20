@@ -4,6 +4,15 @@
 //
 // Deposit / task_payment / task_create removed — tasks are now created
 // manually via the admin panel, there is no user-facing TON deposit flow.
+//
+// MERGED FROM approveDeposit.js: withdraw approve/reject/fake-reject logic now
+// lives here too (see "WITHDRAW APPROVE/REJECT" section below), distinguished
+// by the request body containing `withdrawId` (no `type` field needed — this
+// is exactly what the admin panel already sends). This was merged in rather
+// than kept as a separate file to stay at 12 total API files — Vercel's Hobby
+// plan hard-caps a deployment at 12 Serverless Functions, and this project was
+// already at that limit. The admin panel's call target was updated to point
+// here (/api/notifyDeposit) instead of /api/approveDeposit.
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -20,6 +29,7 @@ if (!getApps().length) {
 const db       = getFirestore();
 const BOT      = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_TELEGRAM_ID;
+const APP_URL  = process.env.APP_URL || 'https://coinly-task.vercel.app';
 
 // TP rate constants
 const TP_TO_TON = 0.000025;  // 20000 TP = 0.5 TON
@@ -30,16 +40,24 @@ const MIN_WITHDRAW = { tonkeeper: 1000, binance: 2000 };
 const TODAY_DHAKA = () =>
     new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
-async function tgMsg(chatId, text) {
+async function tgMsg(chatId, text, extra = {}) {
     if (!BOT || !chatId) return;
     try {
         await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML' })
+            body: JSON.stringify({ chat_id: String(chatId), text, parse_mode: 'HTML', ...extra })
         });
     } catch(e) { console.warn('[tgMsg]', e.message); }
 }
+
+const miniAppBtn = {
+    reply_markup: {
+        inline_keyboard: [[
+            { text: '🚀 Open Coinly Task', web_app: { url: APP_URL } }
+        ]]
+    }
+};
 
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -49,10 +67,106 @@ export default async function handler(req, res) {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
     const body = req.body || {};
+
+    // ════════════════════════════════════
+    // WITHDRAW APPROVE / REJECT / FAKE (admin action — called from admin panel)
+    // Distinguished from everything else by the presence of withdrawId, which
+    // only the admin panel sends; the user-facing withdrawal-creation flow
+    // below (type === 'withdrawal') never includes it.
+    // ════════════════════════════════════
+    if (body.withdrawId) {
+        const { withdrawId, action, adminNote } = body;
+        if (!action) return res.status(400).json({ error: 'action required' });
+
+        try {
+            const wRef  = db.collection('withdrawals').doc(String(withdrawId));
+            const wSnap = await wRef.get();
+            if (!wSnap.exists) return res.status(404).json({ error: 'Withdrawal not found' });
+
+            const wd  = wSnap.data();
+            const uid = String(wd.userId);
+            const tp  = wd.diamondAmount || 0;
+            const methodLabel = wd.method === 'binance' ? 'Binance USDT' : 'Tonkeeper TON';
+            const converted   = wd.method === 'binance'
+                ? `$${(tp * TP_TO_USD).toFixed(3)} USDT`
+                : `${(tp * TP_TO_TON).toFixed(4)} TON`;
+
+            // ── APPROVE ──
+            if (action === 'approve') {
+                await wRef.update({
+                    status:     'completed',
+                    approvedAt: FieldValue.serverTimestamp(),
+                    adminNote:  adminNote || '',
+                });
+                await tgMsg(uid,
+                    `✅ <b>Withdrawal Successfully Sent!</b>\n\n` +
+                    `🎉 Your withdrawal has been processed!\n\n` +
+                    `💎 <b>${tp} TP</b> withdrawn\n` +
+                    `💰 <b>Amount sent: ${converted}</b>\n` +
+                    `📬 Method: <b>${methodLabel}</b>\n` +
+                    `📮 Address: <code>${wd.details || 'N/A'}</code>\n\n` +
+                    `⏱️ May take a few minutes to reflect in your wallet.\n` +
+                    `🆔 Request ID: <code>${withdrawId}</code>`,
+                    miniAppBtn
+                );
+                return res.status(200).json({ success: true, action: 'approved', withdrawId });
+            }
+
+            // ── REJECT WITH REFUND ──
+            if (action === 'reject') {
+                const uRef = db.collection('users').doc(uid);
+                await db.runTransaction(async (t) => {
+                    t.update(uRef, { diamondBalance: FieldValue.increment(tp) });
+                    t.update(wRef, {
+                        status:     'rejected',
+                        rejectedAt: FieldValue.serverTimestamp(),
+                        adminNote:  adminNote || '',
+                        refunded:   true,
+                    });
+                });
+                await tgMsg(uid,
+                    `❌ <b>Withdrawal Rejected</b>\n\n` +
+                    `Your withdrawal request has been rejected.\n\n` +
+                    `💎 <b>${tp} TP</b> has been refunded to your balance.\n` +
+                    `📋 Reason: ${adminNote || 'Please contact support.'}\n\n` +
+                    `You can try withdrawing again. 🔄`,
+                    miniAppBtn
+                );
+                return res.status(200).json({ success: true, action: 'rejected', withdrawId, refunded: tp });
+            }
+
+            // ── FAKE — NO REFUND ──
+            if (action === 'reject_no_refund') {
+                await wRef.update({
+                    status:     'rejected_fake',
+                    rejectedAt: FieldValue.serverTimestamp(),
+                    adminNote:  adminNote || 'Fake withdrawal attempt',
+                    refunded:   false,
+                });
+                await tgMsg(uid,
+                    `🚫 <b>Withdrawal Rejected — Fake Attempt</b>\n\n` +
+                    `Your withdrawal request of <b>${tp} TP</b> has been rejected.\n\n` +
+                    `⚠️ This was flagged as a <b>fraudulent request</b>.\n` +
+                    `❌ <b>No TP has been refunded.</b>\n\n` +
+                    `Repeated fake attempts may result in account ban.\n` +
+                    `Contact support if you believe this is a mistake.`,
+                    miniAppBtn
+                );
+                return res.status(200).json({ success: true, action: 'rejected_fake', withdrawId });
+            }
+
+            return res.status(400).json({ error: 'Invalid action for withdraw' });
+
+        } catch(e) {
+            console.error('[notifyDeposit withdraw-action]', e.message);
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
     const type = body.type;
 
     // ════════════════════════════════════
-    // WITHDRAWAL — TP currency, daily 1x
+    // WITHDRAWAL — TP currency, daily 1x (user-facing — creates a request)
     // ════════════════════════════════════
     if (type === 'withdrawal') {
         const { userId, username, firstName, method, address, diamondAmount } = body;
@@ -214,4 +328,4 @@ export default async function handler(req, res) {
 
     // Deposit / task_payment / task_create no longer exist on this endpoint.
     return res.status(400).json({ error: 'Invalid request type' });
-                                         }
+                        }
