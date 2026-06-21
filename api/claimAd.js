@@ -4,29 +4,37 @@
 // Dice: under/over=30TP, lucky7=50TP
 // Lootbox min: 300 TP | Dice cooldown: 4hr server-side
 //
-// ANTI-FAKE-CLAIM DESIGN (replaces the old "batch count" trust model for ads/dice):
-// 1. Frontend calls { startAd: { adType } } BEFORE showing the ad SDK. Server checks
-//    daily limit / dice cooldown / 7s inter-ad gap, and if OK issues a one-time token.
-// 2. Frontend only shows the ad after getting a token, and only calls
-//    { claimAd: { adType, token } } AFTER the ad SDK genuinely reports completion.
-// 3. Server validates the token (belongs to this user, this adType, unused, not
-//    expired), marks it used, and credits the reward. A token can't be replayed,
-//    can't be reused for a different ad type, and expires after 2 minutes if unused.
-// This does not require trusting any client-reported "ad watched" signal — the
-// reward amount and limits are always server-computed, same as before.
+// ANTI-FAKE-CLAIM DESIGN v2 — same security properties as before, cheaper:
+// Previously each ad-watch wrote a separate document to a standalone `adTokens`
+// collection (3 reads + 4 writes per watch: token-create, user-read+write in
+// startAd; token-read, user-read, token-update, user-update in claimAd). The
+// token is now just a field on the user's own document (`pendingAdToken`)
+// instead of a separate collection doc — cuts this to 1 read + 1 write per
+// step (2 reads + 2 writes per full ad watch total), with IDENTICAL security
+// guarantees:
+//   - single-use:  cleared the moment it's redeemed, in the same transaction
+//                  that credits the reward — a replayed claimAd call finds no
+//                  matching pending token and is rejected
+//   - time-limited: issuedAtMs + AD_TOKEN_TTL_MS, same as before
+//   - tied to this exact user: it's a field ON their own document, and every
+//     request is already authenticated via initData (HMAC against BOT_TOKEN)
+//     to be this exact Telegram user — no separate random token ID needed,
+//     since there's no cross-document lookup happening that a random ID would
+//     protect against
+//   - tied to a specific ad type: adType match checked at claim time
+// Trade-off: only ONE ad can be "in flight" per user at a time (starting ad2
+// while ad1's token is still pending overwrites it). This matches how the UI
+// already works — one ad modal at a time, user finishes or cancels before
+// starting another — so it's not a real behavior change for normal usage.
 //
-// Residual gap: this proves "a real ad-watch attempt was started and a token was
-// redeemed inside a real Telegram session" — it does not prove the ad pixels were
-// actually rendered on screen. A user who can intercept network requests could in
-// theory call startAd then immediately call claimAd without the SDK ever running.
-// Closing that fully would require the ad network to also confirm the impression
-// server-side, which AdsGram/Monetag/GigaPub don't expose for Mini Apps. This
-// raises the bar a lot (no more "just hit the API N times for the daily max")
-// but it isn't a cryptographic guarantee.
+// Residual gap (same as before, restated): this proves "a real ad-watch
+// attempt was started and claimed inside a real Telegram session" — it does
+// not cryptographically prove the ad pixels were rendered on screen. Closing
+// that fully would need the ad network to confirm impressions server-side,
+// which AdsGram/Monetag/GigaPub don't expose for Mini Apps.
 //
 // joinGift / lootboxClaim / day-reset-only pings stay on the old "batch" shape
-// since they carry no reward-without-proof risk (one-time flag, balance transfer,
-// or a no-op reset check).
+// since they carry no reward-without-proof risk.
 
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
@@ -109,7 +117,8 @@ export default async function handler(req, res) {
     const userRef = db.collection('users').doc(uid);
 
     // ════════════════════════════════════
-    // START AD — issue a one-time token, no reward yet
+    // START AD — store a one-time pending-token field on the user doc, no reward yet
+    // 1 read + 1 write (was: 1 read + 2 writes against a separate collection)
     // ════════════════════════════════════
     if (startAd && typeof startAd === 'object') {
         const adType = startAd.adType;
@@ -118,7 +127,6 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: false, error: 'Invalid adType' });
         }
         try {
-            let tokenId = '';
             await db.runTransaction(async (t) => {
                 const snap = await t.get(userRef);
                 if (!snap.exists) throw new Error('User not found');
@@ -142,43 +150,40 @@ export default async function handler(req, res) {
                     }
                 }
 
-                const tokenRef = db.collection('adTokens').doc();
-                tokenId = tokenRef.id;
-                t.set(tokenRef, { uid, adType, used: false, issuedAtMs: Date.now() });
-                t.update(userRef, { lastAdStartMs: Date.now() });
+                t.update(userRef, {
+                    lastAdStartMs:   Date.now(),
+                    pendingAdToken:  { adType, issuedAtMs: Date.now() },
+                });
             });
-            return res.status(200).json({ success: true, token: tokenId });
+            // The "token" returned to the client is just the adType — the real
+            // state lives server-side on the user doc. The client only needs
+            // to echo adType back at claim time, nothing secret to leak here.
+            return res.status(200).json({ success: true, token: adType });
         } catch(e) {
             return res.status(200).json({ success: false, error: e.message });
         }
     }
 
     // ════════════════════════════════════
-    // CLAIM AD — redeem a token exactly once, server computes the reward
+    // CLAIM AD — redeem the pending token exactly once, server computes the reward
+    // 1 read + 1 write (was: 2 reads + 2 writes across two documents)
     // ════════════════════════════════════
     if (claimAd && typeof claimAd === 'object') {
-        const { adType, token, diceReward } = claimAd;
+        const { adType, diceReward } = claimAd;
         const isDice = adType === 'dice';
-        if (!token) return res.status(200).json({ success: false, error: 'Missing token' });
         if (!isDice && !AD_REWARDS[adType]) return res.status(200).json({ success: false, error: 'Invalid adType' });
 
         try {
             let result = {};
             await db.runTransaction(async (t) => {
-                const tokenRef  = db.collection('adTokens').doc(String(token));
-                const tokenSnap = await t.get(tokenRef);
-                if (!tokenSnap.exists) throw new Error('Invalid or expired ad session.');
-                const tokenData = tokenSnap.data();
-                if (tokenData.used)            throw new Error('This ad was already claimed.');
-                if (tokenData.uid !== uid)      throw new Error('Token does not belong to this user.');
-                if (tokenData.adType !== adType) throw new Error('Ad type mismatch.');
-                if (Date.now() - tokenData.issuedAtMs > AD_TOKEN_TTL_MS) throw new Error('Ad session expired, try again.');
-
                 const userSnap = await t.get(userRef);
                 if (!userSnap.exists) throw new Error('User not found');
                 const user = userSnap.data();
 
-                t.update(tokenRef, { used: true, claimedAtMs: Date.now() });
+                const pending = user.pendingAdToken;
+                if (!pending)                          throw new Error('Invalid or expired ad session.');
+                if (pending.adType !== adType)         throw new Error('Ad type mismatch.');
+                if (Date.now() - pending.issuedAtMs > AD_TOKEN_TTL_MS) throw new Error('Ad session expired, try again.');
 
                 if (isDice) {
                     const rawAmt = parseFloat(diceReward);
@@ -188,6 +193,7 @@ export default async function handler(req, res) {
                     t.update(userRef, {
                         diamondBalance: FieldValue.increment(amt),
                         lastDiceRollAt: Date.now(),
+                        pendingAdToken: FieldValue.delete(),
                     });
                     result = { reward: amt };
                 } else {
@@ -200,6 +206,7 @@ export default async function handler(req, res) {
                     const updates = {
                         [field]:         FieldValue.increment(1),
                         lootboxBalance:  FieldValue.increment(reward),
+                        pendingAdToken:  FieldValue.delete(),
                     };
                     if (isNewDay) {
                         updates.lastResetDate = today;
@@ -282,4 +289,4 @@ export default async function handler(req, res) {
     }
 
     return res.status(400).json({ error: 'Invalid request' });
-        }
+                        }
