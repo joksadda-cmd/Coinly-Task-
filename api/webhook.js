@@ -1,5 +1,13 @@
 // api/webhook.js
 // Telegram bot — handles /start command
+//
+// NOTE: this used to also call /api/init here to pre-create the user document
+// on /start. That was redundant — the mini-app calls /api/init itself the
+// moment it loads (which happens right after the user taps the welcome
+// button below), so every first-contact user was getting double-charged for
+// Firestore reads/writes (once here, once from the mini-app). Removed —
+// the bot's only job is sending the welcome message; user creation belongs
+// entirely to init.js.
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).json({ ok: true });
@@ -12,11 +20,8 @@ export default async function handler(req, res) {
 
   const chatId   = String(msg.chat.id);
   const text     = msg.text || '';
-  const user     = msg.from;
 
   if (text.startsWith('/start')) {
-    const parts       = text.split(' ');
-    const referrer    = parts[1] && parts[1] !== chatId ? parts[1] : null;
     const webAppUrl   = 'https://coinly-task.vercel.app';
     const referLink   = `https://t.me/Coinlytix_bot/TaskEarn?startapp=${chatId}`;
     const shareText   = 'Join Coinly Task! Earn 💎 Diamond by completing tasks 🚀';
@@ -41,18 +46,6 @@ export default async function handler(req, res) {
         }
       })
     });
-
-    // Init user via our own API (non-blocking)
-    fetch(`https://coinly-task.vercel.app/api/init`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId:       chatId,
-        firstName:    user?.first_name || 'User',
-        username:     user?.username   || 'N/A',
-        referrerCode: referrer
-      })
-    }).catch(() => {});
   }
 
   return res.status(200).json({ ok: true });
