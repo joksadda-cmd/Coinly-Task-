@@ -1,6 +1,6 @@
 // api/claimAd.js
 // Currency: TP (Task Points) — 20K TP = $1 = 0.5 TON
-// Rewards: ad1(AdsGram Daily)=10TP, ad2(AdsGram Special)=20TP, ad3(Monetag)=10TP, ad4(Giga)=10TP
+// Rewards: ad1(AdsGram Daily)=10TP/10 limit, ad2(AdsGram Special)=25TP/5 limit, ad3(Monetag)=15TP/15 limit, ad4(Giga)=15TP/15 limit
 // Dice: under/over=30TP, lucky7=50TP
 // Lootbox min: 300 TP | Dice cooldown: 4hr server-side
 //
@@ -76,8 +76,8 @@ function verifyTelegramInitData(initData) {
     }
 }
 
-const AD_REWARDS = { ad1:10, ad2:20, ad3:10, ad4:10, joinGift:50 };
-const AD_LIMITS  = { ad1:10, ad2:5,  ad3:10, ad4:10 };
+const AD_REWARDS = { ad1:10, ad2:25, ad3:15, ad4:15, joinGift:50 };
+const AD_LIMITS  = { ad1:10, ad2:5,  ad3:15, ad4:15 };
 const AD_FIELDS  = { ad1:'adsWatchedAd1', ad2:'adsWatchedAd2', ad3:'adsWatchedAd3', ad4:'adsWatchedAd4' };
 const TODAY = () => new Date().toLocaleDateString('en-US', { timeZone: 'Asia/Dhaka' });
 
@@ -282,4 +282,4 @@ export default async function handler(req, res) {
     }
 
     return res.status(400).json({ error: 'Invalid request' });
-                          }
+        }
