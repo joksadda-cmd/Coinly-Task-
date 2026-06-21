@@ -251,7 +251,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
 /* TON ROW */
 .ton-sub-row{background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 12px;display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:0.78rem;color:rgba(255,255,255,0.85);}
 .ton-sub-row span{font-family:var(--mono);font-weight:700;}
-@keyframes tickerScroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
 </style>
 </head>
 <body>
@@ -423,14 +422,6 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:14px;padding:12px 8px;text-align:center;">
                 <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:3px;">Ref Income</div>
                 <div style="font-family:var(--mono);font-size:0.95rem;font-weight:800;color:#fbbf24;" id="home-ref-earned">0</div>
-            </div>
-        </div>
-
-        <!-- ── Recent Withdrawals (animated marquee) ── -->
-        <div style="background:#1a1a35;border:1.5px solid rgba(99,102,241,0.2);border-radius:16px;padding:14px;margin-bottom:14px;overflow:hidden;">
-            <div style="font-weight:800;font-size:0.82rem;color:#cbd5e1;margin-bottom:10px;">💸 Recent Withdrawals</div>
-            <div style="overflow:hidden;position:relative;height:28px;">
-                <div id="withdraw-ticker" style="display:flex;gap:0;white-space:nowrap;animation:tickerScroll 18s linear infinite;"></div>
             </div>
         </div>
 
@@ -1531,9 +1522,8 @@ document.getElementById('btn-ad4').addEventListener('click', ()=>runAdMission('a
 // ── TASKS ──
 let taskFilter = 'all';
 let _tasksCache     = null;
-let _myTasksCache   = null;
 let _tasksCacheTime = 0;
-const TASKS_CACHE_TTL = 5 * 60 * 1000;
+const TASKS_CACHE_TTL = 30 * 60 * 1000; // 30 min — task list rarely changes that fast (admin-created only)
 
 function _renderTasks(allTasks, filter, container){
     container.innerHTML = '';
@@ -1558,13 +1548,38 @@ async function fetchTasks(filter, forceRefresh){
 
     try{
         const now = Date.now();
+        // 1) In-memory cache — fastest, covers repeated calls within the same page session
         if(!forceRefresh && _tasksCache && (now - _tasksCacheTime) < TASKS_CACHE_TTL){
             _renderTasks(_tasksCache, filter, container); return;
+        }
+        // 2) localStorage cache — survives app close/reopen, avoids a full
+        // getTasks Firestore read (N reads, one per task) on every single app
+        // open. Task list is admin-created/infrequently-changing data with no
+        // reward/security sensitivity, so up to 30 min staleness here is fine
+        // — unlike the ad-count caching mistake from earlier, this data isn't
+        // tied to anything a user could exploit by seeing a stale version.
+        if(!forceRefresh){
+            try{
+                const cachedAt = parseInt(localStorage.getItem('coinly_tasks_t') || '0');
+                if(Date.now() - cachedAt < TASKS_CACHE_TTL){
+                    const cached = JSON.parse(localStorage.getItem('coinly_tasks_d') || 'null');
+                    if(cached){
+                        _tasksCache = cached;
+                        _tasksCacheTime = cachedAt;
+                        _renderTasks(_tasksCache, filter, container);
+                        return;
+                    }
+                }
+            }catch(e){}
         }
         const res  = await fetch(`${API_BASE}/getTasks`);
         const data = await res.json();
         _tasksCache = data.tasks || [];
         _tasksCacheTime = Date.now();
+        try{
+            localStorage.setItem('coinly_tasks_d', JSON.stringify(_tasksCache));
+            localStorage.setItem('coinly_tasks_t', String(_tasksCacheTime));
+        }catch(e){}
         _renderTasks(_tasksCache, filter, container);
     }catch(e){
         container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-circle"></i><p>Failed to load tasks.</p><button onclick="fetchTasks(taskFilter)" style="margin-top:10px;padding:8px 20px;border-radius:10px;background:var(--primary);color:#fff;border:none;font-weight:700;cursor:pointer;">Retry</button></div>`;
@@ -1607,7 +1622,6 @@ document.getElementById('task-list-container').addEventListener('click', async e
                     currentUser.diamondBalance = (currentUser.diamondBalance||0) + earned;
                     if(!currentUser.completedTasks) currentUser.completedTasks=[];
                     currentUser.completedTasks.push(id);
-                    _tasksCache = null; // invalidate so next fetch gets fresh list
                     updateUI();
                     showAlert('Task Completed!',`+${earned} 💎 TP earned!`,'success');
                     b.parentElement.remove();
@@ -2205,54 +2219,6 @@ setTimeout(hideSplash, 8000);
 document.getElementById('home-tasks-card')?.addEventListener('click', ()=>{
     document.querySelector('.b-nav-item[data-target="#sec-tasklist"]')?.click();
 });
-
-// ── Recent Withdrawals Ticker ──
-// This is decorative, public, non-personalized data — unlike the ad-count bug,
-// staleness here is totally safe. Cached client-side for 10 min to cut down
-// on Firestore reads, since this was firing a 30-document query on every
-// single app open for every user (real cost at scale for zero benefit, since
-// the data barely changes minute to minute).
-const WITHDRAW_TICKER_CACHE_TTL = 10 * 60 * 1000;
-
-async function loadWithdrawTicker(){
-    try{
-        let list;
-        try{
-            const cachedAt = parseInt(localStorage.getItem('coinly_ticker_t') || '0');
-            if(Date.now() - cachedAt < WITHDRAW_TICKER_CACHE_TTL){
-                list = JSON.parse(localStorage.getItem('coinly_ticker_d') || 'null');
-            }
-        }catch(e){}
-
-        if(!list){
-            const res  = await fetch(`${API_BASE}/getRecentWithdrawals`);
-            const data = await res.json();
-            list = data.recent || [];
-            try{
-                localStorage.setItem('coinly_ticker_d', JSON.stringify(list));
-                localStorage.setItem('coinly_ticker_t', String(Date.now()));
-            }catch(e){}
-        }
-
-        if(!list.length) return;
-        const ticker = document.getElementById('withdraw-ticker');
-        if(!ticker) return;
-        const makeItem = ({firstName, diamondAmount, method}) => {
-            const icon = method === 'binance' ? '💵' : '💎';
-            return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 16px 4px 0;font-size:0.75rem;color:#cbd5e1;white-space:nowrap;">
-                <span style="color:#4ade80;font-weight:700;">✔</span>
-                <span style="color:#f1f5f9;font-weight:600;">${firstName}</span>
-                withdrew
-                <span style="color:#fbbf24;font-weight:700;">${Math.floor(diamondAmount)} TP</span>
-                ${icon}
-                <span style="color:#334155;padding:0 8px;">•</span>
-            </span>`;
-        };
-        // Doubled HTML for seamless infinite scroll loop
-        const html = list.map(makeItem).join('');
-        ticker.innerHTML = html + html;
-    }catch(e){ console.warn('[ticker]', e); }
-}
 
 </script>
 
