@@ -473,7 +473,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
             </div>
             <div style="text-align:right;">
                 <div style="font-size:0.7rem;opacity:0.75;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;color:rgba(255,255,255,0.8);">Today's Max</div>
-                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fff;opacity:0.9;">+600 TP</div>
+                <div style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:#fff;opacity:0.9;">+675 TP</div>
             </div>
         </div>
         <div style="height:1px;background:rgba(255,255,255,0.2);margin-bottom:10px;"></div>
@@ -488,7 +488,7 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-info">
             <div class="t-name" style="display:flex;align-items:center;gap:6px;">AdsGram Special <span style="background:#f59e0b;color:#fff;font-size:0.58rem;font-weight:800;padding:2px 7px;border-radius:20px;">2× REWARD</span></div>
             <div style="margin-top:4px;display:flex;align-items:center;gap:6px;">
-                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +20 TP per view</span>
+                <span class="reward-pill" style="background:#fef3c7;border-color:#fcd34d;color:#d97706;"><i class="fas fa-gem"></i> +25 TP per view</span>
             </div>
             <div class="t-limit" id="limit-ad2" style="margin-top:4px;">0/5 today</div>
         </div>
@@ -511,8 +511,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-icon" style="background:#ecfdf5;border-color:#6ee7b7;color:#059669;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-ad"></i></div>
         <div class="t-info">
             <div class="t-name">Monetag Ad</div>
-            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +10 TP per view</span></div>
-            <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/10 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#f0fdf4;border-color:#86efac;color:#16a34a;"><i class="fas fa-gem"></i> +15 TP per view</span></div>
+            <div class="t-limit" id="limit-ad3" style="margin-top:4px;">0/15 today</div>
         </div>
         <button class="btn btn-accent" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;" id="btn-ad3">Watch</button>
     </div>
@@ -522,8 +522,8 @@ body{background:var(--bg-page);color:var(--text-main);font-family:var(--font);pa
         <div class="t-icon" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;width:46px;height:46px;font-size:1.2rem;"><i class="fas fa-photo-video"></i></div>
         <div class="t-info">
             <div class="t-name">Giga Pub Ad</div>
-            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +10 TP per view</span></div>
-            <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/10 today</div>
+            <div style="margin-top:4px;"><span class="reward-pill" style="background:#fdf4ff;border-color:#e9d5ff;color:#7c3aed;"><i class="fas fa-gem"></i> +15 TP per view</span></div>
+            <div class="t-limit" id="limit-ad4" style="margin-top:4px;">0/15 today</div>
         </div>
         <button class="btn" style="padding:9px 16px;font-size:0.82rem;border-radius:11px;flex-shrink:0;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;box-shadow:0 4px 12px rgba(124,58,237,0.3);" id="btn-ad4">Watch</button>
     </div>
@@ -915,8 +915,8 @@ const WITHDRAW_ADS_REQUIRED  = 10;
 const TASK_REWARD_DIAMOND  = 10;
 // 3-step refer rewards: Step1=50, Step2=80, Step3=100 (handled server-side in claimRefer.js)
 const REFER_VALID_TASKS = 10;
-const AD_LIMITS = {ad1:10, ad2:5, ad3:10, ad4:10}; // synced with claimAd.js
-const AD_DIAMOND_REWARDS = {ad1:10, ad2:20, ad3:10, ad4:10}; // synced with claimAd.js
+const AD_LIMITS = {ad1:10, ad2:5, ad3:15, ad4:15}; // synced with claimAd.js
+const AD_DIAMOND_REWARDS = {ad1:10, ad2:25, ad3:15, ad4:15}; // synced with claimAd.js
 const AD_MIN_GAP_MS = 7000; // 7s between ads, mirrors server-side MIN_AD_GAP_MS in claimAd.js
 
 let currentUser = null, isAdRunning = false, isSubmitting = false;
@@ -2207,11 +2207,33 @@ document.getElementById('home-tasks-card')?.addEventListener('click', ()=>{
 });
 
 // ── Recent Withdrawals Ticker ──
+// This is decorative, public, non-personalized data — unlike the ad-count bug,
+// staleness here is totally safe. Cached client-side for 10 min to cut down
+// on Firestore reads, since this was firing a 30-document query on every
+// single app open for every user (real cost at scale for zero benefit, since
+// the data barely changes minute to minute).
+const WITHDRAW_TICKER_CACHE_TTL = 10 * 60 * 1000;
+
 async function loadWithdrawTicker(){
     try{
-        const res  = await fetch(`${API_BASE}/getRecentWithdrawals`);
-        const data = await res.json();
-        const list = data.recent || [];
+        let list;
+        try{
+            const cachedAt = parseInt(localStorage.getItem('coinly_ticker_t') || '0');
+            if(Date.now() - cachedAt < WITHDRAW_TICKER_CACHE_TTL){
+                list = JSON.parse(localStorage.getItem('coinly_ticker_d') || 'null');
+            }
+        }catch(e){}
+
+        if(!list){
+            const res  = await fetch(`${API_BASE}/getRecentWithdrawals`);
+            const data = await res.json();
+            list = data.recent || [];
+            try{
+                localStorage.setItem('coinly_ticker_d', JSON.stringify(list));
+                localStorage.setItem('coinly_ticker_t', String(Date.now()));
+            }catch(e){}
+        }
+
         if(!list.length) return;
         const ticker = document.getElementById('withdraw-ticker');
         if(!ticker) return;
@@ -2231,6 +2253,7 @@ async function loadWithdrawTicker(){
         ticker.innerHTML = html + html;
     }catch(e){ console.warn('[ticker]', e); }
 }
+
 </script>
 
 </body>
