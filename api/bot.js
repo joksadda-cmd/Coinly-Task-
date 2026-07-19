@@ -3,8 +3,9 @@
 // limit — see lib/constants.js comments for the overall API budget plan).
 
 import { connectToDatabase } from '../lib/mongodb.js';
-import { tgSend, tgSendPhoto, tgAnswerCallback } from '../lib/telegram.js';
+import { tgSend, tgSendPhoto, tgEdit, tgAnswerCallback } from '../lib/telegram.js';
 import { createUserDoc } from '../lib/schema.js';
+import { reviewTask } from '../lib/taskService.js';
 import { APP_LINKS, REFERRAL_BONUS_TC } from '../lib/constants.js';
 
 // Used by admin-only flows (task approval, broadcast, etc.) added in later steps
@@ -123,8 +124,31 @@ async function handleStart(chatId, from, text) {
 }
 
 async function handleCallback(callbackQuery) {
-  const { id } = callbackQuery;
-  // Placeholder — admin approve/reject buttons and other inline actions
-  // will be routed here in a later step.
+  const { id, from, data, message } = callbackQuery;
+
+  // Admin task-review buttons: "rev:<decision>:<taskId>"
+  if (data && data.startsWith('rev:')) {
+    if (from.id !== ADMIN_ID) {
+      await tgAnswerCallback(id, '⛔ Admins only.', true);
+      return;
+    }
+
+    const [, decision, taskId] = data.split(':');
+    const { db } = await connectToDatabase();
+    const result = await reviewTask(db, taskId, decision);
+
+    if (!result.ok) {
+      await tgAnswerCallback(id, `⚠️ ${result.error}`, true);
+      return;
+    }
+
+    await tgAnswerCallback(id, '✅ Done');
+
+    // Edit the admin's message so the buttons disappear and the decision is visible
+    const decisionLabel = { approved: '✅ Approved', rejected: '❌ Rejected', not_found: '🔍 Not Found', adult: '🔞 Adult — Banned' }[decision];
+    await tgEdit(message.chat.id, message.message_id, `${message.text}\n\n— ${decisionLabel} —`);
+    return;
+  }
+
   await tgAnswerCallback(id, '');
 }
