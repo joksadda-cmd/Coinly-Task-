@@ -6,7 +6,9 @@ import { connectToDatabase } from '../lib/mongodb.js';
 import { tgSend, tgSendPhoto, tgEdit, tgAnswerCallback } from '../lib/telegram.js';
 import { createUserDoc } from '../lib/schema.js';
 import { reviewTask } from '../lib/taskService.js';
-import { APP_LINKS, REFERRAL_BONUS_TC } from '../lib/constants.js';
+import { getAdminState, setAdminState, clearAdminState } from '../lib/adminState.js';
+import { getDashboardStats, adminCreateTask } from '../lib/adminService.js';
+import { APP_LINKS, REFERRAL_BONUS_TC, TASK_TYPES } from '../lib/constants.js';
 
 // Used by admin-only flows (task approval, broadcast, etc.) added in later steps
 const ADMIN_ID = Number(process.env.ADMIN_TELEGRAM_ID);
@@ -37,18 +39,41 @@ export default async function handler(req, res) {
   }
 }
 
+function isAdmin(id) {
+  return id === ADMIN_ID;
+}
+
 async function handleMessage(message) {
   const chatId = message.chat.id;
+  const from = message.from;
   const text = (message.text || '').trim();
 
-  if (text.startsWith('/start')) {
-    await handleStart(chatId, message.from, text);
-    return;
+  if (isAdmin(from.id)) {
+    if (text === '/admin') {
+      await sendAdminMenu(chatId);
+      return;
+    }
+    if (text === '/cancel') {
+      const { db } = await connectToDatabase();
+      await clearAdminState(db, from.id);
+      await tgSend(chatId, '❌ Cancelled.');
+      return;
+    }
+
+    // If admin is mid-flow (e.g. creating a task), route text there instead
+    // of treating it as a normal command.
+    const { db } = await connectToDatabase();
+    const state = await getAdminState(db, from.id);
+    if (state && state.step && state.step.startsWith('ct_')) {
+      await handleAdminTaskCreationText(db, chatId, from.id, state, text);
+      return;
+    }
   }
 
-  // Future: admin text-based flows (broadcast composing, rejection notes,
-  // etc.) get routed here based on a stored admin conversation state —
-  // same pattern as the reference admin panel bot.
+  if (text.startsWith('/start')) {
+    await handleStart(chatId, from, text);
+    return;
+  }
 }
 
 async function handleStart(chatId, from, text) {
@@ -150,5 +175,159 @@ async function handleCallback(callbackQuery) {
     return;
   }
 
+  // Admin panel buttons: "admin:<action>" or "admin:ct_type:<type>"
+  if (data && data.startsWith('admin:')) {
+    if (!isAdmin(from.id)) {
+      await tgAnswerCallback(id, '⛔ Admins only.', true);
+      return;
+    }
+    await handleAdminCallback(id, from.id, message.chat.id, data);
+    return;
+  }
+
   await tgAnswerCallback(id, '');
 }
+
+// ─────────────────────────────────────────────────────────
+// ADMIN PANEL
+// ─────────────────────────────────────────────────────────
+
+async function sendAdminMenu(chatId) {
+  await tgSend(chatId, '🛠 <b>Admin Panel</b>\n\nChoose an option:', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: '📊 Dashboard', callback_data: 'admin:dashboard' }],
+        [{ text: '🎁 Promo Code', callback_data: 'admin:promo' }],
+        [
+          { text: '➕ Create Task', callback_data: 'admin:createtask' },
+          { text: '📋 Manage Tasks', callback_data: 'admin:managetasks' },
+        ],
+        [{ text: '👤 User Lookup', callback_data: 'admin:userlookup' }],
+        [{ text: '🏆 Top Referrers', callback_data: 'admin:topref' }],
+        [
+          { text: '🎁 Send Gift', callback_data: 'admin:gift' },
+          { text: '📢 Broadcast', callback_data: 'admin:broadcast' },
+        ],
+      ],
+    },
+  });
+}
+
+async function handleAdminCallback(callbackId, adminId, chatId, data) {
+  const { db } = await connectToDatabase();
+
+  if (data === 'admin:menu') {
+    await tgAnswerCallback(callbackId, '');
+    await sendAdminMenu(chatId);
+    return;
+  }
+
+  if (data === 'admin:dashboard') {
+    await tgAnswerCallback(callbackId, '');
+    const stats = await getDashboardStats(db);
+    await tgSend(
+      chatId,
+      `📊 <b>Dashboard</b>\n\n` +
+        `👥 Total users: <b>${stats.totalUsers}</b>\n` +
+        `🆕 Joined today: <b>${stats.dailyJoins}</b>\n` +
+        `🟢 Live tasks: <b>${stats.liveTasks}</b>\n` +
+        `⏳ Pending review: <b>${stats.pendingTasks}</b>\n` +
+        `💰 Total TC in circulation: <b>${stats.totalTCInCirculation}</b>`,
+      { reply_markup: { inline_keyboard: [[{ text: '⬅️ Back', callback_data: 'admin:menu' }]] } }
+    );
+    return;
+  }
+
+  if (data === 'admin:createtask') {
+    await tgAnswerCallback(callbackId, '');
+    await setAdminState(db, adminId, 'ct_type', {});
+    const typeButtons = Object.entries(TASK_TYPES).map(([key, cfg]) => [
+      { text: cfg.label, callback_data: `admin:ct_type:${key}` },
+    ]);
+    await tgSend(chatId, '➕ <b>Create Task</b>\n\nChoose task type:', {
+      reply_markup: { inline_keyboard: typeButtons },
+    });
+    return;
+  }
+
+  if (data.startsWith('admin:ct_type:')) {
+    await tgAnswerCallback(callbackId, '');
+    const type = data.replace('admin:ct_type:', '');
+    await setAdminState(db, adminId, 'ct_title', { type });
+    await tgSend(chatId, `Type: <b>${TASK_TYPES[type].label}</b>\n\n📝 Send the task title:`);
+    return;
+  }
+
+  // Placeholders — built in upcoming steps
+  if (['admin:promo', 'admin:managetasks', 'admin:userlookup', 'admin:topref', 'admin:gift', 'admin:broadcast'].includes(data)) {
+    await tgAnswerCallback(callbackId, '🚧 Coming soon', true);
+    return;
+  }
+
+  await tgAnswerCallback(callbackId, '');
+}
+
+/** Handles each text message the admin sends while inside the "create task" flow. */
+async function handleAdminTaskCreationText(db, chatId, adminId, state, text) {
+  const { step, data } = state;
+
+  if (step === 'ct_title') {
+    data.title = text;
+    const needsTarget = TASK_TYPES[data.type].api_verify;
+    if (needsTarget) {
+      await setAdminState(db, adminId, 'ct_target', data);
+      await tgSend(chatId, '🎯 Send the target channel/group @username or chat id (bot must be admin there):');
+    } else {
+      await setAdminState(db, adminId, 'ct_link', data);
+      await tgSend(chatId, '🔗 Send the task link (URL):');
+    }
+    return;
+  }
+
+  if (step === 'ct_target') {
+    data.targetChatId = text;
+    await setAdminState(db, adminId, 'ct_link', data);
+    await tgSend(chatId, '🔗 Send the task link (URL):');
+    return;
+  }
+
+  if (step === 'ct_link') {
+    data.link = text;
+    await setAdminState(db, adminId, 'ct_slots', data);
+    await tgSend(chatId, '🎟 Send number of slots (e.g. 50, 100, 500):');
+    return;
+  }
+
+  if (step === 'ct_slots') {
+    const slots = Number(text);
+    if (!Number.isInteger(slots) || slots <= 0) {
+      await tgSend(chatId, '⚠️ Please send a valid positive number.');
+      return;
+    }
+    data.totalSlots = slots;
+    await setAdminState(db, adminId, 'ct_photo', data);
+    await tgSend(chatId, '🖼 Send a direct photo link for this task, or type "skip":');
+    return;
+  }
+
+  if (step === 'ct_photo') {
+    data.photoUrl = text.toLowerCase() === 'skip' ? null : text;
+
+    const result = await adminCreateTask(db, { ...data, adminId });
+    await clearAdminState(db, adminId);
+
+    if (!result.ok) {
+      await tgSend(chatId, `⚠️ Failed to create task: ${result.error}`);
+      return;
+    }
+
+    await tgSend(
+      chatId,
+      `✅ Task created and is now <b>live</b>!\n\n` +
+        `📝 ${result.task.title}\n` +
+        `🎟 Slots: ${result.task.totalSlots}\n` +
+        `🆔 <code>${result.task._id}</code>`
+    );
+    return;
+  }
+            }
