@@ -9,6 +9,7 @@
 import { connectToDatabase } from '../lib/mongodb.js';
 import { verifyInitData } from '../lib/verifyInitData.js';
 import { postTask } from '../lib/taskService.js';
+import { claimAd, claimDailySpin, claimLoginStreak } from '../lib/engagement.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -46,7 +47,22 @@ export default async function handler(req, res) {
         return res.status(200).json(result);
       }
 
-      // Coming next: claimAd, completeTask, dailySpin, claimStreak, getFeed, getProfile...
+      case 'claimAd': {
+        const result = await claimAd(db, { telegramId, network: payload.network });
+        return res.status(200).json(result);
+      }
+
+      case 'dailySpin': {
+        const result = await claimDailySpin(db, { telegramId });
+        return res.status(200).json(result);
+      }
+
+      case 'claimStreak': {
+        const result = await claimLoginStreak(db, { telegramId });
+        return res.status(200).json(result);
+      }
+
+      // Coming next: completeTask, getFeed, getProfile, likeTask...
       default:
         return res.status(400).json({ ok: false, error: 'unknown_action' });
     }
