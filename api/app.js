@@ -10,6 +10,8 @@ import { connectToDatabase } from '../lib/mongodb.js';
 import { verifyInitData } from '../lib/verifyInitData.js';
 import { postTask } from '../lib/taskService.js';
 import { claimAd, claimDailySpin, claimLoginStreak } from '../lib/engagement.js';
+import { redeemPromoCode } from '../lib/promoService.js';
+import { completeTask, getFeed, reactToTask, getProfile } from '../lib/feedService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -62,7 +64,40 @@ export default async function handler(req, res) {
         return res.status(200).json(result);
       }
 
-      // Coming next: completeTask, getFeed, getProfile, likeTask...
+      case 'redeemPromo': {
+        // Frontend must only call this AFTER the user completes watching an
+        // ad (same trust model as claimAd — see lib/promoService.js note).
+        const result = await redeemPromoCode(db, { telegramId, code: payload.code });
+        return res.status(200).json(result);
+      }
+
+      case 'completeTask': {
+        const result = await completeTask(db, { telegramId, taskId: payload.taskId });
+        return res.status(200).json(result);
+      }
+
+      case 'getFeed': {
+        const result = await getFeed(db, {
+          telegramId,
+          limit: Number(payload.limit) || 20,
+          skip: Number(payload.skip) || 0,
+        });
+        return res.status(200).json(result);
+      }
+
+      case 'reactToTask': {
+        const result = await reactToTask(db, { telegramId, taskId: payload.taskId, reaction: payload.reaction });
+        return res.status(200).json(result);
+      }
+
+      case 'getProfile': {
+        const result = await getProfile(db, {
+          viewerId: telegramId,
+          targetTelegramId: Number(payload.targetTelegramId) || telegramId,
+        });
+        return res.status(200).json(result);
+      }
+
       default:
         return res.status(400).json({ ok: false, error: 'unknown_action' });
     }
