@@ -11,7 +11,7 @@ import { verifyInitData } from '../lib/verifyInitData.js';
 import { postTask } from '../lib/taskService.js';
 import { claimAd, claimDailySpin, claimLoginStreak } from '../lib/engagement.js';
 import { redeemPromoCode } from '../lib/promoService.js';
-import { completeTask, getFeed, reactToTask, getProfile } from '../lib/feedService.js';
+import { completeTask, getFeed, reactToTask, getProfile, getReferralLeaderboard } from '../lib/feedService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -96,6 +96,11 @@ export default async function handler(req, res) {
           targetTelegramId: Number(payload.targetTelegramId) || telegramId,
         });
         return res.status(200).json(result);
+      }
+
+      case 'getLeaderboard': {
+        const list = await getReferralLeaderboard(db);
+        return res.status(200).json({ ok: true, leaderboard: list });
       }
 
       default:
