@@ -666,21 +666,18 @@ const TASK_TYPES = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// Boot — gate on Telegram first, everything else runs after
+// Telegram WebApp handles — declared early since many functions
+// below reference tg/tgUser. The actual boot() trigger is at the
+// very end of this script, after everything is initialized.
 // ═══════════════════════════════════════════════════════════
 const tg = window.Telegram?.WebApp;
 const initData = tg?.initData || '';
 const tgUser = tg?.initDataUnsafe?.user || null;
 
-if (!tg || !initData) {
-  document.getElementById('lockScreen').style.display = 'flex';
-} else {
-  tg.ready();
-  tg.expand();
-  document.getElementById('app').style.display = 'block';
-  boot();
-}
-
+// ═══════════════════════════════════════════════════════════
+// Boot function — actually starting the app happens at the very
+// end of this script (after every const/let below is initialized)
+// ═══════════════════════════════════════════════════════════
 async function boot() {
   renderCategoryList();
   renderAdNetworks();
@@ -1223,6 +1220,19 @@ function renderQuota() {
   const today = new Date().toISOString().slice(0, 10);
   const used = me?.tasksToday?.date === today ? me.tasksToday.count : 0;
   document.getElementById('quotaVal').textContent = `${used} / 3`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Actually start the app — placed last so every const/let/function
+// above this line is fully initialized before boot() runs.
+// ═══════════════════════════════════════════════════════════
+if (!tg || !initData) {
+  document.getElementById('lockScreen').style.display = 'flex';
+} else {
+  tg.ready();
+  tg.expand();
+  document.getElementById('app').style.display = 'block';
+  boot();
 }
 </script>
 </body>
