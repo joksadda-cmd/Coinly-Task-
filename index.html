@@ -511,6 +511,12 @@
 
     <div class="section-title">Your live tasks</div>
     <div id="profileTasks"></div>
+
+    <div class="section-title">Cross-promotion</div>
+    <div class="card" style="margin-bottom:16px">
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;line-height:1.5">Want long-term cross-promotion for your project? Reach out directly to the admin.</p>
+      <button class="btn btn-outline btn-block" id="contactAdminBtn">📢 Contact Admin</button>
+    </div>
   </section>
 
 </main>
@@ -682,6 +688,7 @@ async function boot() {
   wirePostForm();
   wireWork();
   wireRefer();
+  wireProfile();
   await loadMe();
 }
 
@@ -1187,6 +1194,13 @@ async function loadLeaderboard() {
 // ═══════════════════════════════════════════════════════════
 // PROFILE
 // ═══════════════════════════════════════════════════════════
+const ADMIN_CONTACT_URL = 'https://t.me/Coinlytask';
+function wireProfile() {
+  document.getElementById('contactAdminBtn').addEventListener('click', () => {
+    if (tg?.openTelegramLink) tg.openTelegramLink(ADMIN_CONTACT_URL); else window.open(ADMIN_CONTACT_URL, '_blank');
+  });
+}
+
 function renderProfileHead() {
   if (!tgUser) return;
   document.getElementById('profileAvatar').textContent = (tgUser.first_name || '?')[0].toUpperCase();
