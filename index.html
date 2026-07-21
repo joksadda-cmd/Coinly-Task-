@@ -219,24 +219,39 @@
   .ad-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
 
   /* ── Feed cards ─────────────────────────────────────── */
-  .task-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 12px; }
+  .task-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    overflow: hidden; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .task-card:active { transform: scale(0.995); }
   .task-photo { width: 100%; display: block; aspect-ratio: 16/8; object-fit: cover; background: var(--surface-2); }
+  .task-photo-broken {
+    width: 100%; aspect-ratio: 16/8; display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); color: var(--text-faint); font-size: 12px; gap: 6px;
+  }
   .task-body { padding: 14px; }
   .task-type-badge {
     display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
     color: var(--primary-dark); background: var(--primary-soft); padding: 3px 8px; border-radius: 999px; margin-bottom: 8px;
   }
   [data-theme="dark"] .task-type-badge { color: var(--primary); }
-  .task-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; line-height: 1.35; }
+  .task-title { font-weight: 700; font-size: 15px; margin-bottom: 6px; line-height: 1.35; }
+  .task-desc {
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .task-posted-at { font-size: 11px; color: var(--text-faint); margin-left: auto; }
   .progress-track { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-bottom: 10px; }
-  .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease; }
   .task-footer { display: flex; align-items: center; gap: 8px; }
   .react-btn {
-    display: flex; align-items: center; gap: 4px;
+    display: flex; align-items: center; gap: 5px;
     background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 999px; padding: 7px 10px; font-size: 12.5px; font-family: var(--font-mono);
-    color: var(--text-muted); cursor: pointer;
+    border-radius: 999px; padding: 7px 11px; font-size: 12.5px; font-family: var(--font-mono);
+    color: var(--text-muted); cursor: pointer; transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
   }
+  .react-btn:active { transform: scale(0.92); }
   .react-btn.active { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
 
   .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
@@ -275,8 +290,13 @@
     font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--primary-dark);
   }
   [data-theme="dark"] .avatar { color: var(--primary); }
+  .avatar-lg { width: 68px; height: 68px; border-radius: 20px; font-size: 25px; }
   .profile-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+  .vp-name-lg { font-size: 18px; }
   .profile-id { font-size: 11.5px; color: var(--text-faint); font-family: var(--font-mono); }
+  .vp-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 18px; }
+  .vp-head-row .profile-head { margin: 0; }
+  #vpFollowBtn { flex-shrink: 0; width: auto; padding: 10px 18px; }
   .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
   .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; }
   .stat-num { font-family: var(--font-mono); font-weight: 700; font-size: 22px; color: var(--primary); }
@@ -611,6 +631,13 @@
     <div class="field">
       <label>Photo link (optional)</label>
       <input type="text" id="postPhoto" placeholder="https://... direct image link" />
+      <p class="helper-text">Must be a direct image link ending in .jpg/.png/.webp — Google Drive, Facebook, and Google Photos share links won't load.</p>
+    </div>
+
+    <div class="field">
+      <label>Short description (optional)</label>
+      <textarea id="postDescription" maxlength="700" rows="3" placeholder="60-80 words about your task — what it is, why someone should complete it" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 13px;color:var(--text);font-family:var(--font-body);font-size:14px;resize:vertical"></textarea>
+      <p class="helper-text"><span id="descWordCount">0</span> / 80 words</p>
     </div>
 
     <div id="adultWarning" style="display:none" class="field">
@@ -641,12 +668,15 @@
       <div class="modal-title" style="margin-bottom:0">Profile</div>
       <button type="button" class="modal-close-btn" onclick="closeModal('viewProfileModal')" aria-label="Close">✕</button>
     </div>
-    <div class="profile-head">
-      <div class="avatar" id="vpAvatar">?</div>
-      <div>
-        <div class="profile-name" id="vpName">—</div>
-        <div class="profile-id" id="vpId">—</div>
+    <div class="vp-head-row">
+      <div class="profile-head">
+        <div class="avatar avatar-lg" id="vpAvatar">?</div>
+        <div>
+          <div class="profile-name vp-name-lg" id="vpName">—</div>
+          <div class="profile-id" id="vpId">—</div>
+        </div>
       </div>
+      <button class="btn btn-primary btn-sm" id="vpFollowBtn">Follow</button>
     </div>
     <div class="stat-row" style="grid-template-columns:1fr 1fr 1fr">
       <div class="stat-box">
@@ -662,7 +692,6 @@
         <div class="stat-label">Referrals</div>
       </div>
     </div>
-    <button class="btn btn-primary btn-block" id="vpFollowBtn">Follow</button>
   </div>
 </div>
 
@@ -1066,15 +1095,17 @@ function renderTaskCard(t) {
   const posterInitial = (t.ownerName || '?').replace('@', '')[0]?.toUpperCase() || '?';
 
   card.innerHTML = `
-    ${t.photoUrl ? `<img class="task-photo" src="${t.photoUrl}" loading="lazy" onerror="this.remove()" />` : ''}
+    ${t.photoUrl ? `<img class="task-photo" src="${t.photoUrl}" loading="lazy" data-fallback="1" />` : ''}
     <div class="task-body">
       ${t.ownerName ? `
       <div class="task-poster" data-action="viewposter" style="display:flex;align-items:center;gap:6px;margin-bottom:8px;cursor:pointer">
         <div style="width:20px;height:20px;border-radius:50%;background:var(--primary-soft);color:var(--primary-dark);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-display);flex-shrink:0">${posterInitial}</div>
         <span style="font-size:12px;color:var(--text-muted);font-weight:600">${escapeHtml(t.ownerName)}</span>
+        ${t.createdAt ? `<span class="task-posted-at">${timeAgo(t.createdAt)}</span>` : ''}
       </div>` : ''}
       <span class="task-type-badge">${typeLabel}</span>
       <div class="task-title">${escapeHtml(t.title)}</div>
+      ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
       <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
       <div class="task-footer">
         <button class="react-btn ${t.likedByMe ? 'active' : ''}" data-action="like">👍 ${t.likes}</button>
@@ -1086,12 +1117,35 @@ function renderTaskCard(t) {
       </div>
     </div>`;
 
+  const photoEl = card.querySelector('img[data-fallback]');
+  if (photoEl) {
+    photoEl.addEventListener('error', () => {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'task-photo-broken';
+      placeholder.textContent = '📷 Image unavailable — link may not allow hotlinking';
+      photoEl.replaceWith(placeholder);
+    }, { once: true });
+  }
   card.querySelector('[data-action="like"]').addEventListener('click', () => react(t._id, 'like', card));
   card.querySelector('[data-action="dislike"]').addEventListener('click', () => react(t._id, 'dislike', card));
   card.querySelector('[data-action="complete"]').addEventListener('click', (e) => completeTaskFlow(t, e.target));
   const posterEl = card.querySelector('[data-action="viewposter"]');
   if (posterEl && t.ownerId) posterEl.addEventListener('click', () => openUserProfile(t.ownerId));
   return card;
+}
+
+function timeAgo(dateInput) {
+  if (!dateInput) return '';
+  const then = new Date(dateInput).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
 }
 
 function escapeHtml(str) {
@@ -1167,6 +1221,14 @@ function wirePostForm() {
   slotsInput.addEventListener('input', updateSlotCost);
 
   document.getElementById('postSubmitBtn').addEventListener('click', submitPost);
+
+  const descEl = document.getElementById('postDescription');
+  const countEl = document.getElementById('descWordCount');
+  descEl.addEventListener('input', () => {
+    const words = descEl.value.trim().split(/\s+/).filter(Boolean);
+    countEl.textContent = words.length;
+    countEl.style.color = words.length > 80 ? 'var(--danger)' : '';
+  });
 }
 
 async function submitPost() {
@@ -1175,12 +1237,15 @@ async function submitPost() {
   const target = document.getElementById('postTarget').value.trim();
   const slots = Number(document.getElementById('postSlots').value);
   const photoUrl = document.getElementById('postPhoto').value.trim();
+  const description = document.getElementById('postDescription').value.trim();
+  const descWordCount = description.split(/\s+/).filter(Boolean).length;
 
   if (!selectedType) { toast('Choose a category'); return; }
   if (!title) { toast('Enter a title'); return; }
   if (!link) { toast('Enter a link'); return; }
   if (TASK_TYPES[selectedType].apiVerify && !target) { toast('Enter the channel/group username'); return; }
   if (slots < 50 || slots % 50 !== 0) { toast('Slots must be a multiple of 50'); return; }
+  if (descWordCount > 80) { toast('Description must be 80 words or less'); return; }
 
   const btn = document.getElementById('postSubmitBtn');
   btn.disabled = true;
@@ -1191,6 +1256,7 @@ async function submitPost() {
     targetChatId: target || undefined,
     totalSlots: slots,
     photoUrl: photoUrl || undefined,
+    description: description || undefined,
   });
 
   btn.disabled = false;
@@ -1203,6 +1269,7 @@ async function submitPost() {
       below_minimum: 'Minimum 50 slots required',
       not_multiple_of_50: 'Slots must be a multiple of 50',
       banned: 'Your account is banned',
+      description_too_long: 'Description must be 80 words or less',
     }[res.error] || 'Could not post task';
     toast(msg);
     return;
@@ -1213,6 +1280,8 @@ async function submitPost() {
   document.getElementById('postLink').value = '';
   document.getElementById('postTarget').value = '';
   document.getElementById('postPhoto').value = '';
+  document.getElementById('postDescription').value = '';
+  document.getElementById('descWordCount').textContent = '0';
   document.getElementById('postSlots').value = 50;
   document.getElementById('slotCost').textContent = 50;
   document.getElementById('categoryPickerLabel').textContent = 'Choose category';
@@ -1307,7 +1376,7 @@ async function openUserProfile(targetTelegramId) {
 
   const followBtn = document.getElementById('vpFollowBtn');
   followBtn.textContent = p.isFollowedByMe ? 'Following ✓' : 'Follow';
-  followBtn.className = p.isFollowedByMe ? 'btn btn-outline btn-block' : 'btn btn-primary btn-block';
+  followBtn.className = p.isFollowedByMe ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
 }
 
 document.getElementById('vpFollowBtn').addEventListener('click', async () => {
@@ -1316,7 +1385,7 @@ document.getElementById('vpFollowBtn').addEventListener('click', async () => {
   if (!res.ok) { toast('Could not update follow status'); return; }
   const followBtn = document.getElementById('vpFollowBtn');
   followBtn.textContent = res.following ? 'Following ✓' : 'Follow';
-  followBtn.className = res.following ? 'btn btn-outline btn-block' : 'btn btn-primary btn-block';
+  followBtn.className = res.following ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
   document.getElementById('vpFollowers').textContent = res.followerCount;
 });
 
