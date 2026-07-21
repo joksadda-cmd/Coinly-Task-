@@ -45,6 +45,8 @@ export default async function handler(req, res) {
           link: payload.link,
           targetChatId: payload.targetChatId,
           totalSlots: Number(payload.totalSlots),
+          photoUrl: payload.photoUrl,
+          description: payload.description,
         });
         return res.status(200).json(result);
       }
