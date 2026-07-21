@@ -604,7 +604,7 @@
   <!-- ═══ REFER ═══ -->
   <section class="screen" id="screen-refer">
     <h1 class="page-title">Refer &amp; Earn</h1>
-    <p class="page-sub">Share your link — earn TC for every friend who joins.</p>
+    <p class="page-sub">Share your link — earn 15 TC once your friend completes 5 tasks.</p>
 
     <div class="refer-link-box">
       <span id="referLinkBox">Loading your link…</span>
@@ -1566,13 +1566,13 @@ async function submitPost() {
 function wireRefer() {
   document.getElementById('shareRefBtn').addEventListener('click', () => {
     if (!tgUser) return;
-    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+    const link = `https://t.me/Coinlytix_bot?start=ref_${tgUser.id}`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join Coinly Task and grow your project — 100% free promotion!')}`;
     if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl); else window.open(shareUrl, '_blank');
   });
   document.getElementById('copyRefBtn').addEventListener('click', async () => {
     if (!tgUser) return;
-    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+    const link = `https://t.me/Coinlytix_bot?start=ref_${tgUser.id}`;
     const copyBtn = document.getElementById('copyRefBtn');
     try {
       if (navigator.clipboard?.writeText) {
@@ -1600,7 +1600,7 @@ function wireRefer() {
     }, 2000);
   });
   if (tgUser) {
-    document.getElementById('referLinkBox').textContent = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+    document.getElementById('referLinkBox').textContent = `https://t.me/Coinlytix_bot?start=ref_${tgUser.id}`;
   }
 }
 
