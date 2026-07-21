@@ -11,7 +11,7 @@ import { verifyInitData } from '../lib/verifyInitData.js';
 import { postTask } from '../lib/taskService.js';
 import { claimAd, claimDailySpin, claimLoginStreak } from '../lib/engagement.js';
 import { redeemPromoCode } from '../lib/promoService.js';
-import { completeTask, getFeed, reactToTask, getProfile, getReferralLeaderboard, toggleFollow, deleteOwnTask } from '../lib/feedService.js';
+import { completeTask, getFeed, reactToTask, getProfile, getReferralLeaderboard, toggleFollow, deleteOwnTask, checkForceJoin } from '../lib/feedService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -112,6 +112,11 @@ export default async function handler(req, res) {
 
       case 'deleteTask': {
         const result = await deleteOwnTask(db, { telegramId, taskId: payload.taskId });
+        return res.status(200).json(result);
+      }
+
+      case 'checkForceJoin': {
+        const result = await checkForceJoin(telegramId);
         return res.status(200).json(result);
       }
 
