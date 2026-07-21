@@ -28,8 +28,11 @@
      project as a starting point — confirm in each network's dashboard
      whether they're valid for THIS bot/domain, or need to be replaced with
      fresh ones registered under Coinly Task. -->
-<script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-<script src="//libtl.com/sdk.js" data-zone="10135525" data-sdk="show_10135525"></script>
+<!-- AdsGram and Monetag SDKs are now lazy-loaded on demand (see loadScriptOnce
+     in the script below) — loading them eagerly here let their own bundled
+     auto-popunder/interstitial behavior fire before the user tapped "Watch",
+     which is the bug being fixed. Adexium stays eager — it's the one network
+     meant to show a passive, randomly-timed interstitial. -->
 <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
 
 <style>
@@ -112,6 +115,28 @@
   #lockScreen svg { margin-bottom: 18px; }
   #lockScreen h2 { font-family: var(--font-display); font-size: 19px; margin-bottom: 8px; }
   #lockScreen p { color: var(--text-muted); font-size: 13.5px; line-height: 1.6; margin-bottom: 20px; }
+
+  /* ── Join gate (mandatory channel/community join on startup) ────── */
+  #joinGateScreen {
+    display: none; min-height: 100vh; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; padding: 40px 26px;
+  }
+  .join-gate-inner { width: 100%; max-width: 380px; animation: joinGateUp 0.5s ease; }
+  @keyframes joinGateUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .join-gate-badge {
+    display: inline-block; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--gold); background: var(--gold-soft); border: 1.5px dashed var(--gold);
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 18px;
+  }
+  .join-gate-title { font-family: var(--font-display); font-weight: 700; font-size: 25px; line-height: 1.28; margin-bottom: 10px; }
+  .join-gate-sub { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; margin-bottom: 26px; }
+  .join-gate-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 13px 15px; margin-bottom: 10px; text-align: left;
+  }
+  .join-gate-row-label { font-size: 13.5px; font-weight: 600; }
+  .join-gate-row-check { font-size: 15px; }
 
   /* ── Header ─────────────────────────────────────────── */
   header {
@@ -473,6 +498,17 @@
   <p>Coinly Task only works as a Telegram Mini App. Please open it through the bot instead of a regular browser.</p>
 </div>
 
+<div id="joinGateScreen">
+  <div class="join-gate-inner">
+    <div class="join-gate-badge">🎟 COINLY TASK</div>
+    <h1 class="join-gate-title">Promote your own project.<br>Without investment.</h1>
+    <p class="join-gate-sub">Complete tasks, earn TC, and get your channel or bot discovered by real users. Join our channel and community to get started.</p>
+    <div id="joinGateList"></div>
+    <button type="button" class="btn btn-primary btn-block stamp-btn" id="joinGateVerifyBtn" style="margin-top:14px">✅ I've joined — Verify</button>
+    <p class="helper-text" id="joinGateNote" style="text-align:center;margin-top:10px"></p>
+  </div>
+</div>
+
 <div id="app" style="display:none">
 
 <header>
@@ -712,7 +748,7 @@
     <div class="field">
       <label>Short description (optional)</label>
       <textarea id="postDescription" maxlength="700" rows="3" placeholder="60-80 words about your task — what it is, why someone should complete it" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 13px;color:var(--text);font-family:var(--font-body);font-size:14px;resize:vertical"></textarea>
-      <p class="helper-text"><span id="descWordCount">0</span> / 80 words</p>
+      <p class="helper-text"><span id="descWordCount">0</span> / 80 words — plain text only, no links or # @ &amp; symbols</p>
     </div>
 
     <div id="adultWarning" style="display:none" class="field">
@@ -1021,6 +1057,25 @@ async function redeemPromo() {
 // GigaPub: resolved promise + 6s minimum). No server-to-server postback —
 // this client-side confirmation is the whole verification for these networks.
 // ═══════════════════════════════════════════════════════════
+// Lazy script loader — injects a <script> tag only the first time it's
+// actually needed (i.e. the user tapped "Watch" for that network), and
+// caches the promise so repeat taps don't re-inject it. This is the fix for
+// ad networks whose own SDK auto-fires a popunder/interstitial the moment
+// their script is present on the page — if we never inject it until the
+// user asks for that specific network, it can't fire early.
+const _loadedScripts = {};
+function loadScriptOnce(key, attrs) {
+  if (_loadedScripts[key]) return _loadedScripts[key];
+  _loadedScripts[key] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    Object.entries(attrs).forEach(([k, v]) => s.setAttribute(k, v));
+    s.onload = () => resolve();
+    s.onerror = () => { delete _loadedScripts[key]; reject(new Error(`${key}_sdk_load_failed`)); };
+    document.head.appendChild(s);
+  });
+  return _loadedScripts[key];
+}
+
 const AD_NETWORKS = {
   adsgram: { label: 'Adsgram', reward: 4, limit: 5, run: () => makeAdsgramCall('int-35169')() },
   gigapub: { label: 'GigaPub', reward: 2, limit: 10, run: () => showGigaAd() },
@@ -1028,40 +1083,38 @@ const AD_NETWORKS = {
 };
 
 const makeAdsgramCall = (blockId) => () => new Promise((resolve, reject) => {
-  const adObj = window.Adsgram?.init({ blockId, onError: (e) => reject(e) });
-  if (!adObj?.show) { reject(new Error('AdsGram SDK unavailable')); return; }
-  const startedAt = Date.now();
-  const MIN_WATCH_MS = 6000;
-  adObj.show().then((result) => {
-    const watchedFull = result && result.done === true;
-    const elapsed = Date.now() - startedAt;
-    if (watchedFull && elapsed >= MIN_WATCH_MS) resolve();
-    else reject(new Error('click_required'));
-  }).catch((e) => reject(new Error('ad_failed')));
+  loadScriptOnce('adsgram', { src: 'https://sad.adsgram.ai/js/sad.min.js' }).then(() => {
+    const adObj = window.Adsgram?.init({ blockId, onError: (e) => reject(e) });
+    if (!adObj?.show) { reject(new Error('AdsGram SDK unavailable')); return; }
+    const startedAt = Date.now();
+    const MIN_WATCH_MS = 6000;
+    adObj.show().then((result) => {
+      const watchedFull = result && result.done === true;
+      const elapsed = Date.now() - startedAt;
+      if (watchedFull && elapsed >= MIN_WATCH_MS) resolve();
+      else reject(new Error('click_required'));
+    }).catch((e) => reject(new Error('ad_failed')));
+  }).catch(() => reject(new Error('AdsGram SDK unavailable')));
 });
 
 const showMonetagAd = () => new Promise((resolve, reject) => {
-  if (!window.show_10135525) { reject(new Error('Monetag SDK not loaded')); return; }
-  let timerDone = false, adDone = false, rejected = false;
-  const tryResolve = () => { if (!rejected && timerDone && adDone) resolve(); };
-  const doReject = (reason) => { if (!rejected) { rejected = true; reject(new Error(reason)); } };
-  const timer = setTimeout(() => { timerDone = true; tryResolve(); }, 6000);
-  try {
-    Promise.resolve(window.show_10135525()).then(() => { adDone = true; tryResolve(); })
-      .catch(() => { clearTimeout(timer); doReject('Watch the full ad to earn reward.'); });
-  } catch (e) { clearTimeout(timer); doReject('Monetag ad unavailable.'); }
+  loadScriptOnce('monetag', { src: '//libtl.com/sdk.js', 'data-zone': '10135525', 'data-sdk': 'show_10135525' }).then(() => {
+    if (!window.show_10135525) { reject(new Error('Monetag SDK not loaded')); return; }
+    let timerDone = false, adDone = false, rejected = false;
+    const tryResolve = () => { if (!rejected && timerDone && adDone) resolve(); };
+    const doReject = (reason) => { if (!rejected) { rejected = true; reject(new Error(reason)); } };
+    const timer = setTimeout(() => { timerDone = true; tryResolve(); }, 6000);
+    try {
+      Promise.resolve(window.show_10135525()).then(() => { adDone = true; tryResolve(); })
+        .catch(() => { clearTimeout(timer); doReject('Watch the full ad to earn reward.'); });
+    } catch (e) { clearTimeout(timer); doReject('Monetag ad unavailable.'); }
+  }).catch(() => reject(new Error('Monetag SDK not loaded')));
 });
 
-let _gigaPubReady = false;
-(function preloadGigaPub() {
-  if (typeof window.showGiga === 'function') { _gigaPubReady = true; return; }
-  const s = document.createElement('script');
-  s.src = 'https://ad.gigapub.tech/script?id=4088';
-  s.onload = () => { _gigaPubReady = true; };
-  document.head.appendChild(s);
-})();
-
 const showGigaAd = () => new Promise(async (resolve, reject) => {
+  try {
+    await loadScriptOnce('gigapub', { src: 'https://ad.gigapub.tech/script?id=4088' });
+  } catch (e) { reject(e); return; }
   if (typeof window.showGiga !== 'function') {
     try {
       await new Promise((res, rej) => {
@@ -1368,6 +1421,9 @@ function wirePostForm() {
   const descEl = document.getElementById('postDescription');
   const countEl = document.getElementById('descWordCount');
   descEl.addEventListener('input', () => {
+    // Strip forbidden symbols as the user types, rather than rejecting only on submit
+    const cleaned = descEl.value.replace(/[#@&]/g, '');
+    if (cleaned !== descEl.value) descEl.value = cleaned;
     const words = descEl.value.trim().split(/\s+/).filter(Boolean);
     countEl.textContent = words.length;
     countEl.style.color = words.length > 80 ? 'var(--danger)' : '';
@@ -1389,6 +1445,10 @@ async function submitPost() {
   if (TASK_TYPES[selectedType].apiVerify && !target) { toast('Enter the channel/group username'); return; }
   if (slots < 50 || slots % 50 !== 0) { toast('Slots must be a multiple of 50'); return; }
   if (descWordCount > 80) { toast('Description must be 80 words or less'); return; }
+  if (/(https?:\/\/|www\.|t\.me\/|\.(com|net|org|io|xyz|gg|app)\b)/i.test(description)) {
+    toast('Description can\'t contain links — use the Link field instead');
+    return;
+  }
 
   const btn = document.getElementById('postSubmitBtn');
   btn.disabled = true;
@@ -1413,6 +1473,8 @@ async function submitPost() {
       not_multiple_of_50: 'Slots must be a multiple of 50',
       banned: 'Your account is banned',
       description_too_long: 'Description must be 80 words or less',
+      description_has_link: 'Description can\'t contain links — use the Link field instead',
+      description_has_symbol: 'Description can\'t contain # @ or & symbols',
     }[res.error] || 'Could not post task';
     toast(msg);
     return;
@@ -1554,6 +1616,63 @@ function renderQuota() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Mandatory join gate — runs once at startup, before the app is shown
+// ═══════════════════════════════════════════════════════════
+function renderJoinGateList(channels) {
+  const list = document.getElementById('joinGateList');
+  list.innerHTML = '';
+  channels.forEach((ch) => {
+    const row = document.createElement('div');
+    row.className = 'join-gate-row';
+    row.innerHTML = `
+      <span class="join-gate-row-label">${escapeHtml(ch.label)}</span>
+      <span class="join-gate-row-check">${ch.joined ? '✅' : ''}</span>
+    `;
+    if (!ch.joined) {
+      const joinBtn = document.createElement('button');
+      joinBtn.type = 'button';
+      joinBtn.className = 'btn btn-primary btn-sm';
+      joinBtn.textContent = 'Join';
+      joinBtn.addEventListener('click', () => {
+        if (tg?.openTelegramLink) tg.openTelegramLink(ch.url);
+        else window.open(ch.url, '_blank');
+      });
+      row.querySelector('.join-gate-row-check').replaceWith(joinBtn);
+    }
+    list.appendChild(row);
+  });
+}
+
+async function checkJoinGate() {
+  const note = document.getElementById('joinGateNote');
+  const verifyBtn = document.getElementById('joinGateVerifyBtn');
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Checking…';
+  const res = await callApi('checkForceJoin');
+  verifyBtn.disabled = false;
+  verifyBtn.textContent = "✅ I've joined — Verify";
+
+  if (!res.ok) {
+    note.textContent = 'Could not check membership — check your connection and try again.';
+    return;
+  }
+  renderJoinGateList(res.channels);
+
+  if (res.allJoined) {
+    note.textContent = '';
+    document.getElementById('joinGateScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    boot();
+    return;
+  }
+
+  const anyCheckFailed = res.channels.some((c) => c.checkFailed);
+  note.textContent = anyCheckFailed
+    ? "Membership couldn't be verified for one or more channels — make sure you've joined, then try again."
+    : "Join both above, then tap Verify.";
+}
+
+// ═══════════════════════════════════════════════════════════
 // Actually start the app — placed last so every const/let/function
 // above this line is fully initialized before boot() runs.
 // ═══════════════════════════════════════════════════════════
@@ -1562,8 +1681,9 @@ if (!tg || !initData) {
 } else {
   tg.ready();
   tg.expand();
-  document.getElementById('app').style.display = 'block';
-  boot();
+  document.getElementById('joinGateScreen').style.display = 'flex';
+  document.getElementById('joinGateVerifyBtn').addEventListener('click', checkJoinGate);
+  checkJoinGate();
 }
 </script>
 </body>
