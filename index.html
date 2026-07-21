@@ -345,8 +345,16 @@
   .refer-link-box {
     background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-md);
     padding: 12px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
-    word-break: break-all; margin-bottom: 12px;
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
   }
+  .refer-link-box span { flex: 1; word-break: break-all; }
+  .refer-copy-btn {
+    flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text); border-radius: var(--radius-sm); padding: 7px 10px;
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .refer-copy-btn.copied { background: var(--success-soft); color: var(--success); border-color: var(--success); }
   .leaderboard-row {
     display: flex; align-items: center; gap: 12px;
     background: var(--surface); border: 1px solid var(--border);
@@ -598,7 +606,10 @@
     <h1 class="page-title">Refer &amp; Earn</h1>
     <p class="page-sub">Share your link — earn TC for every friend who joins.</p>
 
-    <div class="refer-link-box" id="referLinkBox">Loading your link…</div>
+    <div class="refer-link-box">
+      <span id="referLinkBox">Loading your link…</span>
+      <button type="button" class="refer-copy-btn" id="copyRefBtn">Copy</button>
+    </div>
     <button class="btn btn-primary btn-block" id="shareRefBtn">Share referral link</button>
 
     <div class="stat-row" style="margin-top:18px">
@@ -867,7 +878,7 @@ const TASK_TYPES = {
 };
 
 // Mirrors lib/constants.js TASK_COMPLETE_REWARD_TC — flat reward for completing any task
-const TASK_COMPLETE_REWARD_TC = 2;
+const TASK_COMPLETE_REWARD_TC = 0.1;
 
 // ═══════════════════════════════════════════════════════════
 // Telegram WebApp handles — declared early since many functions
@@ -915,10 +926,19 @@ async function callApi(action, payload = {}) {
 // ═══════════════════════════════════════════════════════════
 let me = null;
 
+// Rounds to 2 decimals and strips a trailing ".00"/".x0" — purely cosmetic,
+// guards against floating-point display artifacts (e.g. 0.30000000000000004)
+// that can build up from repeated 0.1 TC task-completion rewards.
+function formatTC(val) {
+  const n = Math.round(Number(val) * 100) / 100;
+  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0$/, '');
+}
+
 function setBalance(val) {
-  document.getElementById('balanceChipVal').textContent = val;
+  const display = formatTC(val);
+  document.getElementById('balanceChipVal').textContent = display;
   const workEl = document.getElementById('workBalanceVal');
-  workEl.textContent = `${val} TC`;
+  workEl.textContent = `${display} TC`;
   workEl.classList.remove('tick');
   void workEl.offsetWidth;
   workEl.classList.add('tick');
@@ -1001,8 +1021,25 @@ function renderStreak() {
 }
 
 async function claimStreak() {
+  const btn = document.getElementById('streakBtn');
+  const prevText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Loading ad...';
+  try {
+    await showRotatingAd();
+  } catch (e) {
+    toast('Ad not completed — watch fully to claim.');
+    btn.disabled = false;
+    btn.textContent = prevText;
+    return;
+  }
+  btn.textContent = 'Claiming...';
   const res = await callApi('claimStreak');
-  if (!res.ok) { toast(res.error === 'already_claimed_today' ? 'Already claimed today' : 'Could not claim'); return; }
+  if (!res.ok) {
+    toast(res.error === 'already_claimed_today' ? 'Already claimed today' : 'Could not claim');
+    renderStreak();
+    return;
+  }
   setBalance(res.newBalance);
   me.streak = { count: res.day, lastClaimDate: new Date().toISOString().slice(0, 10) };
   renderStreak();
@@ -1020,6 +1057,14 @@ function renderSpin() {
 async function claimSpin() {
   const btn = document.getElementById('spinBtn');
   btn.disabled = true;
+  btn.textContent = 'Loading ad...';
+  try {
+    await showRotatingAd();
+  } catch (e) {
+    toast('Ad not completed — watch fully to spin.');
+    renderSpin();
+    return;
+  }
   btn.textContent = 'Spinning...';
   const res = await callApi('dailySpin');
   if (!res.ok) {
@@ -1134,6 +1179,23 @@ const showGigaAd = () => new Promise(async (resolve, reject) => {
   try { await window.showGiga(); adDone = true; tryResolve(); }
   catch (e) { clearTimeout(timer); doReject('Watch the full ad to earn reward.'); }
 });
+
+// ── Rotating ad gate for Daily Spin / Login Streak ──────────────────
+// Cycles through the 3 existing ad SDKs (no new network/API needed).
+// If the network up next fails to load/show, automatically falls back
+// to the next one in rotation before giving up — user still gets a shot
+// at their spin/streak instead of being blocked by one flaky network.
+const SPIN_STREAK_AD_ORDER = ['adsgram', 'gigapub', 'monetag'];
+let _spinStreakAdIdx = 0;
+async function showRotatingAd() {
+  const order = [...SPIN_STREAK_AD_ORDER.slice(_spinStreakAdIdx), ...SPIN_STREAK_AD_ORDER.slice(0, _spinStreakAdIdx)];
+  _spinStreakAdIdx = (_spinStreakAdIdx + 1) % SPIN_STREAK_AD_ORDER.length;
+  let lastErr = new Error('no_ad_available');
+  for (const network of order) {
+    try { await AD_NETWORKS[network].run(); return; } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
 
 function renderAdNetworks() {
   const list = document.getElementById('adNetworkList');
@@ -1507,6 +1569,35 @@ function wireRefer() {
     const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join Coinly Task and grow your project — 100% free promotion!')}`;
     if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl); else window.open(shareUrl, '_blank');
+  });
+  document.getElementById('copyRefBtn').addEventListener('click', async () => {
+    if (!tgUser) return;
+    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+    const copyBtn = document.getElementById('copyRefBtn');
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        // Fallback for older in-app WebViews without Clipboard API support
+        const ta = document.createElement('textarea');
+        ta.value = link;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.textContent = 'Copied!';
+      copyBtn.classList.add('copied');
+      toast('Referral link copied!');
+    } catch (e) {
+      toast('Could not copy — long-press the link to copy manually.');
+    }
+    setTimeout(() => {
+      copyBtn.textContent = 'Copy';
+      copyBtn.classList.remove('copied');
+    }, 2000);
   });
   if (tgUser) {
     document.getElementById('referLinkBox').textContent = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
