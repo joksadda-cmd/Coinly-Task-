@@ -123,10 +123,18 @@
   }
   .join-gate-inner { width: 100%; max-width: 380px; animation: joinGateUp 0.5s ease; }
   @keyframes joinGateUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .join-gate-logo {
+    width: 64px; height: 64px; margin: 0 auto 18px; animation: joinGateLogoIn 0.6s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes joinGateLogoIn {
+    from { opacity: 0; transform: scale(0.5) rotate(-12deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
   .join-gate-badge {
     display: inline-block; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
     color: var(--gold); background: var(--gold-soft); border: 1.5px dashed var(--gold);
     padding: 5px 12px; border-radius: 999px; margin-bottom: 18px;
+    animation: joinGateUp 0.5s ease 0.1s both;
   }
   .join-gate-title { font-family: var(--font-display); font-weight: 700; font-size: 25px; line-height: 1.28; margin-bottom: 10px; }
   .join-gate-sub { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; margin-bottom: 26px; }
@@ -137,6 +145,33 @@
   }
   .join-gate-row-label { font-size: 13.5px; font-weight: 600; }
   .join-gate-row-check { font-size: 15px; }
+
+  /* ── One-time animated welcome splash (brand-new users only) ────── */
+  #welcomeSplash {
+    position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center;
+    background: var(--bg);
+  }
+  #welcomeSplash.fade-out { animation: welcomeSplashOut 0.5s ease forwards; }
+  @keyframes welcomeSplashOut { to { opacity: 0; visibility: hidden; } }
+  .welcome-splash-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .welcome-logo { width: 76px; height: 76px; animation: welcomeLogoIn 0.7s cubic-bezier(.34,1.56,.64,1) both; }
+  @keyframes welcomeLogoIn {
+    from { opacity: 0; transform: scale(0.4) rotate(-18deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .welcome-title {
+    font-family: var(--font-display); font-weight: 700; font-size: 26px; color: var(--text);
+    opacity: 0; animation: welcomeTextIn 0.6s ease 0.35s both;
+  }
+  .welcome-sub {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    opacity: 0; animation: welcomeTextIn 0.6s ease 0.55s both;
+  }
+  @keyframes welcomeTextIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
   /* ── Header ─────────────────────────────────────────── */
   header {
@@ -322,14 +357,20 @@
   .kebab-item:active { background: var(--surface-2); }
   .kebab-item.danger { color: var(--danger); }
   .task-footer { display: flex; align-items: center; gap: 8px; }
-  .react-btn {
-    display: flex; align-items: center; gap: 5px;
-    background: var(--surface-2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 7px 11px; font-size: 12.5px; font-family: var(--font-mono);
-    color: var(--text-muted); cursor: pointer; transition: transform 0.1s ease, background 0.15s ease, border-color 0.15s ease;
+  .vote-widget {
+    display: flex; align-items: stretch; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
   }
-  .react-btn:active { transform: scale(0.92); }
-  .react-btn.active { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+  .vote-btn {
+    display: flex; align-items: center; gap: 5px; background: none; border: none;
+    padding: 7px 12px; font-size: 12.5px; font-family: var(--font-mono);
+    color: var(--text-muted); cursor: pointer; transition: transform 0.1s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .vote-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .vote-btn:active { transform: scale(0.9); }
+  .vote-divider { width: 1px; background: var(--border); margin: 7px 0; }
+  .vote-btn.like.active { color: var(--success); background: var(--success-soft); }
+  .vote-btn.dislike.active { color: var(--danger); background: var(--danger-soft); }
   .redeem-btn {
     border-left: 2px dashed rgba(255,255,255,0.55) !important;
   }
@@ -508,12 +549,29 @@
 
 <div id="joinGateScreen">
   <div class="join-gate-inner">
+    <svg class="join-gate-logo" width="64" height="64" viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="30" fill="#4338ca" fill-opacity="0.16" stroke="#4338ca" stroke-width="2"/>
+      <path d="M18 32C18 24.268 24.268 18 32 18" stroke="#4338ca" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="9" fill="#4338ca"/>
+    </svg>
     <div class="join-gate-badge">🎟 COINLY TASK</div>
     <h1 class="join-gate-title">Promote your own project.<br>Without investment.</h1>
     <p class="join-gate-sub">Complete tasks, earn TC, and get your channel or bot discovered by real users. Join our channel and community to get started.</p>
     <div id="joinGateList"></div>
     <button type="button" class="btn btn-primary btn-block stamp-btn" id="joinGateVerifyBtn" style="margin-top:14px">✅ I've joined — Verify</button>
     <p class="helper-text" id="joinGateNote" style="text-align:center;margin-top:10px"></p>
+  </div>
+</div>
+
+<div id="welcomeSplash">
+  <div class="welcome-splash-inner">
+    <svg class="welcome-logo" width="76" height="76" viewBox="0 0 76 76" fill="none">
+      <circle cx="38" cy="38" r="36" fill="#4338ca" fill-opacity="0.16" stroke="#4338ca" stroke-width="2"/>
+      <path d="M22 38C22 29.163 29.163 22 38 22" stroke="#4338ca" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="38" cy="38" r="10" fill="#4338ca"/>
+    </svg>
+    <div class="welcome-title">Coinly Task</div>
+    <div class="welcome-sub">Earn · Promote · Grow</div>
   </div>
 </div>
 
@@ -902,6 +960,22 @@ async function boot() {
   wireRefer();
   wireProfile();
   await loadMe();
+}
+
+// Shows the animated Coinly Task logo splash exactly once, right after a
+// brand-new user's first-ever successful launch (detected by comparing
+// their account's createdAt to "now" — if it was created moments ago, this
+// IS their first session). Returning users never see it again.
+function maybeShowWelcomeSplash() {
+  if (!me || !me.createdAt) return;
+  const createdMs = new Date(me.createdAt).getTime();
+  const isBrandNewSession = Date.now() - createdMs < 20000; // account is <20s old
+  if (!isBrandNewSession) return;
+
+  const splash = document.getElementById('welcomeSplash');
+  splash.style.display = 'flex';
+  setTimeout(() => splash.classList.add('fade-out'), 2200);
+  setTimeout(() => { splash.style.display = 'none'; }, 2700);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1319,8 +1393,17 @@ function renderTaskCard(t) {
       <div class="progress-label">${t.completedSlots} / ${t.totalSlots} claimed</div>
       <div class="ticket-perf"></div>
       <div class="task-footer">
-        <button class="react-btn ${t.likedByMe ? 'active' : ''}" data-action="like">👍 ${t.likes}</button>
-        <button class="react-btn ${t.dislikedByMe ? 'active' : ''}" data-action="dislike">👎 ${t.dislikes}</button>
+        <div class="vote-widget">
+          <button class="vote-btn like ${t.likedByMe ? 'active' : ''}" data-action="like">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 4l6.5 7.5H12V16H8v-4.5H3.5L10 4z"/></svg>
+            <span data-role="like-count">${t.likes}</span>
+          </button>
+          <div class="vote-divider"></div>
+          <button class="vote-btn dislike ${t.dislikedByMe ? 'active' : ''}" data-action="dislike">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 16l-6.5-7.5H8V4h4v4.5h4.5L10 16z"/></svg>
+            <span data-role="dislike-count">${t.dislikes}</span>
+          </button>
+        </div>
         <div style="flex:1"></div>
         <button class="btn btn-primary btn-sm redeem-btn" data-action="complete" ${t.alreadyCompletedByMe ? 'disabled' : ''}>
           ${t.alreadyCompletedByMe ? 'Redeemed ✓' : 'Redeem'}
@@ -1416,8 +1499,8 @@ async function react(taskId, reaction, card) {
   if (!res.ok) { toast('Could not react'); return; }
   const likeBtn = card.querySelector('[data-action="like"]');
   const dislikeBtn = card.querySelector('[data-action="dislike"]');
-  likeBtn.textContent = `👍 ${res.likes}`;
-  dislikeBtn.textContent = `👎 ${res.dislikes}`;
+  likeBtn.querySelector('[data-role="like-count"]').textContent = res.likes;
+  dislikeBtn.querySelector('[data-role="dislike-count"]').textContent = res.dislikes;
   if (reaction === 'like') { likeBtn.classList.toggle('active'); dislikeBtn.classList.remove('active'); }
   else { dislikeBtn.classList.toggle('active'); likeBtn.classList.remove('active'); }
 }
@@ -1566,13 +1649,13 @@ async function submitPost() {
 function wireRefer() {
   document.getElementById('shareRefBtn').addEventListener('click', () => {
     if (!tgUser) return;
-    const link = `https://t.me/Coinlytix_bot?start=ref_${tgUser.id}`;
+    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
     const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join Coinly Task and grow your project — 100% free promotion!')}`;
     if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl); else window.open(shareUrl, '_blank');
   });
   document.getElementById('copyRefBtn').addEventListener('click', async () => {
     if (!tgUser) return;
-    const link = `https://t.me/Coinlytix_bot?start=ref_${tgUser.id}`;
+    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
     const copyBtn = document.getElementById('copyRefBtn');
     try {
       if (navigator.clipboard?.writeText) {
@@ -1600,7 +1683,7 @@ function wireRefer() {
     }, 2000);
   });
   if (tgUser) {
-    document.getElementById('referLinkBox').textContent = `https://t.me/Coinlytix_bot?start=ref_${tgUser.id}`;
+    document.getElementById('referLinkBox').textContent = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
   }
 }
 
@@ -1753,7 +1836,8 @@ async function checkJoinGate() {
     note.textContent = '';
     document.getElementById('joinGateScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
-    boot();
+    await boot();
+    maybeShowWelcomeSplash();
     return;
   }
 
