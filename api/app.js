@@ -7,7 +7,8 @@
 // telegramId FROM IT, never from `payload`. See lib/verifyInitData.js.
 
 import { connectToDatabase } from '../lib/mongodb.js';
-import { verifyInitData } from '../lib/verifyInitData.js';
+import { verifyInitData, getStartParam } from '../lib/verifyInitData.js';
+import { createUserDoc } from '../lib/schema.js';
 import { postTask } from '../lib/taskService.js';
 import { claimAd, claimDailySpin, claimLoginStreak } from '../lib/engagement.js';
 import { redeemPromoCode } from '../lib/promoService.js';
@@ -31,8 +32,47 @@ export default async function handler(req, res) {
 
     switch (action) {
       case 'getUser': {
-        const user = await db.collection('users').findOne({ telegramId });
-        if (!user) return res.status(404).json({ ok: false, error: 'user_not_found' });
+        let user = await db.collection('users').findOne({ telegramId });
+
+        if (!user) {
+          // First time this person has EVER opened the Mini App.
+          // If they arrived via a referral direct link
+          // (https://t.me/Bot/App?startapp=ref_XXX), Telegram passes that
+          // value as `start_param` INSIDE the same signed initData string —
+          // so it's just as trustworthy as telegramId itself.
+          const startParam = getStartParam(initData);
+          let referredBy = null;
+
+          if (startParam && startParam.startsWith('ref_')) {
+            const refId = Number(startParam.slice(4));
+            if (Number.isFinite(refId) && refId !== telegramId) {
+              const referrer = await db.collection('users').findOne({ telegramId: refId });
+              if (referrer) referredBy = refId;
+            }
+          }
+
+          const newUser = createUserDoc({
+            telegramId,
+            username: tgUser.username || null,
+            firstName: tgUser.first_name || '',
+            referredBy,
+          });
+
+          try {
+            await db.collection('users').insertOne(newUser);
+            user = newUser;
+          } catch (err) {
+            // Duplicate key (11000) = a near-simultaneous request (e.g. bot
+            // /start + Mini App open at almost the same moment) already
+            // created this user first. Just re-fetch instead of erroring.
+            if (err.code === 11000) {
+              user = await db.collection('users').findOne({ telegramId });
+            } else {
+              throw err;
+            }
+          }
+        }
+
         if (user.banned) return res.status(403).json({ ok: false, error: 'banned', banReason: user.banReason });
         return res.status(200).json({ ok: true, user });
       }
@@ -127,4 +167,4 @@ export default async function handler(req, res) {
     console.error('[api/app] error:', err);
     return res.status(500).json({ ok: false, error: 'server_error' });
   }
-}
+                                         }
