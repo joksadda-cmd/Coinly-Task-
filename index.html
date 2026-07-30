@@ -146,32 +146,62 @@
   .join-gate-row-label { font-size: 13.5px; font-weight: 600; }
   .join-gate-row-check { font-size: 15px; }
 
-  /* ── One-time animated welcome splash (brand-new users only) ────── */
+  /* ── One-time animated intro (first-ever app open, per device) ─────
+     Plays BEFORE the join gate. Two stages: (1) logo + name pop in,
+     briefly hold, (2) stage 1 slides out while stage 2 slides in from
+     the right with the tagline — then the whole splash fades to reveal
+     the join gate. Timing is orchestrated in JS (playIntroThenGate) by
+     toggling the classes below. */
   #welcomeSplash {
-    position: fixed; inset: 0; z-index: 9999; display: none; align-items: center; justify-content: center;
-    background: var(--bg);
+    position: fixed; inset: 0; z-index: 9999; display: none;
+    background: var(--bg); overflow: hidden;
   }
   #welcomeSplash.fade-out { animation: welcomeSplashOut 0.5s ease forwards; }
   @keyframes welcomeSplashOut { to { opacity: 0; visibility: hidden; } }
-  .welcome-splash-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .welcome-logo { width: 76px; height: 76px; animation: welcomeLogoIn 0.7s cubic-bezier(.34,1.56,.64,1) both; }
+
+  .welcome-stage {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 12px; padding: 0 34px; text-align: center;
+  }
+  .welcome-stage-1.stage-out { animation: welcomeStage1Out 0.45s ease forwards; }
+  @keyframes welcomeStage1Out { to { opacity: 0; transform: translateY(-22px) scale(0.9); } }
+
+  .welcome-stage-2 { opacity: 0; transform: translateX(60px); pointer-events: none; }
+  .welcome-stage-2.stage-in { animation: welcomeStage2In 0.55s cubic-bezier(.22,1,.36,1) forwards; }
+  @keyframes welcomeStage2In { from { opacity: 0; transform: translateX(60px); } to { opacity: 1; transform: translateX(0); } }
+
+  .welcome-logo { width: 76px; height: 76px; animation: welcomeLogoIn 0.6s cubic-bezier(.34,1.56,.64,1) both; }
   @keyframes welcomeLogoIn {
     from { opacity: 0; transform: scale(0.4) rotate(-18deg); }
     to { opacity: 1; transform: scale(1) rotate(0deg); }
   }
   .welcome-title {
     font-family: var(--font-display); font-weight: 700; font-size: 26px; color: var(--text);
-    opacity: 0; animation: welcomeTextIn 0.6s ease 0.35s both;
+    opacity: 0; animation: welcomeTextIn 0.5s ease 0.2s both;
   }
   .welcome-sub {
     font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
     letter-spacing: 0.1em; text-transform: uppercase;
-    opacity: 0; animation: welcomeTextIn 0.6s ease 0.55s both;
+    opacity: 0; animation: welcomeTextIn 0.5s ease 0.35s both;
   }
   @keyframes welcomeTextIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  .welcome-tagline-icon {
+    width: 60px; height: 60px; border-radius: 50%; background: var(--primary-soft);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    animation: welcomeIconPop 0.5s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes welcomeIconPop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+  .welcome-tagline-badge {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--gold); background: var(--gold-soft); border: 1.5px dashed var(--gold);
+    padding: 4px 11px; border-radius: 999px;
+  }
+  .welcome-tagline-title { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.32; color: var(--text); }
+  .welcome-tagline-sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; max-width: 300px; }
 
   /* ── Header ─────────────────────────────────────────── */
   header {
@@ -564,7 +594,7 @@
 </div>
 
 <div id="welcomeSplash">
-  <div class="welcome-splash-inner">
+  <div class="welcome-stage welcome-stage-1" id="welcomeStage1">
     <svg class="welcome-logo" width="76" height="76" viewBox="0 0 76 76" fill="none">
       <circle cx="38" cy="38" r="36" fill="#4338ca" fill-opacity="0.16" stroke="#4338ca" stroke-width="2"/>
       <path d="M22 38C22 29.163 29.163 22 38 22" stroke="#4338ca" stroke-width="3" stroke-linecap="round"/>
@@ -572,6 +602,12 @@
     </svg>
     <div class="welcome-title">Coinly Task</div>
     <div class="welcome-sub">Earn · Promote · Grow</div>
+  </div>
+  <div class="welcome-stage welcome-stage-2" id="welcomeStage2">
+    <div class="welcome-tagline-icon">🚀</div>
+    <div class="welcome-tagline-badge">🎟 COINLY TASK</div>
+    <div class="welcome-tagline-title">Promote your own project.<br>Without investment.</div>
+    <div class="welcome-tagline-sub">Complete tasks, earn TC, and get your channel or bot discovered by real users.</div>
   </div>
 </div>
 
@@ -662,7 +698,7 @@
   <!-- ═══ REFER ═══ -->
   <section class="screen" id="screen-refer">
     <h1 class="page-title">Refer &amp; Earn</h1>
-    <p class="page-sub">Share your link — earn 15 TC once your friend completes 5 tasks.</p>
+    <p class="page-sub">Share your link — earn 10 TC once your friend completes 5 tasks.</p>
 
     <div class="refer-link-box">
       <span id="referLinkBox">Loading your link…</span>
@@ -676,7 +712,7 @@
         <div class="stat-label">Your referrals</div>
       </div>
       <div class="stat-box">
-        <div class="stat-num" id="referBonusVal">15</div>
+        <div class="stat-num" id="referBonusVal">10</div>
         <div class="stat-label">TC per referral</div>
       </div>
     </div>
@@ -962,20 +998,29 @@ async function boot() {
   await loadMe();
 }
 
-// Shows the animated Coinly Task logo splash exactly once, right after a
-// brand-new user's first-ever successful launch (detected by comparing
-// their account's createdAt to "now" — if it was created moments ago, this
-// IS their first session). Returning users never see it again.
-function maybeShowWelcomeSplash() {
-  if (!me || !me.createdAt) return;
-  const createdMs = new Date(me.createdAt).getTime();
-  const isBrandNewSession = Date.now() - createdMs < 20000; // account is <20s old
-  if (!isBrandNewSession) return;
-
+// Plays the animated Coinly Task intro (logo pop-in, hold, then slide out
+// as the "grow your project" tagline panel slides in from the right) and
+// then reveals the join-gate underneath. Runs the mandatory join-gate
+// membership check in the background WHILE the animation plays, so it
+// doesn't add extra wait time on top of the network call.
+//
+// Shown exactly once per device via a localStorage flag — this is purely
+// cosmetic (not an anti-cheat or security mechanism), so a localStorage
+// flag is fine here; clearing app storage just replays the intro, which
+// is harmless.
+function playIntroThenGate() {
   const splash = document.getElementById('welcomeSplash');
-  splash.style.display = 'flex';
-  setTimeout(() => splash.classList.add('fade-out'), 2200);
-  setTimeout(() => { splash.style.display = 'none'; }, 2700);
+  const stage1 = document.getElementById('welcomeStage1');
+  const stage2 = document.getElementById('welcomeStage2');
+  splash.style.display = 'block';
+
+  setTimeout(() => stage1.classList.add('stage-out'), 950);
+  setTimeout(() => stage2.classList.add('stage-in'), 1100);
+  setTimeout(() => {
+    splash.classList.add('fade-out');
+    startJoinGate();
+  }, 2500);
+  setTimeout(() => { splash.style.display = 'none'; }, 3000);
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1368,7 +1413,7 @@ function renderTaskCard(t) {
   card.innerHTML = `
     <div class="task-reward-stamp">+${TASK_COMPLETE_REWARD_TC} TC</div>
     <div class="task-card-clip">
-    ${t.photoUrl ? `<img class="task-photo" src="${t.photoUrl}" loading="lazy" data-fallback="1" />` : ''}
+    ${t.photoUrl ? `<img class="task-photo" src="/api/image-proxy?url=${encodeURIComponent(t.photoUrl)}" loading="lazy" data-fallback="1" />` : ''}
     <div class="task-body">
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
         ${t.ownerName ? `
@@ -1377,6 +1422,8 @@ function renderTaskCard(t) {
           <span style="font-size:12px;color:var(--text-muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(t.ownerName)}</span>
           ${t.createdAt ? `<span class="task-posted-at">${timeAgo(t.createdAt)}</span>` : ''}
         </div>` : '<div style="flex:1"></div>'}
+        ${t.ownerId && !t.isOwner && me && t.ownerId !== me.telegramId ? `
+        <button type="button" class="btn ${t.isFollowedByMe ? 'btn-outline' : 'btn-primary'} btn-sm follow-chip" data-action="follow" style="flex-shrink:0;padding:4px 11px;font-size:11.5px">${t.isFollowedByMe ? 'Following ✓' : '+ Follow'}</button>` : ''}
         ${t.isOwner ? `
         <div class="task-owner-menu">
           <button type="button" class="kebab-btn" data-action="kebab">⋮</button>
@@ -1426,6 +1473,20 @@ function renderTaskCard(t) {
   card.querySelector('[data-action="complete"]').addEventListener('click', (e) => completeTaskFlow(t, e.target));
   const posterEl = card.querySelector('[data-action="viewposter"]');
   if (posterEl && t.ownerId) posterEl.addEventListener('click', () => openUserProfile(t.ownerId));
+
+  const followBtn = card.querySelector('[data-action="follow"]');
+  if (followBtn && t.ownerId) {
+    followBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      followBtn.disabled = true;
+      const res = await callApi('toggleFollow', { targetTelegramId: t.ownerId });
+      followBtn.disabled = false;
+      if (!res.ok) { toast('Could not update follow status'); return; }
+      t.isFollowedByMe = res.following;
+      followBtn.textContent = res.following ? 'Following ✓' : '+ Follow';
+      followBtn.className = res.following ? 'btn btn-outline btn-sm follow-chip' : 'btn btn-primary btn-sm follow-chip';
+    });
+  }
 
   if (t.isOwner) {
     const kebabBtn = card.querySelector('[data-action="kebab"]');
@@ -1837,7 +1898,6 @@ async function checkJoinGate() {
     document.getElementById('joinGateScreen').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     await boot();
-    maybeShowWelcomeSplash();
     return;
   }
 
@@ -1845,6 +1905,12 @@ async function checkJoinGate() {
   note.textContent = anyCheckFailed
     ? "Membership couldn't be verified for one or more channels — make sure you've joined, then try again."
     : "Join both above, then tap Verify.";
+}
+
+function startJoinGate() {
+  document.getElementById('joinGateScreen').style.display = 'flex';
+  document.getElementById('joinGateVerifyBtn').addEventListener('click', checkJoinGate);
+  checkJoinGate();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1856,9 +1922,13 @@ if (!tg || !initData) {
 } else {
   tg.ready();
   tg.expand();
-  document.getElementById('joinGateScreen').style.display = 'flex';
-  document.getElementById('joinGateVerifyBtn').addEventListener('click', checkJoinGate);
-  checkJoinGate();
+  const INTRO_KEY = 'coinly_intro_seen_v1';
+  if (!localStorage.getItem(INTRO_KEY)) {
+    localStorage.setItem(INTRO_KEY, '1');
+    playIntroThenGate();
+  } else {
+    startJoinGate();
+  }
 }
 </script>
 </body>
