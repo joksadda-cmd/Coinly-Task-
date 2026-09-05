@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>Coinly Task</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<!-- Basic deterrent only — not real security, easily bypassed by anyone who
+     actually wants to inspect the page. All real protection (balance,
+     limits, verification) happens server-side in api/app.js. This just
+     discourages casual right-click "view source" / devtools poking. -->
+<script>
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+  document.addEventListener('keydown', (e) => {
+    if (e.keyCode === 123) e.preventDefault();
+    if (e.ctrlKey && e.shiftKey && ['I', 'C', 'J'].includes(e.key.toUpperCase())) e.preventDefault();
+    if (e.ctrlKey && e.key.toUpperCase() === 'U') e.preventDefault();
+  });
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@600;700&display=swap" rel="stylesheet">
+
+<!-- ═══ AD NETWORK SDKs ═══
+     ⚠️ zone/block/widget IDs below are carried over from the reference
+     project as a starting point — confirm in each network's dashboard
+     whether they're valid for THIS bot/domain, or need to be replaced with
+     fresh ones registered under Coinly Task. -->
+<!-- AdsGram and Monetag SDKs are now lazy-loaded on demand (see loadScriptOnce
+     in the script below) — loading them eagerly here let their own bundled
+     auto-popunder/interstitial behavior fire before the user tapped "Watch",
+     which is the bug being fixed. Adexium stays eager — it's the one network
+     meant to show a passive, randomly-timed interstitial. -->
+<script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+
+<style>
+  :root {
+    --bg: #f1f2f9;
+    --bg-elevated: #ffffff;
+    --surface: #ffffff;
+    --surface-2: #e9ebf6;
+    --border: #dcdfef;
+    --text: #15162c;
+    --text-muted: #5c5f7a;
+    --text-faint: #9396b0;
+    --primary: #4338ca;
+    --primary-dark: #332a9e;
+    --primary-soft: #ebe9fc;
+    --gold: #d9840f;
+    --gold-soft: #fbedd6;
+    --success: #158f63;
+    --success-soft: #e3f6ee;
+    --danger: #d13458;
+    --danger-soft: #fbe4ea;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --glow-primary: 0 4px 16px rgba(67, 56, 202, 0.24);
+  }
+
+  [data-theme="dark"] {
+    --bg: #0c0d1a;
+    --bg-elevated: #15172a;
+    --surface: #15172a;
+    --surface-2: #1e2038;
+    --border: #2b2e4a;
+    --text: #eceefb;
+    --text-muted: #9599b8;
+    --text-faint: #5c5f80;
+    --primary: #8b80ff;
+    --primary-dark: #6c60f5;
+    --primary-soft: rgba(139, 128, 255, 0.16);
+    --gold: #f2b94d;
+    --gold-soft: rgba(242, 185, 77, 0.14);
+    --success-soft: rgba(21, 143, 99, 0.18);
+    --danger-soft: rgba(209, 52, 88, 0.2);
+    --glow-primary: 0 4px 18px rgba(139, 128, 255, 0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+
+  html, body { background: var(--bg); height: 100%; }
+  body {
+    color: var(--text);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    transition: background 0.25s ease, color 0.25s ease;
+    overscroll-behavior-y: none;
+  }
+
+  /* ── Lock screen (non-Telegram access) ─────────────── */
+  #lockScreen {
+    display: none;
+    min-height: 100vh;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 30px;
+  }
+  #lockScreen svg { margin-bottom: 18px; }
+  #lockScreen h2 { font-family: var(--font-display); font-size: 19px; margin-bottom: 8px; }
+  #lockScreen p { color: var(--text-muted); font-size: 13.5px; line-height: 1.6; margin-bottom: 20px; }
+
+  /* ── Join gate (mandatory channel/community join on startup) ────── */
+  #joinGateScreen {
+    display: none; min-height: 100vh; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; padding: 40px 26px;
+  }
+  .join-gate-inner { width: 100%; max-width: 380px; animation: joinGateUp 0.5s ease; }
+  @keyframes joinGateUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  .join-gate-logo {
+    width: 64px; height: 64px; margin: 0 auto 18px; animation: joinGateLogoIn 0.6s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  @keyframes joinGateLogoIn {
+    from { opacity: 0; transform: scale(0.5) rotate(-12deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  .join-gate-badge {
+    display: inline-block; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+    color: var(--gold); background: var(--gold-soft); border: 1.5px dashed var(--gold);
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 18px;
+    animation: joinGateUp 0.5s ease 0.1s both;
+  }
+  .join-gate-title { font-family: var(--font-display); font-weight: 700; font-size: 25px; line-height: 1.28; margin-bottom: 10px; }
+  .join-gate-sub { font-size: 13.5px; color: var(--text-muted); line-height: 1.55; margin-bottom: 26px; }
+  .join-gate-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    padding: 13px 15px; margin-bottom: 10px; text-align: left;
+  }
+  .join-gate-row-label { font-size: 13.5px; font-weight: 600; }
+  .join-gate-row-check { font-size: 15px; }
+
+  /* ── Header ─────────────────────────────────────────── */
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px 12px;
+    position: sticky; top: 0; z-index: 20;
+    background: linear-gradient(var(--bg) 75%, transparent);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 17px; }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+
+  .theme-toggle {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-muted);
+  }
+
+  .balance-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--primary-soft); border: 1px solid var(--primary);
+    border-radius: 999px; padding: 6px 12px 6px 8px;
+    font-family: var(--font-mono); font-weight: 700; font-size: 13.5px;
+    color: var(--primary-dark); font-variant-numeric: tabular-nums;
+  }
+  [data-theme="dark"] .balance-chip { color: var(--primary); }
+
+  /* ── Main scroll area ──────────────────────────────── */
+  main { flex: 1; overflow-y: auto; padding: 4px 18px 100px; }
+  .screen { display: none; animation: fadeIn 0.2s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  h1.page-title { font-family: var(--font-display); font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+  p.page-sub { color: var(--text-muted); font-size: 13px; margin: 4px 0 16px; line-height: 1.5; }
+
+  .feed-head { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 2px; gap: 10px; }
+  .feed-head .page-title { margin: 0; }
+
+  /* ── Buttons ────────────────────────────────────────── */
+  .btn {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    border: none; border-radius: var(--radius-md);
+    font-family: var(--font-body); font-weight: 600; font-size: 14.5px;
+    padding: 13px 16px; cursor: pointer;
+    transition: transform 0.12s ease, opacity 0.12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: var(--glow-primary); }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  .btn-block { width: 100%; }
+  .btn-sm { padding: 9px 12px; font-size: 13px; border-radius: var(--radius-sm); }
+
+  .fab-post {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--primary); color: #fff; border: none;
+    border-radius: 999px; padding: 9px 16px 9px 12px;
+    font-weight: 700; font-size: 13.5px; cursor: pointer;
+    box-shadow: var(--glow-primary); flex-shrink: 0;
+  }
+
+  /* ── Cards / tiles ──────────────────────────────────── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 16px;
+  }
+  .mini-balance {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px 18px; margin: 10px 0 18px;
+  }
+  .mini-balance-label { font-size: 12px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .mini-balance-val { font-family: var(--font-mono); font-weight: 700; font-size: 30px; color: var(--primary); margin-top: 2px; }
+  [data-theme="dark"] .mini-balance-val { color: var(--primary); }
+  .mini-balance-val.tick { animation: tick 0.35s ease; }
+  @keyframes tick { 0% { transform: translateY(2px); opacity: 0.5; } 100% { transform: translateY(0); opacity: 1; } }
+
+  .section-title { font-family: var(--font-display); font-weight: 600; font-size: 15px; margin: 20px 0 10px; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; }
+  .tile-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
+  .tile-title { font-weight: 700; font-size: 13.5px; margin-bottom: 2px; }
+  .tile-sub { font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4; }
+
+  .streak-row { display: flex; gap: 6px; margin: 10px 0 4px; }
+  .streak-dot {
+    flex: 1; aspect-ratio: 1; border-radius: 8px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 11px; color: var(--text-faint);
+  }
+  .streak-dot.done { background: var(--gold-soft); border-color: var(--gold); color: var(--gold); }
+  .streak-dot.today { border-color: var(--primary); color: var(--primary); box-shadow: 0 0 0 2px var(--primary-soft); }
+
+  .ad-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px;
+  }
+  .ad-name { font-weight: 700; font-size: 14px; }
+  .ad-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+
+  /* ── Feed cards — "ticket" motif: task = a redeemable ticket, torn
+       stub divider between the offer and the redeem action, reward
+       stamped in the corner like a price tag ────────────────────── */
+  .task-card {
+    position: relative;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md);
+    overflow: visible; margin-bottom: 22px; box-shadow: 0 1px 2px rgba(21, 22, 44, 0.05);
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .task-card:active { transform: scale(0.995); }
+  .task-card-clip { border-radius: var(--radius-md); overflow: hidden; }
+  .task-body { padding: 14px; }
+  .task-poster-avatar {
+    width: 28px; height: 28px; border-radius: 50%; background: var(--primary-soft); color: var(--primary-dark);
+    display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700;
+    font-family: var(--font-display); flex-shrink: 0; position: relative; overflow: hidden;
+  }
+  .task-type-badge {
+    display: inline-block; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--primary-dark); background: var(--primary-soft); padding: 3px 8px; border-radius: 999px; margin-bottom: 8px;
+  }
+  [data-theme="dark"] .task-type-badge { color: var(--primary); }
+  .task-title { font-family: var(--font-display); font-weight: 600; font-size: 15.5px; margin-bottom: 6px; line-height: 1.35; }
+  .task-desc {
+    font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .task-posted-at { font-size: 11px; color: var(--text-faint); margin-left: auto; }
+
+  /* reward stamp — sits over the top-right corner like a hand-stamped price tag */
+  .task-reward-stamp {
+    position: absolute; top: -10px; right: 14px; z-index: 2;
+    background: var(--gold-soft); border: 1.5px dashed var(--gold); color: var(--gold);
+    font-family: var(--font-mono); font-weight: 700; font-size: 11px; letter-spacing: 0.02em;
+    padding: 4px 9px; border-radius: 7px; transform: rotate(-6deg);
+    box-shadow: 0 2px 6px rgba(21, 22, 44, 0.1);
+  }
+  [data-theme="dark"] .task-reward-stamp { box-shadow: 0 2px 6px rgba(0,0,0,0.35); }
+
+  /* perforated tear line between the task info and the redeem row — the
+     circles sit exactly on the clipped card edge so overflow:hidden bites
+     them into half-circle notches, like a real ticket stub */
+  .ticket-perf {
+    position: relative; height: 1px; margin: 4px -14px 12px;
+    background-image: linear-gradient(90deg, var(--border) 60%, transparent 0%);
+    background-position: top; background-size: 10px 1px; background-repeat: repeat-x;
+  }
+  .ticket-perf::before, .ticket-perf::after {
+    content: ''; position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--bg); transform: translateY(-50%); box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .ticket-perf::before { left: -8px; }
+  .ticket-perf::after { right: -8px; }
+
+  .progress-track { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-bottom: 6px; }
+  .progress-fill { height: 100%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease; }
+  .progress-label {
+    font-size: 10.5px; color: var(--text-faint); font-family: var(--font-mono); letter-spacing: 0.03em;
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .task-owner-menu { position: relative; margin-left: auto; }
+  .kebab-btn {
+    width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-muted); font-size: 15px; line-height: 1;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+  }
+  .kebab-dropdown {
+    display: none; position: absolute; top: 32px; right: 0; z-index: 5;
+    background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15); min-width: 168px; overflow: hidden;
+  }
+  .kebab-dropdown.show { display: block; }
+  .kebab-item {
+    display: block; width: 100%; text-align: left; padding: 11px 13px; background: none; border: none;
+    font-size: 13px; color: var(--text); cursor: pointer; font-family: var(--font-body);
+  }
+  .kebab-item:active { background: var(--surface-2); }
+  .kebab-item.danger { color: var(--danger); }
+  .task-footer { display: flex; align-items: center; gap: 8px; }
+  .vote-widget {
+    display: flex; align-items: stretch; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+  }
+  .vote-btn {
+    display: flex; align-items: center; gap: 5px; background: none; border: none;
+    padding: 7px 12px; font-size: 12.5px; font-family: var(--font-mono);
+    color: var(--text-muted); cursor: pointer; transition: transform 0.1s ease, color 0.15s ease, background 0.15s ease;
+  }
+  .vote-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .vote-btn:active { transform: scale(0.9); }
+  .vote-divider { width: 1px; background: var(--border); margin: 7px 0; }
+  .vote-btn.like.active { color: var(--success); background: var(--success-soft); }
+  .vote-btn.dislike.active { color: var(--danger); background: var(--danger-soft); }
+  .redeem-btn {
+    border-left: 2px dashed rgba(255,255,255,0.55) !important;
+  }
+
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--text-muted); }
+  .empty-state svg { margin-bottom: 14px; opacity: 0.5; }
+  .empty-state .et { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .empty-state .es { font-size: 13px; }
+  .skeleton { background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 37%, var(--surface) 63%); background-size: 400% 100%; animation: shimmer 1.4s ease infinite; border-radius: var(--radius-md); }
+  @keyframes shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+  /* ── Refer ──────────────────────────────────────────── */
+  .refer-link-box {
+    background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius-md);
+    padding: 12px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .refer-link-box span { flex: 1; word-break: break-all; }
+  .refer-copy-btn {
+    flex-shrink: 0; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text); border-radius: var(--radius-sm); padding: 7px 10px;
+    font-family: var(--font-body); font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .refer-copy-btn.copied { background: var(--success-soft); color: var(--success); border-color: var(--success); }
+  .leaderboard-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px;
+  }
+  .lb-rank {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    background: var(--surface-2); display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-weight: 700; font-size: 12.5px; color: var(--text-muted);
+  }
+  .lb-rank.top3 { background: var(--gold-soft); color: var(--gold); }
+  .lb-name { flex: 1; font-weight: 600; font-size: 14px; }
+  .lb-count { font-family: var(--font-mono); font-weight: 700; color: var(--primary); font-size: 13.5px; }
+
+  /* ── Profile ────────────────────────────────────────── */
+  .profile-head { display: flex; align-items: center; gap: 12px; margin: 10px 0 18px; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 16px;
+    background: var(--primary-soft); border: 1px solid var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-weight: 700; font-size: 20px; color: var(--primary-dark);
+    position: relative; overflow: hidden;
+  }
+  [data-theme="dark"] .avatar { color: var(--primary); }
+  .avatar-img, .task-poster-avatar img.avatar-img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: inherit;
+  }
+  .avatar-lg { width: 68px; height: 68px; border-radius: 20px; font-size: 25px; }
+  .profile-name { font-family: var(--font-display); font-weight: 700; font-size: 16px; }
+  .vp-name-lg { font-size: 18px; }
+  .profile-id { font-size: 11.5px; color: var(--text-faint); font-family: var(--font-mono); }
+  .vp-head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 18px; }
+  .vp-head-row .profile-head { margin: 0; }
+  #vpFollowBtn { flex-shrink: 0; width: auto; padding: 10px 18px; }
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; }
+  .stat-num { font-family: var(--font-mono); font-weight: 700; font-size: 22px; color: var(--primary); }
+  .stat-label { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+  /* ── Bottom nav ─────────────────────────────────────── */
+  nav.tabbar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 480px; display: flex;
+    background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid var(--border);
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    z-index: 30;
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: none; border: none; color: var(--text-faint);
+    font-family: var(--font-body); font-size: 10.5px; font-weight: 600;
+    padding: 6px 0; cursor: pointer;
+  }
+  .tab-btn.active { color: var(--primary); }
+  .tab-btn svg { width: 21px; height: 21px; }
+
+  /* ── Toast ──────────────────────────────────────────── */
+  #toast {
+    position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text);
+    font-size: 13px; font-weight: 500; padding: 11px 18px; border-radius: 999px;
+    opacity: 0; pointer-events: none; transition: all 0.25s ease;
+    z-index: 80; white-space: nowrap; max-width: 90%; overflow: hidden; text-overflow: ellipsis;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ── Modals / sheets ────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(8,9,13,0.55);
+    display: none; align-items: flex-end; justify-content: center; z-index: 60;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-overlay.top { z-index: 70; }
+  .modal-sheet {
+    width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+    background: var(--bg-elevated); border: 1px solid var(--border);
+    border-radius: 22px 22px 0 0;
+    padding: 10px 20px calc(22px + env(safe-area-inset-bottom));
+    animation: slideUp 0.22s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .sheet-handle { width: 36px; height: 4px; border-radius: 999px; background: var(--border); margin: 0 auto 14px; }
+  .modal-close-btn {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--text-muted);
+    font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .modal-title { font-family: var(--font-display); font-weight: 700; font-size: 18px; margin-bottom: 6px; }
+  .modal-body { font-size: 13.5px; color: var(--text-muted); line-height: 1.5; margin-bottom: 18px; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 7px; }
+  .field input, .field select { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 13px; color: var(--text); font-family: var(--font-body); font-size: 14px; }
+  .field input:focus { outline: none; border-color: var(--primary); }
+
+  .category-picker {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+    padding: 12px 13px; color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .category-picker .dots { display: flex; gap: 3px; }
+  .category-picker .dots span { width: 4px; height: 4px; border-radius: 50%; background: var(--text-faint); }
+
+  .category-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 6px; border-bottom: 1px solid var(--border); cursor: pointer;
+  }
+  .category-item:last-child { border-bottom: none; }
+  .category-item.selected { color: var(--primary); font-weight: 700; }
+  .category-item-sub { font-size: 11px; color: var(--text-faint); font-weight: 400; }
+
+  .slot-stepper { display: flex; align-items: center; gap: 10px; }
+  .slot-stepper button { width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 18px; font-family: var(--font-mono); }
+  .slot-stepper input { text-align: center; font-family: var(--font-mono); font-weight: 700; }
+  .helper-text { font-size: 11.5px; color: var(--text-faint); margin-top: 6px; }
+  .helper-text.warn { color: var(--danger); }
+  .quota-strip {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--gold-soft); border: 1.5px dashed var(--gold);
+    border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 16px;
+    font-size: 12.5px; color: var(--text-muted); font-family: var(--font-mono);
+  }
+  .quota-strip b { color: var(--text); font-family: var(--font-mono); }
+
+  /* torn-ticket top edge — only the Post-a-task sheet gets this signature */
+  .ticket-sheet { position: relative; padding-top: 22px; }
+  .ticket-sheet::before {
+    content: ''; position: absolute; top: -1px; left: 0; right: 0; height: 12px;
+    background-image: radial-gradient(circle at 10px 0, var(--bg) 8px, transparent 8.5px);
+    background-size: 20px 12px; background-repeat: repeat-x;
+  }
+  .ticket-serial {
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--text-faint);
+    letter-spacing: 0.06em; text-align: center; margin-bottom: 4px;
+  }
+  .stamp-btn {
+    border: 1.5px dashed rgba(255,255,255,0.5); border-radius: var(--radius-sm);
+  }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+    <rect x="14" y="24" width="28" height="22" rx="5" stroke="#94a3b8" stroke-width="2.4"/>
+    <path d="M19 24v-6a9 9 0 0118 0v6" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round"/>
+    <circle cx="28" cy="34" r="2.6" fill="#94a3b8"/>
+  </svg>
+  <h2>Open in Telegram</h2>
+  <p>Coinly Task only works as a Telegram Mini App. Please open it through the bot instead of a regular browser.</p>
+</div>
+
+<div id="joinGateScreen">
+  <div class="join-gate-inner">
+    <svg class="join-gate-logo" width="64" height="64" viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="30" fill="#4338ca" fill-opacity="0.16" stroke="#4338ca" stroke-width="2"/>
+      <path d="M18 32C18 24.268 24.268 18 32 18" stroke="#4338ca" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="32" cy="32" r="9" fill="#4338ca"/>
+    </svg>
+    <div class="join-gate-badge">🎟 COINLY TASK</div>
+    <h1 class="join-gate-title">Promote your own project.<br>Without investment.</h1>
+    <p class="join-gate-sub">Complete tasks, earn TC, and get your channel or bot discovered by real users. Join our channel and community to get started.</p>
+    <div id="joinGateList"></div>
+    <button type="button" class="btn btn-primary btn-block stamp-btn" id="joinGateVerifyBtn" style="margin-top:14px">✅ I've joined — Verify</button>
+    <p class="helper-text" id="joinGateNote" style="text-align:center;margin-top:10px"></p>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+
+<header>
+  <div class="brand">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <circle cx="13" cy="13" r="12" fill="#4338ca" fill-opacity="0.14" stroke="#4338ca" stroke-width="1.4"/>
+      <path d="M8.5 13.5C8.5 10.7 10.7 8.5 13.5 8.5" stroke="#4338ca" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="13" cy="13" r="3.4" fill="#4338ca"/>
+    </svg>
+    Coinly Task
+  </div>
+  <div class="header-right">
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+      <svg id="themeIcon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4"/></svg>
+    </button>
+    <div class="balance-chip" id="balanceChip">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6.3" fill="#4338ca" fill-opacity="0.18" stroke="#4338ca"/></svg>
+      <span id="balanceChipVal">--</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ═══ FEED ═══ -->
+  <section class="screen active" id="screen-feed">
+    <div class="feed-head">
+      <h1 class="page-title">Discover Tasks</h1>
+      <button class="fab-post" id="openPostBtn">
+        <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="2"><path d="M7.5 2.5v10M2.5 7.5h10"/></svg>
+        Post
+      </button>
+    </div>
+    <p class="page-sub">Complete tasks from other creators and earn TC.</p>
+    <div id="feedList">
+      <div class="skeleton" style="height:140px;margin-bottom:12px"></div>
+      <div class="skeleton" style="height:140px;margin-bottom:12px"></div>
+    </div>
+  </section>
+
+  <!-- ═══ WORK ═══ -->
+  <section class="screen" id="screen-work">
+    <h1 class="page-title">Work &amp; Earn</h1>
+    <p class="page-sub">Ads, spins, and streaks — every bit adds to your balance.</p>
+
+    <div class="mini-balance">
+      <div>
+        <div class="mini-balance-label">Your balance</div>
+        <div class="mini-balance-val" id="workBalanceVal">0 TC</div>
+      </div>
+    </div>
+
+    <div class="section-title">Daily rewards</div>
+    <div class="grid-2">
+      <div class="tile">
+        <div class="tile-icon" style="background:var(--primary-soft)">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#4338ca" stroke-width="1.5"/><path d="M9 5v4l3 2" stroke="#4338ca" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tile-title">Free Spin</div>
+        <div class="tile-sub" id="spinSub">1 free spin every day</div>
+        <button class="btn btn-primary btn-sm btn-block" id="spinBtn">Spin</button>
+      </div>
+      <div class="tile">
+        <div class="tile-icon" style="background:var(--gold-soft)">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2l2 4.5 5 .6-3.6 3.4.9 4.9L9 13.2l-4.3 2.2.9-4.9L2 6.1l5-.6L9 2z" fill="#d97706"/></svg>
+        </div>
+        <div class="tile-title">Login Streak</div>
+        <div class="tile-sub" id="streakSub">Day 0 of 7</div>
+        <button class="btn btn-outline btn-sm btn-block" id="streakBtn">Claim</button>
+      </div>
+    </div>
+    <div class="streak-row" id="streakRow"></div>
+
+    <div class="section-title">Watch &amp; earn</div>
+    <div id="adNetworkList"></div>
+
+    <div class="section-title">Promo code</div>
+    <div class="field" style="margin-bottom:10px">
+      <input type="text" id="promoInput" placeholder="Enter promo code" autocomplete="off" style="text-transform:uppercase" />
+    </div>
+    <button class="btn btn-outline btn-block" id="promoBtn">Redeem code</button>
+    <p class="helper-text" style="margin-top:8px;margin-bottom:20px">Watching a short ad may be required before redeeming.</p>
+  </section>
+
+  <!-- ═══ REFER ═══ -->
+  <section class="screen" id="screen-refer">
+    <h1 class="page-title">Refer &amp; Earn</h1>
+    <p class="page-sub">Share your link — earn 10 TC once your friend completes 5 tasks.</p>
+
+    <div class="refer-link-box">
+      <span id="referLinkBox">Loading your link…</span>
+      <button type="button" class="refer-copy-btn" id="copyRefBtn">Copy</button>
+    </div>
+    <button class="btn btn-primary btn-block" id="shareRefBtn">Share referral link</button>
+
+    <div class="stat-row" style="margin-top:18px">
+      <div class="stat-box">
+        <div class="stat-num" id="referCountVal">0</div>
+        <div class="stat-label">Your referrals</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="referBonusVal">10</div>
+        <div class="stat-label">TC per referral</div>
+      </div>
+    </div>
+
+    <div class="section-title">🏆 Top 20 Referrers</div>
+    <div id="leaderboardList">
+      <div class="skeleton" style="height:52px;margin-bottom:8px"></div>
+      <div class="skeleton" style="height:52px;margin-bottom:8px"></div>
+    </div>
+  </section>
+
+  <!-- ═══ PROFILE ═══ -->
+  <section class="screen" id="screen-profile">
+    <div class="profile-head">
+      <div class="avatar avatar-lg" id="profileAvatar"><span class="avatar-fallback">?</span></div>
+      <div>
+        <div class="profile-name vp-name-lg" id="profileName">—</div>
+        <div class="profile-id" id="profileId">—</div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num" id="profilePosts">0</div>
+        <div class="stat-label">Tasks posted</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="profileCompleted">0</div>
+        <div class="stat-label">Tasks completed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="profileRefs">0</div>
+        <div class="stat-label">Referrals</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="profileFollowers">0</div>
+        <div class="stat-label">Followers</div>
+      </div>
+    </div>
+
+    <div class="section-title">Your live tasks</div>
+    <div id="profileTasks"></div>
+
+    <div class="section-title">Cross-promotion</div>
+    <div class="card" style="margin-bottom:16px">
+      <p style="color:var(--text-muted);font-size:13px;margin-bottom:12px;line-height:1.5">Want long-term cross-promotion for your project? Reach out directly to the admin.</p>
+      <button class="btn btn-outline btn-block" id="contactAdminBtn">📢 Contact Admin</button>
+    </div>
+  </section>
+
+</main>
+
+<nav class="tabbar">
+  <button class="tab-btn active" data-tab="feed">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="4" width="17" height="17" rx="3"/><path d="M7.5 9h9M7.5 13h9M7.5 17h5"/></svg>
+    Feed
+  </button>
+  <button class="tab-btn" data-tab="work">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+    Work
+  </button>
+  <button class="tab-btn" data-tab="refer">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c1-3.5 3-5.5 5.5-5.5s4.5 2 5.5 5.5"/><circle cx="18" cy="7" r="2.2"/><path d="M15 13c2.4.3 3.8 1.9 4.5 4.3"/></svg>
+    Refer
+  </button>
+  <button class="tab-btn" data-tab="profile">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8.5" r="3.3"/><path d="M5 20c1.2-4 4-6 7-6s5.8 2 7 6"/></svg>
+    Profile
+  </button>
+</nav>
+
+<div id="toast"></div>
+
+<!-- Spin result -->
+<div class="modal-overlay" id="spinModal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-title" id="spinModalTitle">🎉 You won!</div>
+    <div class="modal-body" id="spinModalBody">Reward added to your balance.</div>
+    <button class="btn btn-primary btn-block" id="spinModalCloseBtn">Nice</button>
+  </div>
+</div>
+
+<!-- Post task sheet -->
+<div class="modal-overlay" id="postModal">
+  <div class="modal-sheet ticket-sheet">
+    <div class="sheet-handle"></div>
+    <div class="ticket-serial">TICKET · NEW LISTING</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="modal-title" style="margin-bottom:0">Post a Task</div>
+      <button type="button" class="modal-close-btn" id="postModalCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <div class="quota-strip">
+      <span>🎟 Posted today</span>
+      <b id="quotaVal">0 / 3</b>
+    </div>
+
+    <div class="field">
+      <label>Category</label>
+      <button type="button" class="category-picker" id="categoryPickerBtn">
+        <span id="categoryPickerLabel">Choose category</span>
+        <span class="dots"><span></span><span></span><span></span></span>
+      </button>
+    </div>
+
+    <div class="field">
+      <label>Title</label>
+      <input type="text" id="postTitle" placeholder="e.g. Subscribe to my YouTube channel" maxlength="80" />
+    </div>
+
+    <div class="field">
+      <label>Link</label>
+      <input type="text" id="postLink" placeholder="https://..." />
+    </div>
+
+    <div class="field" id="targetField" style="display:none">
+      <label>Channel / group @username</label>
+      <input type="text" id="postTarget" placeholder="@yourchannel" />
+      <p class="helper-text">Coinly Task bot must be an admin there, or verification will fail.</p>
+    </div>
+
+    <div class="field">
+      <label>Slots (must be a multiple of 50)</label>
+      <div class="slot-stepper">
+        <button type="button" id="slotMinus">−</button>
+        <input type="number" id="postSlots" value="50" step="50" min="50" />
+        <button type="button" id="slotPlus">+</button>
+      </div>
+      <p class="helper-text">Cost: <b id="slotCost" style="color:var(--primary)">50</b> TC — 1 TC per slot</p>
+    </div>
+
+    <div class="field">
+      <label>Short description (optional)</label>
+      <textarea id="postDescription" maxlength="700" rows="3" placeholder="60-80 words about your task — what it is, why someone should complete it" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 13px;color:var(--text);font-family:var(--font-body);font-size:14px;resize:vertical"></textarea>
+      <p class="helper-text"><span id="descWordCount">0</span> / 80 words — plain text only, no links or # @ &amp; symbols</p>
+    </div>
+
+    <div id="adultWarning" style="display:none" class="field">
+      <p class="helper-text warn">⚠️ Adult/18+ content of any kind is strictly forbidden and results in a permanent ban with balance forfeited. Do not risk it.</p>
+    </div>
+
+    <button class="btn btn-primary btn-block stamp-btn" id="postSubmitBtn" style="margin-top:6px">🎟 Submit for Review</button>
+  </div>
+</div>
+
+<!-- Category picker (sits above postModal) -->
+<div class="modal-overlay top" id="categorySheet">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+      <div class="modal-title" style="margin-bottom:0">Choose category</div>
+      <button type="button" class="modal-close-btn" onclick="closeModal('categorySheet')" aria-label="Close">✕</button>
+    </div>
+    <div id="categoryList"></div>
+  </div>
+</div>
+
+<!-- View another user's profile (opened by tapping a poster name on a task card) -->
+<div class="modal-overlay" id="viewProfileModal">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="modal-title" style="margin-bottom:0">Profile</div>
+      <button type="button" class="modal-close-btn" onclick="closeModal('viewProfileModal')" aria-label="Close">✕</button>
+    </div>
+    <div class="vp-head-row">
+      <div class="profile-head">
+        <div class="avatar avatar-lg" id="vpAvatar"><span class="avatar-fallback">?</span></div>
+        <div>
+          <div class="profile-name vp-name-lg" id="vpName">—</div>
+          <div class="profile-id" id="vpId">—</div>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" id="vpFollowBtn">Follow</button>
+    </div>
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num" id="vpFollowers">0</div>
+        <div class="stat-label">Followers</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="vpTasks">0</div>
+        <div class="stat-label">Tasks posted</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="vpCompleted">0</div>
+        <div class="stat-label">Tasks completed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="vpRefers">0</div>
+        <div class="stat-label">Referrals</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /#app -->
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// Theme
+// ═══════════════════════════════════════════════════════════
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('coinly_theme', theme);
+}
+(function initTheme() {
+  const saved = localStorage.getItem('coinly_theme');
+  applyTheme(saved === 'dark' ? 'dark' : 'light');
+})();
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+
+// ═══════════════════════════════════════════════════════════
+// Toast + modal helpers
+// ═══════════════════════════════════════════════════════════
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+}
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.getElementById('spinModalCloseBtn').addEventListener('click', () => closeModal('spinModal'));
+document.getElementById('postModalCloseBtn').addEventListener('click', () => closeModal('postModal'));
+
+// Tapping the dark backdrop (not the sheet itself) closes any open modal —
+// this is the "back" affordance for sheets that don't force a choice.
+document.querySelectorAll('.modal-overlay').forEach((overlay) => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════
+// Task type config — mirrors lib/constants.js TASK_TYPES on the backend
+// ═══════════════════════════════════════════════════════════
+const TASK_TYPES = {
+  youtube_subscribe: { label: 'YouTube Subscribe', sub: 'Self-reported', apiVerify: false },
+  fb_page_follow: { label: 'Facebook Page Follow', sub: 'Self-reported', apiVerify: false },
+  fb_like: { label: 'Facebook Like', sub: 'Self-reported', apiVerify: false },
+  telegram_bot: { label: 'Telegram Bot Start', sub: 'Self-reported', apiVerify: false },
+  telegram_channel_join: { label: 'Telegram Channel Join', sub: 'API verified', apiVerify: true },
+  telegram_group_join: { label: 'Telegram Group Join', sub: 'API verified', apiVerify: true },
+  direct_link: { label: 'Direct Link (Adsterra / 3rd-party)', sub: 'Non-adult only', apiVerify: false },
+};
+
+// Mirrors lib/constants.js TASK_COMPLETE_REWARD_TC — flat reward for completing any task
+const TASK_COMPLETE_REWARD_TC = 0.1;
+
+// ═══════════════════════════════════════════════════════════
+// Telegram WebApp handles — declared early since many functions
+// below reference tg/tgUser. The actual boot() trigger is at the
+// very end of this script, after everything is initialized.
+// ═══════════════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+const initData = tg?.initData || '';
+const tgUser = tg?.initDataUnsafe?.user || null;
+
+// ═══════════════════════════════════════════════════════════
+// Boot function — actually starting the app happens at the very
+// end of this script (after every const/let below is initialized)
+// ═══════════════════════════════════════════════════════════
+async function boot() {
+  renderCategoryList();
+  renderAdNetworks();
+  wireTabNav();
+  wirePostForm();
+  wireWork();
+  wireRefer();
+  wireProfile();
+  await loadMe();
+}
+
+// ═══════════════════════════════════════════════════════════
+// API
+// ═══════════════════════════════════════════════════════════
+const API_URL = '/api/app';
+async function callApi(action, payload = {}) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, initData, payload }),
+    });
+    return await res.json();
+  } catch (err) {
+    return { ok: false, error: 'network_error' };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// State + balance
+// ═══════════════════════════════════════════════════════════
+let me = null;
+
+// Rounds to 2 decimals and strips a trailing ".00"/".x0" — purely cosmetic,
+// guards against floating-point display artifacts (e.g. 0.30000000000000004)
+// that can build up from repeated 0.1 TC task-completion rewards.
+function formatTC(val) {
+  const n = Math.round(Number(val) * 100) / 100;
+  return n % 1 === 0 ? String(n) : n.toFixed(2).replace(/0$/, '');
+}
+
+function setBalance(val) {
+  const display = formatTC(val);
+  document.getElementById('balanceChipVal').textContent = display;
+  const workEl = document.getElementById('workBalanceVal');
+  workEl.textContent = `${display} TC`;
+  workEl.classList.remove('tick');
+  void workEl.offsetWidth;
+  workEl.classList.add('tick');
+}
+
+async function loadMe() {
+  const res = await callApi('getUser');
+  if (!res.ok) {
+    if (res.error === 'user_not_found') {
+      toast('Please open this app via the /start button in the bot first.');
+      document.getElementById('balanceChipVal').textContent = '0';
+      document.getElementById('feedList').innerHTML = emptyState('Account not set up yet', 'Go back to the Coinly Task bot chat, tap Start, then reopen this app.');
+    } else if (res.error === 'banned') {
+      document.getElementById('app').innerHTML = `<div style="padding:60px 24px;text-align:center;color:var(--text-muted)"><h2 style="color:#e11d48;font-family:'Outfit',sans-serif;margin-bottom:10px">Account banned</h2><p>Your account has been permanently banned${res.banReason ? ' (' + res.banReason + ')' : ''}. Contact the admin if you believe this is a mistake.</p></div>`;
+    } else {
+      document.getElementById('balanceChipVal').textContent = '0';
+      document.getElementById('feedList').innerHTML = emptyState('Could not connect', 'Check your connection and reopen the app.');
+    }
+    return;
+  }
+  me = res.user;
+  setBalance(me.balanceTC);
+  renderStreak();
+  renderSpin();
+  renderProfileHead();
+  renderQuota();
+  document.getElementById('referCountVal').textContent = me.referralCount;
+  loadFeed();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Tab navigation
+// ═══════════════════════════════════════════════════════════
+const loadedTabs = new Set(['feed']);
+function wireTabNav() {
+  document.querySelectorAll('.tab-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+      btn.classList.add('active');
+      const tabName = btn.dataset.tab;
+      document.getElementById(`screen-${tabName}`).classList.add('active');
+
+      if (!loadedTabs.has(tabName)) {
+        loadedTabs.add(tabName);
+        if (tabName === 'profile') loadProfileTasks();
+        if (tabName === 'refer') loadLeaderboard();
+      }
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// WORK: streak + spin + ads + promo
+// ═══════════════════════════════════════════════════════════
+function wireWork() {
+  document.getElementById('streakBtn').addEventListener('click', claimStreak);
+  document.getElementById('spinBtn').addEventListener('click', claimSpin);
+  document.getElementById('promoBtn').addEventListener('click', redeemPromo);
+}
+
+function renderStreak() {
+  const count = me?.streak?.count || 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const claimedToday = me?.streak?.lastClaimDate === today;
+  document.getElementById('streakSub').textContent = `Day ${count} of 7`;
+  const row = document.getElementById('streakRow');
+  row.innerHTML = '';
+  for (let i = 1; i <= 7; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'streak-dot';
+    if (i <= count) dot.classList.add('done');
+    if (i === count && claimedToday) dot.classList.add('today');
+    dot.textContent = i;
+    row.appendChild(dot);
+  }
+  const btn = document.getElementById('streakBtn');
+  btn.disabled = claimedToday;
+  btn.textContent = claimedToday ? 'Claimed today' : 'Claim';
+}
+
+async function claimStreak() {
+  const btn = document.getElementById('streakBtn');
+  const prevText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Loading ad...';
+  try {
+    await showRotatingAd();
+  } catch (e) {
+    toast('Ad not completed — watch fully to claim.');
+    btn.disabled = false;
+    btn.textContent = prevText;
+    return;
+  }
+  btn.textContent = 'Claiming...';
+  const res = await callApi('claimStreak');
+  if (!res.ok) {
+    toast(res.error === 'already_claimed_today' ? 'Already claimed today' : 'Could not claim');
+    renderStreak();
+    return;
+  }
+  setBalance(res.newBalance);
+  me.streak = { count: res.day, lastClaimDate: new Date().toISOString().slice(0, 10) };
+  renderStreak();
+  toast(`+${res.reward} TC — Day ${res.day} streak!`);
+}
+
+function renderSpin() {
+  const today = new Date().toISOString().slice(0, 10);
+  const claimed = me?.spin?.lastClaimDate === today;
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = claimed;
+  btn.textContent = claimed ? 'Come back tomorrow' : 'Spin';
+}
+
+async function claimSpin() {
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = true;
+  btn.textContent = 'Loading ad...';
+  try {
+    await showRotatingAd();
+  } catch (e) {
+    toast('Ad not completed — watch fully to spin.');
+    renderSpin();
+    return;
+  }
+  btn.textContent = 'Spinning...';
+  const res = await callApi('dailySpin');
+  if (!res.ok) {
+    toast(res.error === 'already_claimed_today' ? 'Already claimed today' : 'Could not spin');
+    renderSpin();
+    return;
+  }
+  setBalance(res.newBalance);
+  me.spin = { lastClaimDate: new Date().toISOString().slice(0, 10) };
+  renderSpin();
+  document.getElementById('spinModalTitle').textContent = `🎉 +${res.reward} TC!`;
+  document.getElementById('spinModalBody').textContent = 'Added to your balance. Come back tomorrow for another spin.';
+  openModal('spinModal');
+}
+
+async function redeemPromo() {
+  const codeEl = document.getElementById('promoInput');
+  const code = codeEl.value.trim();
+  if (!code) { toast('Enter a code first'); return; }
+  const res = await callApi('redeemPromo', { code });
+  if (!res.ok) {
+    const msg = { invalid_code: 'Invalid code', already_claimed: 'You already used this code', limit_reached: 'This code has reached its claim limit', inactive_code: 'This code is no longer active' }[res.error] || 'Could not redeem code';
+    toast(msg);
+    return;
+  }
+  setBalance(res.newBalance);
+  codeEl.value = '';
+  toast(`+${res.reward} TC redeemed!`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// AD NETWORKS — real SDK integration (adapted from the reference project)
+// ⚠️ Reward is only requested from the backend AFTER each SDK's own promise
+// confirms a genuine full watch (Adsgram: done:true + 6s minimum; Monetag /
+// GigaPub: resolved promise + 6s minimum). No server-to-server postback —
+// this client-side confirmation is the whole verification for these networks.
+// ═══════════════════════════════════════════════════════════
+// Lazy script loader — injects a <script> tag only the first time it's
+// actually needed (i.e. the user tapped "Watch" for that network), and
+// caches the promise so repeat taps don't re-inject it. This is the fix for
+// ad networks whose own SDK auto-fires a popunder/interstitial the moment
+// their script is present on the page — if we never inject it until the
+// user asks for that specific network, it can't fire early.
+const _loadedScripts = {};
+function loadScriptOnce(key, attrs) {
+  if (_loadedScripts[key]) return _loadedScripts[key];
+  _loadedScripts[key] = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    Object.entries(attrs).forEach(([k, v]) => s.setAttribute(k, v));
+    s.onload = () => resolve();
+    s.onerror = () => { delete _loadedScripts[key]; reject(new Error(`${key}_sdk_load_failed`)); };
+    document.head.appendChild(s);
+  });
+  return _loadedScripts[key];
+}
+
+const AD_NETWORKS = {
+  adsgram: { label: 'Adsgram', reward: 4, limit: 5, run: () => makeAdsgramCall('int-35169')() },
+  gigapub: { label: 'GigaPub', reward: 2, limit: 10, run: () => showGigaAd() },
+  monetag: { label: 'Monetag', reward: 2, limit: 10, run: () => showMonetagAd() },
+};
+
+const makeAdsgramCall = (blockId) => () => new Promise((resolve, reject) => {
+  loadScriptOnce('adsgram', { src: 'https://sad.adsgram.ai/js/sad.min.js' }).then(() => {
+    const adObj = window.Adsgram?.init({ blockId, onError: (e) => reject(e) });
+    if (!adObj?.show) { reject(new Error('AdsGram SDK unavailable')); return; }
+    const startedAt = Date.now();
+    const MIN_WATCH_MS = 6000;
+    adObj.show().then((result) => {
+      const watchedFull = result && result.done === true;
+      const elapsed = Date.now() - startedAt;
+      if (watchedFull && elapsed >= MIN_WATCH_MS) resolve();
+      else reject(new Error('click_required'));
+    }).catch((e) => reject(new Error('ad_failed')));
+  }).catch(() => reject(new Error('AdsGram SDK unavailable')));
+});
+
+const showMonetagAd = () => new Promise((resolve, reject) => {
+  loadScriptOnce('monetag', { src: '//libtl.com/sdk.js', 'data-zone': '10135525', 'data-sdk': 'show_10135525' }).then(() => {
+    if (!window.show_10135525) { reject(new Error('Monetag SDK not loaded')); return; }
+    let timerDone = false, adDone = false, rejected = false;
+    const tryResolve = () => { if (!rejected && timerDone && adDone) resolve(); };
+    const doReject = (reason) => { if (!rejected) { rejected = true; reject(new Error(reason)); } };
+    const timer = setTimeout(() => { timerDone = true; tryResolve(); }, 6000);
+    try {
+      Promise.resolve(window.show_10135525()).then(() => { adDone = true; tryResolve(); })
+        .catch(() => { clearTimeout(timer); doReject('Watch the full ad to earn reward.'); });
+    } catch (e) { clearTimeout(timer); doReject('Monetag ad unavailable.'); }
+  }).catch(() => reject(new Error('Monetag SDK not loaded')));
+});
+
+const showGigaAd = () => new Promise(async (resolve, reject) => {
+  try {
+    await loadScriptOnce('gigapub', { src: 'https://ad.gigapub.tech/script?id=4088' });
+  } catch (e) { reject(e); return; }
+  if (typeof window.showGiga !== 'function') {
+    try {
+      await new Promise((res, rej) => {
+        let attempts = 0;
+        const check = setInterval(() => {
+          attempts++;
+          if (typeof window.showGiga === 'function') { clearInterval(check); res(); }
+          else if (attempts >= 25) { clearInterval(check); rej(new Error('GigaPub SDK not loaded')); }
+        }, 200);
+      });
+    } catch (e) { reject(e); return; }
+  }
+  let adDone = false, timerDone = false, rejected = false;
+  const tryResolve = () => { if (!rejected && timerDone && adDone) resolve(); };
+  const doReject = (reason) => { if (!rejected) { rejected = true; reject(new Error(reason)); } };
+  const timer = setTimeout(() => { timerDone = true; tryResolve(); }, 6000);
+  try { await window.showGiga(); adDone = true; tryResolve(); }
+  catch (e) { clearTimeout(timer); doReject('Watch the full ad to earn reward.'); }
+});
+
+// ── Rotating ad gate for Daily Spin / Login Streak ──────────────────
+// Cycles through the 3 existing ad SDKs (no new network/API needed).
+// If the network up next fails to load/show, automatically falls back
+// to the next one in rotation before giving up — user still gets a shot
+// at their spin/streak instead of being blocked by one flaky network.
+const SPIN_STREAK_AD_ORDER = ['adsgram', 'gigapub', 'monetag'];
+let _spinStreakAdIdx = 0;
+async function showRotatingAd() {
+  const order = [...SPIN_STREAK_AD_ORDER.slice(_spinStreakAdIdx), ...SPIN_STREAK_AD_ORDER.slice(0, _spinStreakAdIdx)];
+  _spinStreakAdIdx = (_spinStreakAdIdx + 1) % SPIN_STREAK_AD_ORDER.length;
+  let lastErr = new Error('no_ad_available');
+  for (const network of order) {
+    try { await AD_NETWORKS[network].run(); return; } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
+}
+
+function renderAdNetworks() {
+  const list = document.getElementById('adNetworkList');
+  list.innerHTML = '';
+  const today = new Date().toISOString().slice(0, 10);
+  const adsToday = me?.adsToday?.date === today ? me.adsToday : { adsgram: 0, gigapub: 0, monetag: 0 };
+
+  Object.entries(AD_NETWORKS).forEach(([key, cfg]) => {
+    const used = adsToday[key] || 0;
+    const row = document.createElement('div');
+    row.className = 'ad-row';
+    row.innerHTML = `
+      <div>
+        <div class="ad-name">${cfg.label}</div>
+        <div class="ad-meta">${used}/${cfg.limit} watched today · +${cfg.reward} TC each</div>
+      </div>
+      <button class="btn btn-primary btn-sm" data-network="${key}" ${used >= cfg.limit ? 'disabled' : ''}>
+        ${used >= cfg.limit ? 'Done' : 'Watch'}
+      </button>`;
+    list.appendChild(row);
+  });
+
+  list.querySelectorAll('button[data-network]').forEach((btn) => {
+    btn.addEventListener('click', () => watchAd(btn.dataset.network, btn));
+  });
+}
+
+async function watchAd(network, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  try {
+    await AD_NETWORKS[network].run();
+    await rewardAd(network);
+  } catch (e) {
+    toast('Ad not completed — watch fully to earn reward.');
+    renderAdNetworks();
+  }
+}
+
+async function rewardAd(network) {
+  const res = await callApi('claimAd', { network });
+  if (!res.ok) {
+    const msg = { cooldown: 'Please wait a moment before the next ad', daily_limit_reached: 'Daily limit reached for this network' }[res.error] || 'Could not claim reward';
+    toast(msg);
+    renderAdNetworks();
+    return;
+  }
+  setBalance(res.newBalance);
+  const today = new Date().toISOString().slice(0, 10);
+  if (!me.adsToday || me.adsToday.date !== today) me.adsToday = { date: today, adsgram: 0, gigapub: 0, monetag: 0 };
+  me.adsToday[network] = (me.adsToday[network] || 0) + 1;
+  renderAdNetworks();
+  toast(`+${res.reward} TC from ${AD_NETWORKS[network].label}`);
+}
+
+// Optional passive interstitial — Adexium (not tied to a discrete reward,
+// just background monetization, matching how the reference project used it).
+document.addEventListener('DOMContentLoaded', () => {
+  function initAdexium() {
+    if (typeof AdexiumWidget === 'undefined') { setTimeout(initAdexium, 3000); return; }
+    try {
+      const widget = new AdexiumWidget({ wid: 'a1a296e8-82a8-4686-8740-2ecd055c403d', adFormat: 'interstitial' });
+      window._adexiumWidget = widget;
+      widget.autoMode();
+    } catch (e) { console.warn('[Adexium init]', e); }
+  }
+  initAdexium();
+});
+
+// ═══════════════════════════════════════════════════════════
+// FEED
+// ═══════════════════════════════════════════════════════════
+async function loadFeed() {
+  const listEl = document.getElementById('feedList');
+  const res = await callApi('getFeed', { limit: 20, skip: 0 });
+  if (!res.ok) { listEl.innerHTML = emptyState('Could not load feed', 'Pull down to try again.'); return; }
+  if (res.tasks.length === 0) { listEl.innerHTML = emptyState('No tasks yet', 'Be the first to post one — tap the + Post button.'); return; }
+  listEl.innerHTML = '';
+  res.tasks.forEach((t) => listEl.appendChild(renderTaskCard(t)));
+}
+
+function emptyState(title, sub) {
+  return `<div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="10" width="36" height="30" rx="5" stroke="currentColor" stroke-width="2"/><path d="M14 20h20M14 27h13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <div class="et">${title}</div><div class="es">${sub}</div>
+  </div>`;
+}
+
+function renderTaskCard(t) {
+  const card = document.createElement('div');
+  card.className = 'task-card';
+  const pct = Math.min(100, Math.round((t.completedSlots / t.totalSlots) * 100));
+  const typeLabel = TASK_TYPES[t.type]?.label || t.type;
+  const posterInitial = (t.ownerName || '?').replace('@', '')[0]?.toUpperCase() || '?';
+
+  card.innerHTML = `
+    <div class="task-reward-stamp">+${TASK_COMPLETE_REWARD_TC} TC</div>
+    <div class="task-card-clip">
+    <div class="task-body">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+        ${t.ownerName ? `
+        <div class="task-poster" data-action="viewposter" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0">
+          <div class="task-poster-avatar">
+            <span class="avatar-fallback">${posterInitial}</span>
+            ${t.ownerId ? `<img class="avatar-img" data-fallback="1" loading="lazy" src="/api/image-proxy?tgUserId=${t.ownerId}" />` : ''}
+          </div>
+          <span style="font-size:12px;color:var(--text-muted);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(t.ownerName)}</span>
+          ${t.createdAt ? `<span class="task-posted-at">${timeAgo(t.createdAt)}</span>` : ''}
+        </div>` : '<div style="flex:1"></div>'}
+        ${t.ownerId && !t.isOwner && me && t.ownerId !== me.telegramId ? `
+        <button type="button" class="btn ${t.isFollowedByMe ? 'btn-outline' : 'btn-primary'} btn-sm follow-chip" data-action="follow" style="flex-shrink:0;padding:4px 11px;font-size:11.5px">${t.isFollowedByMe ? 'Following ✓' : '+ Follow'}</button>` : ''}
+        ${t.isOwner ? `
+        <div class="task-owner-menu">
+          <button type="button" class="kebab-btn" data-action="kebab">⋮</button>
+          <div class="kebab-dropdown" data-role="kebab-dropdown">
+            <button type="button" class="kebab-item" data-action="copyid">📋 Copy Task ID</button>
+            <button type="button" class="kebab-item danger" data-action="deletepost">🗑 Delete Post</button>
+          </div>
+        </div>` : ''}
+      </div>
+      <span class="task-type-badge">${typeLabel}</span>
+      <div class="task-title">${escapeHtml(t.title)}</div>
+      ${t.description ? `<div class="task-desc">${escapeHtml(t.description)}</div>` : ''}
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-label">${t.completedSlots} / ${t.totalSlots} claimed</div>
+      <div class="ticket-perf"></div>
+      <div class="task-footer">
+        <div class="vote-widget">
+          <button class="vote-btn like ${t.likedByMe ? 'active' : ''}" data-action="like">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 4l6.5 7.5H12V16H8v-4.5H3.5L10 4z"/></svg>
+            <span data-role="like-count">${t.likes}</span>
+          </button>
+          <div class="vote-divider"></div>
+          <button class="vote-btn dislike ${t.dislikedByMe ? 'active' : ''}" data-action="dislike">
+            <svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 16l-6.5-7.5H8V4h4v4.5h4.5L10 16z"/></svg>
+            <span data-role="dislike-count">${t.dislikes}</span>
+          </button>
+        </div>
+        <div style="flex:1"></div>
+        <button class="btn btn-primary btn-sm redeem-btn" data-action="complete" ${t.alreadyCompletedByMe ? 'disabled' : ''}>
+          ${t.alreadyCompletedByMe ? 'Redeemed ✓' : 'Redeem'}
+        </button>
+      </div>
+    </div>
+    </div>`;
+
+  wireAvatarFallbacks(card);
+  card.querySelector('[data-action="like"]').addEventListener('click', () => react(t._id, 'like', card));
+  card.querySelector('[data-action="dislike"]').addEventListener('click', () => react(t._id, 'dislike', card));
+  card.querySelector('[data-action="complete"]').addEventListener('click', (e) => completeTaskFlow(t, e.target));
+  const posterEl = card.querySelector('[data-action="viewposter"]');
+  if (posterEl && t.ownerId) posterEl.addEventListener('click', () => openUserProfile(t.ownerId));
+
+  const followBtn = card.querySelector('[data-action="follow"]');
+  if (followBtn && t.ownerId) {
+    followBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      followBtn.disabled = true;
+      const res = await callApi('toggleFollow', { targetTelegramId: t.ownerId });
+      followBtn.disabled = false;
+      if (!res.ok) { toast('Could not update follow status'); return; }
+      t.isFollowedByMe = res.following;
+      followBtn.textContent = res.following ? 'Following ✓' : '+ Follow';
+      followBtn.className = res.following ? 'btn btn-outline btn-sm follow-chip' : 'btn btn-primary btn-sm follow-chip';
+    });
+  }
+
+  if (t.isOwner) {
+    const kebabBtn = card.querySelector('[data-action="kebab"]');
+    const dropdown = card.querySelector('[data-role="kebab-dropdown"]');
+    kebabBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = dropdown.classList.contains('show');
+      closeAllKebabMenus();
+      if (!wasOpen) dropdown.classList.add('show');
+    });
+    card.querySelector('[data-action="copyid"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      closeAllKebabMenus();
+      try {
+        await navigator.clipboard.writeText(String(t._id));
+        toast('Task ID copied');
+      } catch (err) {
+        toast(String(t._id));
+      }
+    });
+    card.querySelector('[data-action="deletepost"]').addEventListener('click', (e) => {
+      e.stopPropagation();
+      closeAllKebabMenus();
+      const doDelete = async () => {
+        const res = await callApi('deleteTask', { taskId: t._id });
+        if (!res.ok) { toast(res.error === 'not_owner' ? 'You can only delete your own posts' : 'Could not delete post'); return; }
+        card.remove();
+        toast('Post deleted');
+        if (me) { me.postCount = Math.max(0, (me.postCount || 1) - 1); }
+        document.getElementById('profilePosts').textContent = document.getElementById('profilePosts').textContent
+          ? Math.max(0, Number(document.getElementById('profilePosts').textContent) - 1) : 0;
+      };
+      if (tg?.showConfirm) {
+        tg.showConfirm('Delete this post permanently? This cannot be undone.', (confirmed) => { if (confirmed) doDelete(); });
+      } else if (window.confirm('Delete this post permanently? This cannot be undone.')) {
+        doDelete();
+      }
+    });
+  }
+
+  return card;
+}
+
+function closeAllKebabMenus() {
+  document.querySelectorAll('.kebab-dropdown.show').forEach((el) => el.classList.remove('show'));
+}
+document.addEventListener('click', closeAllKebabMenus);
+
+function timeAgo(dateInput) {
+  if (!dateInput) return '';
+  const then = new Date(dateInput).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════════════════════
+// AVATARS — real Telegram profile photo via /api/image-proxy,
+// falling back to an initials circle if the user has none (or
+// the fetch fails for any reason).
+// ═══════════════════════════════════════════════════════════
+
+/** Sets a by-id avatar container (profileAvatar / vpAvatar) to a real photo, keeping the initial as fallback. */
+function setAvatarImage(containerId, telegramId, fallbackChar) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = `<span class="avatar-fallback">${escapeHtml(fallbackChar || '?')}</span>`;
+  if (!telegramId) return;
+  const img = document.createElement('img');
+  img.className = 'avatar-img';
+  img.loading = 'lazy';
+  img.src = `/api/image-proxy?tgUserId=${telegramId}`;
+  img.addEventListener('error', () => img.remove(), { once: true });
+  el.appendChild(img);
+}
+
+/** For avatars rendered inline via template string (e.g. feed card poster) — wires the error fallback after insertion. */
+function wireAvatarFallbacks(container) {
+  container.querySelectorAll('img.avatar-img[data-fallback]').forEach((img) => {
+    img.addEventListener('error', () => img.remove(), { once: true });
+  });
+}
+
+async function react(taskId, reaction, card) {
+  const res = await callApi('reactToTask', { taskId, reaction });
+  if (!res.ok) { toast('Could not react'); return; }
+  const likeBtn = card.querySelector('[data-action="like"]');
+  const dislikeBtn = card.querySelector('[data-action="dislike"]');
+  likeBtn.querySelector('[data-role="like-count"]').textContent = res.likes;
+  dislikeBtn.querySelector('[data-role="dislike-count"]').textContent = res.dislikes;
+  if (reaction === 'like') { likeBtn.classList.toggle('active'); dislikeBtn.classList.remove('active'); }
+  else { dislikeBtn.classList.toggle('active'); likeBtn.classList.remove('active'); }
+}
+
+async function completeTaskFlow(task, btn) {
+  if (TASK_TYPES[task.type]?.apiVerify) {
+    if (tg?.openTelegramLink) tg.openTelegramLink(`https://t.me/${task.link.replace('@', '')}`);
+  } else {
+    if (tg?.openLink) tg.openLink(task.link); else window.open(task.link, '_blank');
+  }
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+  await new Promise((r) => setTimeout(r, 1500));
+  const res = await callApi('completeTask', { taskId: task._id });
+  if (!res.ok) {
+    const msg = { not_joined: 'You need to join first, then tap Complete again', already_completed: 'Already completed', verification_failed: 'Could not verify — try again' }[res.error] || 'Could not complete task';
+    toast(msg);
+    btn.disabled = false;
+    btn.textContent = 'Complete';
+    return;
+  }
+  setBalance(res.newBalance);
+  btn.textContent = 'Done ✓';
+  toast(`+${res.reward} TC earned!`);
+}
+
+// ═══════════════════════════════════════════════════════════
+// POST — sheet + category actionsheet
+// ═══════════════════════════════════════════════════════════
+let selectedType = null;
+
+function renderCategoryList() {
+  const list = document.getElementById('categoryList');
+  list.innerHTML = '';
+  Object.entries(TASK_TYPES).forEach(([key, cfg]) => {
+    const item = document.createElement('div');
+    item.className = 'category-item';
+    const dotColor = cfg.apiVerify ? 'var(--success)' : 'var(--text-faint)';
+    item.innerHTML = `<span style="display:flex;align-items:center;gap:9px"><span style="width:7px;height:7px;border-radius:50%;background:${dotColor};flex-shrink:0"></span><span>${cfg.label}<div class="category-item-sub">${cfg.sub}</div></span></span>`;
+    item.addEventListener('click', () => {
+      selectedType = key;
+      document.getElementById('categoryPickerLabel').textContent = cfg.label;
+      document.getElementById('targetField').style.display = cfg.apiVerify ? 'block' : 'none';
+      document.getElementById('adultWarning').style.display = key === 'direct_link' ? 'block' : 'none';
+      closeModal('categorySheet');
+    });
+    list.appendChild(item);
+  });
+}
+
+function wirePostForm() {
+  document.getElementById('openPostBtn').addEventListener('click', () => openModal('postModal'));
+  document.getElementById('categoryPickerBtn').addEventListener('click', () => openModal('categorySheet'));
+
+  const slotsInput = document.getElementById('postSlots');
+  const updateSlotCost = () => { document.getElementById('slotCost').textContent = slotsInput.value; };
+  document.getElementById('slotMinus').addEventListener('click', () => { slotsInput.value = Math.max(50, Number(slotsInput.value) - 50); updateSlotCost(); });
+  document.getElementById('slotPlus').addEventListener('click', () => { slotsInput.value = Number(slotsInput.value) + 50; updateSlotCost(); });
+  slotsInput.addEventListener('input', updateSlotCost);
+
+  document.getElementById('postSubmitBtn').addEventListener('click', submitPost);
+
+  const descEl = document.getElementById('postDescription');
+  const countEl = document.getElementById('descWordCount');
+  descEl.addEventListener('input', () => {
+    // Strip forbidden symbols as the user types, rather than rejecting only on submit
+    const cleaned = descEl.value.replace(/[#@&]/g, '');
+    if (cleaned !== descEl.value) descEl.value = cleaned;
+    const words = descEl.value.trim().split(/\s+/).filter(Boolean);
+    countEl.textContent = words.length;
+    countEl.style.color = words.length > 80 ? 'var(--danger)' : '';
+  });
+}
+
+async function submitPost() {
+  const title = document.getElementById('postTitle').value.trim();
+  const link = document.getElementById('postLink').value.trim();
+  const target = document.getElementById('postTarget').value.trim();
+  const slots = Number(document.getElementById('postSlots').value);
+  const description = document.getElementById('postDescription').value.trim();
+  const descWordCount = description.split(/\s+/).filter(Boolean).length;
+
+  if (!selectedType) { toast('Choose a category'); return; }
+  if (!title) { toast('Enter a title'); return; }
+  if (!link) { toast('Enter a link'); return; }
+  if (TASK_TYPES[selectedType].apiVerify && !target) { toast('Enter the channel/group username'); return; }
+  if (slots < 50 || slots % 50 !== 0) { toast('Slots must be a multiple of 50'); return; }
+  if (descWordCount > 80) { toast('Description must be 80 words or less'); return; }
+  if (/(https?:\/\/|www\.|t\.me\/|\.(com|net|org|io|xyz|gg|app)\b)/i.test(description)) {
+    toast('Description can\'t contain links — use the Link field instead');
+    return;
+  }
+
+  const btn = document.getElementById('postSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  const res = await callApi('postTask', {
+    type: selectedType, title, link,
+    targetChatId: target || undefined,
+    totalSlots: slots,
+    description: description || undefined,
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Submit for review';
+
+  if (!res.ok) {
+    const msg = {
+      insufficient_balance: 'Not enough TC balance',
+      daily_limit_reached: 'You already posted 3 tasks today',
+      below_minimum: 'Minimum 50 slots required',
+      not_multiple_of_50: 'Slots must be a multiple of 50',
+      banned: 'Your account is banned',
+      description_too_long: 'Description must be 80 words or less',
+      description_has_link: 'Description can\'t contain links — use the Link field instead',
+      description_has_symbol: 'Description can\'t contain # @ or & symbols',
+    }[res.error] || 'Could not post task';
+    toast(msg);
+    return;
+  }
+
+  toast('Submitted! Waiting for admin approval.');
+  document.getElementById('postTitle').value = '';
+  document.getElementById('postLink').value = '';
+  document.getElementById('postTarget').value = '';
+  document.getElementById('postDescription').value = '';
+  document.getElementById('descWordCount').textContent = '0';
+  document.getElementById('postSlots').value = 50;
+  document.getElementById('slotCost').textContent = 50;
+  document.getElementById('categoryPickerLabel').textContent = 'Choose category';
+  selectedType = null;
+  document.getElementById('targetField').style.display = 'none';
+  document.getElementById('adultWarning').style.display = 'none';
+  closeModal('postModal');
+
+  await loadMe();
+}
+
+// ═══════════════════════════════════════════════════════════
+// REFER
+// ═══════════════════════════════════════════════════════════
+function wireRefer() {
+  document.getElementById('shareRefBtn').addEventListener('click', () => {
+    if (!tgUser) return;
+    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join Coinly Task and grow your project — 100% free promotion!')}`;
+    if (tg?.openTelegramLink) tg.openTelegramLink(shareUrl); else window.open(shareUrl, '_blank');
+  });
+  document.getElementById('copyRefBtn').addEventListener('click', async () => {
+    if (!tgUser) return;
+    const link = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+    const copyBtn = document.getElementById('copyRefBtn');
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link);
+      } else {
+        // Fallback for older in-app WebViews without Clipboard API support
+        const ta = document.createElement('textarea');
+        ta.value = link;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      copyBtn.textContent = 'Copied!';
+      copyBtn.classList.add('copied');
+      toast('Referral link copied!');
+    } catch (e) {
+      toast('Could not copy — long-press the link to copy manually.');
+    }
+    setTimeout(() => {
+      copyBtn.textContent = 'Copy';
+      copyBtn.classList.remove('copied');
+    }, 2000);
+  });
+  if (tgUser) {
+    document.getElementById('referLinkBox').textContent = `https://t.me/Coinlytix_bot/GrowingUp?startapp=ref_${tgUser.id}`;
+  }
+}
+
+async function loadLeaderboard() {
+  const container = document.getElementById('leaderboardList');
+  const res = await callApi('getLeaderboard');
+  if (!res.ok || res.leaderboard.length === 0) {
+    container.innerHTML = emptyState('No referrals yet', 'Be the first on the leaderboard!');
+    return;
+  }
+  container.innerHTML = '';
+  res.leaderboard.forEach((u) => {
+    const row = document.createElement('div');
+    row.className = 'leaderboard-row';
+    row.innerHTML = `
+      <div class="lb-rank ${u.rank <= 3 ? 'top3' : ''}">${u.rank}</div>
+      <div class="lb-name">${escapeHtml(u.name)}</div>
+      <div class="lb-count">${u.referralCount}</div>`;
+    container.appendChild(row);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROFILE
+// ═══════════════════════════════════════════════════════════
+const ADMIN_CONTACT_URL = 'https://t.me/Coinlytask';
+function wireProfile() {
+  document.getElementById('contactAdminBtn').addEventListener('click', () => {
+    if (tg?.openTelegramLink) tg.openTelegramLink(ADMIN_CONTACT_URL); else window.open(ADMIN_CONTACT_URL, '_blank');
+  });
+}
+
+function renderProfileHead() {
+  if (!tgUser) return;
+  setAvatarImage('profileAvatar', tgUser.id, (tgUser.first_name || '?')[0].toUpperCase());
+  document.getElementById('profileName').textContent = tgUser.username ? '@' + tgUser.username : tgUser.first_name;
+  document.getElementById('profileId').textContent = `ID: ${tgUser.id}`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// VIEW ANOTHER USER'S PROFILE (from a task card's poster row)
+// ═══════════════════════════════════════════════════════════
+let viewingProfileId = null;
+
+async function openUserProfile(targetTelegramId) {
+  if (tgUser && targetTelegramId === tgUser.id) {
+    // Viewing your own — just switch to the Profile tab instead of a modal
+    document.querySelector('.tab-btn[data-tab="profile"]').click();
+    return;
+  }
+  viewingProfileId = targetTelegramId;
+  openModal('viewProfileModal');
+  document.getElementById('vpName').textContent = 'Loading…';
+  document.getElementById('vpFollowers').textContent = '—';
+  document.getElementById('vpTasks').textContent = '—';
+  document.getElementById('vpCompleted').textContent = '—';
+  document.getElementById('vpRefers').textContent = '—';
+
+  const res = await callApi('getProfile', { targetTelegramId });
+  if (!res.ok) { toast('Could not load profile'); closeModal('viewProfileModal'); return; }
+
+  const p = res.profile;
+  const displayName = p.username ? '@' + p.username : p.firstName || 'User';
+  setAvatarImage('vpAvatar', p.telegramId, displayName.replace('@', '')[0]?.toUpperCase() || '?');
+  document.getElementById('vpName').textContent = displayName;
+  document.getElementById('vpId').textContent = `ID: ${p.telegramId}`;
+  document.getElementById('vpFollowers').textContent = p.followerCount;
+  document.getElementById('vpTasks').textContent = p.postCount;
+  document.getElementById('vpCompleted').textContent = p.completedCount;
+  document.getElementById('vpRefers').textContent = p.referralCount;
+
+  const followBtn = document.getElementById('vpFollowBtn');
+  followBtn.textContent = p.isFollowedByMe ? 'Following ✓' : 'Follow';
+  followBtn.className = p.isFollowedByMe ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
+}
+
+document.getElementById('vpFollowBtn').addEventListener('click', async () => {
+  if (!viewingProfileId) return;
+  const res = await callApi('toggleFollow', { targetTelegramId: viewingProfileId });
+  if (!res.ok) { toast('Could not update follow status'); return; }
+  const followBtn = document.getElementById('vpFollowBtn');
+  followBtn.textContent = res.following ? 'Following ✓' : 'Follow';
+  followBtn.className = res.following ? 'btn btn-outline btn-sm' : 'btn btn-primary btn-sm';
+  document.getElementById('vpFollowers').textContent = res.followerCount;
+});
+
+async function loadProfileTasks() {
+  const res = await callApi('getProfile', {});
+  const container = document.getElementById('profileTasks');
+  if (!res.ok) { container.innerHTML = emptyState('Could not load profile', ''); return; }
+  document.getElementById('profilePosts').textContent = res.profile.postCount;
+  document.getElementById('profileCompleted').textContent = res.profile.completedCount;
+  document.getElementById('profileRefs').textContent = res.profile.referralCount;
+  document.getElementById('profileFollowers').textContent = res.profile.followerCount;
+  if (res.profile.tasks.length === 0) { container.innerHTML = emptyState('No live tasks', 'Tasks you post will show up here once approved.'); return; }
+  container.innerHTML = '';
+  res.profile.tasks.forEach((t) => container.appendChild(renderTaskCard({ ...t, likedByMe: false, dislikedByMe: false, alreadyCompletedByMe: true, isOwner: true })));
+}
+
+function renderQuota() {
+  const today = new Date().toISOString().slice(0, 10);
+  const used = me?.tasksToday?.date === today ? me.tasksToday.count : 0;
+  document.getElementById('quotaVal').textContent = `${used} / 3`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Mandatory join gate — runs once at startup, before the app is shown
+// ═══════════════════════════════════════════════════════════
+function renderJoinGateList(channels) {
+  const list = document.getElementById('joinGateList');
+  list.innerHTML = '';
+  channels.forEach((ch) => {
+    const row = document.createElement('div');
+    row.className = 'join-gate-row';
+    row.innerHTML = `
+      <span class="join-gate-row-label">${escapeHtml(ch.label)}</span>
+      <span class="join-gate-row-check">${ch.joined ? '✅' : ''}</span>
+    `;
+    if (!ch.joined) {
+      const joinBtn = document.createElement('button');
+      joinBtn.type = 'button';
+      joinBtn.className = 'btn btn-primary btn-sm';
+      joinBtn.textContent = 'Join';
+      joinBtn.addEventListener('click', () => {
+        if (tg?.openTelegramLink) tg.openTelegramLink(ch.url);
+        else window.open(ch.url, '_blank');
+      });
+      row.querySelector('.join-gate-row-check').replaceWith(joinBtn);
+    }
+    list.appendChild(row);
+  });
+}
+
+async function checkJoinGate() {
+  const note = document.getElementById('joinGateNote');
+  const verifyBtn = document.getElementById('joinGateVerifyBtn');
+  verifyBtn.disabled = true;
+  verifyBtn.textContent = 'Checking…';
+  const res = await callApi('checkForceJoin');
+  verifyBtn.disabled = false;
+  verifyBtn.textContent = "✅ I've joined — Verify";
+
+  if (!res.ok) {
+    note.textContent = 'Could not check membership — check your connection and try again.';
+    return;
+  }
+  renderJoinGateList(res.channels);
+
+  if (res.allJoined) {
+    note.textContent = '';
+    document.getElementById('joinGateScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    await boot();
+    return;
+  }
+
+  const anyCheckFailed = res.channels.some((c) => c.checkFailed);
+  note.textContent = anyCheckFailed
+    ? "Membership couldn't be verified for one or more channels — make sure you've joined, then try again."
+    : "Join both above, then tap Verify.";
+}
+
+function startJoinGate() {
+  document.getElementById('joinGateScreen').style.display = 'flex';
+  document.getElementById('joinGateVerifyBtn').addEventListener('click', checkJoinGate);
+  checkJoinGate();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Actually start the app — placed last so every const/let/function
+// above this line is fully initialized before boot() runs.
+// ═══════════════════════════════════════════════════════════
+if (!tg || !initData) {
+  document.getElementById('lockScreen').style.display = 'flex';
+} else {
+  tg.ready();
+  tg.expand();
+  startJoinGate();
+}
+</script>
+</body>
+</html>
