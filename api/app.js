@@ -85,7 +85,6 @@ export default async function handler(req, res) {
           link: payload.link,
           targetChatId: payload.targetChatId,
           totalSlots: Number(payload.totalSlots),
-          photoUrl: payload.photoUrl,
           description: payload.description,
         });
         return res.status(200).json(result);
@@ -167,4 +166,4 @@ export default async function handler(req, res) {
     console.error('[api/app] error:', err);
     return res.status(500).json({ ok: false, error: 'server_error' });
   }
-                                         }
+}
