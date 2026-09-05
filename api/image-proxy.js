@@ -1,109 +1,94 @@
-// api/image-proxy.js — Fetches an externally-hosted task photo server-side
-// and streams it back from our own domain.
+// api/image-proxy.js — Serves a user's real Telegram profile photo from our
+// own domain, so the frontend can just do <img src="/api/image-proxy?tgUserId=123">.
 //
-// WHY THIS EXISTS: task photoUrl is a raw link the poster pastes in
-// (free image hosts — imgbb, postimg, etc.). Many of those hosts block
-// "hotlinking": they check the Referer header on the request and refuse
-// to serve the image if it wasn't requested by their own site. When the
-// browser loads <img src="that-url">, it sends our app's domain as the
-// Referer → blocked → the "Image unavailable" fallback in index.html
-// kicks in. Telegram doesn't have this problem because Telegram's own
-// servers fetch the photo (via tgSendPhoto) before showing it in the bot
-// — no browser, no Referer, no block. This function does the same thing:
-// fetch server-side, then serve the bytes from our own domain so the
-// browser's <img> never talks to the original host directly.
+// WHY THIS EXISTS (and why it's safe, unlike the old task-photo version):
+// Telegram profile photos live on Telegram's file servers behind a URL that
+// embeds our bot token (https://api.telegram.org/file/bot<TOKEN>/<path>) —
+// that URL can NEVER be sent to the client directly, or anyone could use it
+// to call our bot's API. So we fetch the bytes here, server-side, using the
+// token privately, and stream them back from our own domain instead.
 //
-// SECURITY: a public "fetch any URL" endpoint is an SSRF risk if left
-// unrestricted (e.g. someone pointing it at internal infra or a cloud
-// metadata endpoint). Restrictions below:
-//   1. http/https only
-//   2. blocks private/loopback/link-local hostnames
-//   3. response must actually be an image (Content-Type check)
-//   4. response size capped
-//   5. fetch has a timeout
-//   6. aggressively cached at the edge, so the same photo isn't re-fetched
-//      (and re-billed as a function invocation) on every feed view
+// There's no SSRF risk here (unlike the old arbitrary-URL proxy this file
+// used to be): the only host we ever fetch from is api.telegram.org, never
+// a user-supplied URL.
+//
+// No binary data is ever written to MongoDB — this endpoint doesn't touch
+// the database at all. The image bytes are cached at the edge/browser via
+// Cache-Control below, so the same avatar isn't re-fetched from Telegram
+// (and re-invoked as a function call) on every feed scroll.
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5MB
-const FETCH_TIMEOUT_MS = 8000;
+import { getUserAvatarFileId, getFileDownloadUrl, tgApi } from '../lib/telegram.js';
 
-function isBlockedHost(hostname) {
-  const h = hostname.toLowerCase();
-  if (h === 'localhost') return true;
-  const patterns = [
-    /^127\./, /^10\./, /^192\.168\./, /^169\.254\./, /^0\./,
-    /^172\.(1[6-9]|2\d|3[01])\./,
-    /^::1$/, /^\[::1\]$/,
-  ];
-  return patterns.some((re) => re.test(h));
-}
+const FETCH_TIMEOUT_MS = 3500; // kept tight — combined with the 3s+3s budget in
+// getUserAvatarFileId/getFileDownloadUrl, worst case stays under Vercel Hobby's
+// 10s hard function timeout instead of getting silently killed by the platform.
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ ok: false, error: 'method_not_allowed' });
   }
 
-  const raw = req.query.url;
-  if (!raw || typeof raw !== 'string') {
-    return res.status(400).json({ ok: false, error: 'missing_url' });
+  const tgUserId = Number(req.query.tgUserId);
+  if (!Number.isFinite(tgUserId)) {
+    return res.status(400).json({ ok: false, error: 'missing_or_invalid_tgUserId' });
   }
 
-  let target;
-  try {
-    target = new URL(raw);
-  } catch {
-    return res.status(400).json({ ok: false, error: 'invalid_url' });
-  }
-
-  if (target.protocol !== 'http:' && target.protocol !== 'https:') {
-    return res.status(400).json({ ok: false, error: 'invalid_protocol' });
-  }
-  if (isBlockedHost(target.hostname)) {
-    return res.status(400).json({ ok: false, error: 'blocked_host' });
-  }
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
-  try {
-    const upstream = await fetch(target.toString(), {
-      signal: controller.signal,
-      redirect: 'follow',
-      headers: {
-        // Deliberately NOT forwarding our app's Referer — that's the
-        // whole point of this proxy.
-        'User-Agent': 'Mozilla/5.0 (compatible; CoinlyTaskImageProxy/1.0)',
-      },
+  // ── Debug mode ─────────────────────────────────────────────
+  // Visit /api/image-proxy?tgUserId=123&debug=1 directly in a normal phone
+  // browser (outside Telegram) to see EXACTLY what Telegram's API says for
+  // that user — no Vercel log access needed. Temporary diagnostic aid;
+  // safe to leave in (read-only, no token/secret is ever exposed by it).
+  if (req.query.debug === '1') {
+    const photosRes = await tgApi('getUserProfilePhotos', { user_id: tgUserId, limit: 1 }, 5000);
+    return res.status(200).json({
+      ok: true,
+      tgUserId,
+      telegramApiResponse: photosRes,
+      interpretation: !photosRes.ok
+        ? 'Telegram API call itself failed — check "description" above (often means BOT_TOKEN is wrong/missing).'
+        : photosRes.result?.total_count > 0
+        ? 'User HAS a visible profile photo — avatar should load. If it still doesn\'t, the problem is in the getFile/download step, not here.'
+        : 'Telegram says this user has NO visible profile photo for this bot (either they have none set, or their privacy settings hide it from bots).',
     });
+  }
+
+  try {
+    const fileId = await getUserAvatarFileId(tgUserId);
+    if (!fileId) {
+      // No profile photo (or hidden by privacy settings) — 404 so the
+      // frontend's <img onerror> falls back to the initials avatar.
+      console.warn(`[image-proxy] no avatar file_id for tgUserId=${tgUserId}`);
+      return res.status(404).json({ ok: false, error: 'no_avatar' });
+    }
+
+    const fileUrl = await getFileDownloadUrl(fileId);
+    if (!fileUrl) {
+      console.warn(`[image-proxy] getFile failed for tgUserId=${tgUserId}, fileId=${fileId}`);
+      return res.status(404).json({ ok: false, error: 'no_avatar' });
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+
+    const upstream = await fetch(fileUrl, { signal: controller.signal });
     clearTimeout(timeout);
 
     if (!upstream.ok) {
-      return res.status(502).json({ ok: false, error: 'upstream_error', status: upstream.status });
-    }
-
-    const contentType = upstream.headers.get('content-type') || '';
-    if (!contentType.startsWith('image/')) {
-      return res.status(415).json({ ok: false, error: 'not_an_image' });
-    }
-
-    const declaredLength = Number(upstream.headers.get('content-length') || 0);
-    if (declaredLength && declaredLength > MAX_BYTES) {
-      return res.status(413).json({ ok: false, error: 'too_large' });
+      return res.status(404).json({ ok: false, error: 'no_avatar' });
     }
 
     const buf = Buffer.from(await upstream.arrayBuffer());
-    if (buf.length > MAX_BYTES) {
-      return res.status(413).json({ ok: false, error: 'too_large' });
-    }
 
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, stale-while-revalidate=86400');
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
+    // 1h browser cache, 1 day edge cache — avatars change rarely, and this
+    // keeps us from hammering Telegram's API on every feed load.
+    res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=43200');
     return res.status(200).send(buf);
   } catch (err) {
-    clearTimeout(timeout);
     if (err.name === 'AbortError') {
       return res.status(504).json({ ok: false, error: 'timeout' });
     }
+    console.error('[image-proxy] error:', err.message);
     return res.status(502).json({ ok: false, error: 'fetch_failed' });
   }
 }
