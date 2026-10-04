@@ -12,7 +12,7 @@ import { createUserDoc } from '../lib/schema.js';
 import { postTask } from '../lib/taskService.js';
 import { claimAd, claimDailySpin, claimLoginStreak } from '../lib/engagement.js';
 import { redeemPromoCode } from '../lib/promoService.js';
-import { completeTask, getFeed, reactToTask, getProfile, getReferralLeaderboard, toggleFollow, deleteOwnTask, checkForceJoin } from '../lib/feedService.js';
+import { completeTask, getFeed, reactToTask, getProfile, getReferralLeaderboard, toggleFollow, deleteOwnTask, checkForceJoin, payReferralOnSignup } from '../lib/feedService.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -61,6 +61,7 @@ export default async function handler(req, res) {
           try {
             await db.collection('users').insertOne(newUser);
             user = newUser;
+            if (referredBy) await payReferralOnSignup(db, { referredUserId: telegramId, referrerId: referredBy });
           } catch (err) {
             // Duplicate key (11000) = a near-simultaneous request (e.g. bot
             // /start + Mini App open at almost the same moment) already
@@ -122,6 +123,7 @@ export default async function handler(req, res) {
           telegramId,
           limit: Number(payload.limit) || 20,
           skip: Number(payload.skip) || 0,
+          category: payload.category || 'all',
         });
         return res.status(200).json(result);
       }
